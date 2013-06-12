@@ -93,5 +93,29 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 <action android:name="android.bluetooth.device.action.ACL_DISCONNECTED"/>
             </intent-filter>
         </receiver>
+        <activity android:name=".ftp.BluetoothFtpActivity"
+            android:process="@string/process"
+            android:excludeFromRecents="true"
+            android:enabled="@bool/profile_supported_ftp"
+            android:theme="@*android:style/Theme.Holo.Dialog.Alert">
+            <intent-filter>
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+        <service
+            android:process="@string/process"
+            android:name=".ftp.BluetoothFtpService"
+            android:enabled="@bool/profile_supported_ftp" >
+       </service>
+        <receiver
+            android:process="@string/process"
+            android:enabled="@bool/profile_supported_ftp"
+            android:name=".ftp.BluetoothFtpReceiver">
+            <intent-filter>
+                <action android:name="android.bluetooth.adapter.action.STATE_CHANGED"/>
+                <action android:name="android.bluetooth.device.action.BOND_STATE_CHANGED"/>
+                <action android:name="android.bluetooth.device.action.ACL_DISCONNECTED"/>
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>
