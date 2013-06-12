@@ -8,6 +8,12 @@ LOCAL_SRC_FILES := \
 
 LOCAL_PACKAGE_NAME := BluetoothExt
 LOCAL_CERTIFICATE := platform
+LOCAL_JAVA_LIBRARIES := javax.obex
+LOCAL_JAVA_LIBRARIES += mms-common
+LOCAL_JAVA_LIBRARIES += telephony-common
+LOCAL_STATIC_JAVA_LIBRARIES := com.android.vcard
+
+LOCAL_REQUIRED_MODULES := libbluetooth_jni bluetooth.default
 
 LOCAL_PROGUARD_ENABLED := disabled
 
