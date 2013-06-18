@@ -29,10 +29,10 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-  package="qcom.android.bluetooth"
+  package="org.codeaurora.bluetooth"
   android:sharedUserId="android.uid.bluetooth">
 
-    <original-package android:name="qcom.android.bluetooth" />
+    <original-package android:name="org.codeaurora.bluetooth" />
 
     <uses-permission android:name="android.permission.ACCESS_BLUETOOTH_SHARE" />
     <uses-permission android:name="android.permission.BLUETOOTH" />
