@@ -26,7 +26,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package qcom.android.bluetooth.btcservice;
+package org.codeaurora.bluetooth.btcservice;
 
 import android.app.Service;
 import android.net.LocalServerSocket;

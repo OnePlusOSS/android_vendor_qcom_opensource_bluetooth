@@ -6,7 +6,7 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_SRC_FILES := \
         $(call all-java-files-under, src)
 
-LOCAL_PACKAGE_NAME := BluetoothQcom
+LOCAL_PACKAGE_NAME := BluetoothExt
 LOCAL_CERTIFICATE := platform
 
 LOCAL_PROGUARD_ENABLED := disabled
