@@ -40,7 +40,16 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.CONNECTIVITY_INTERNAL" />
     <uses-permission android:name="android.permission.BLUETOOTH_STACK" />
+    <uses-permission android:name="android.permission.READ_SMS"></uses-permission>
+    <uses-permission android:name="android.permission.WRITE_SMS"></uses-permission>
+    <uses-permission android:name="android.permission.BROADCAST_SMS"></uses-permission>
+    <uses-permission android:name="android.permission.RECEIVE_SMS"></uses-permission>
+    <uses-permission android:name="android.permission.SEND_SMS"></uses-permission>
+    <uses-permission android:name="android.permission.MMS_PUSH"></uses-permission>
+    <uses-permission android:name="com.android.email.permission.ACCESS_PROVIDER"/>
+    <uses-permission android:name="com.android.email.permission.READ_ATTACHMENT"/>
     <application>
+        <uses-library android:name="javax.obex" />
         <service
             android:name = ".btcservice.BTCService">
         </service>
@@ -58,6 +67,30 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 <action android:name="android.bluetooth.a2dp.profile.action.CONNECTION_STATE_CHANGED" />
                 <action android:name="android.bluetooth.a2dp.profile.action.PLAYING_STATE_CHANGED" />
                 <action android:name="android.bluetooth.input.profile.action.CONNECTION_STATE_CHANGED" />
+            </intent-filter>
+        </receiver>
+ <activity android:name=".map.BluetoothMasActivity"
+            android:process="@string/process"
+            android:excludeFromRecents="true"
+            android:enabled="@bool/profile_supported_map"
+            android:theme="@*android:style/Theme.Holo.Dialog.Alert">
+            <intent-filter>
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+        <service
+            android:process="@string/process"
+            android:enabled="@bool/profile_supported_map"
+            android:name=".map.BluetoothMasService" >
+        </service>
+        <receiver
+            android:process="@string/process"
+            android:enabled="@bool/profile_supported_map"
+            android:name=".map.BluetoothMasReceiver">
+            <intent-filter>
+                <action android:name="android.bluetooth.adapter.action.STATE_CHANGED"/>
+                <action android:name="android.bluetooth.device.action.BOND_STATE_CHANGED"/>
+                <action android:name="android.bluetooth.device.action.ACL_DISCONNECTED"/>
             </intent-filter>
         </receiver>
     </application>
