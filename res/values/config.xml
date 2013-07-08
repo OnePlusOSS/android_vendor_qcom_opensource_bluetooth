@@ -13,5 +13,6 @@
    limitations under the License.
 -->
 <resources>
+    <bool name="profile_supported_ftp">true</bool>
     <bool name="profile_supported_map">true</bool>
 </resources>
