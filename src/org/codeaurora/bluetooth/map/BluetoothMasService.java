@@ -803,15 +803,32 @@ public class BluetoothMasService extends Service {
             return initSocketOK;
         }
 
-        private final void closeSocket() throws IOException {
-            if (mConnSocket != null) {
-                mConnSocket.close();
-                mConnSocket = null;
-            }
-        }
+      private final void closeRfcommSocket(boolean server, boolean accept) throws IOException {
+          if (server == true) {
+            // Stop the possible trying to init serverSocket
+            mInterrupted = false;
+
+             if (mServerSocket != null) {
+                 mServerSocket.close();
+                 mServerSocket =null ;
+             }
+          }
+
+          if (accept == true) {
+             if (mConnSocket != null) {
+                 mConnSocket.close();
+                 mConnSocket = null;
+             }
+          }
+       }
 
         public void closeConnection() {
             if (VERBOSE) Log.v(TAG, "Mas connection closing");
+            try {
+                closeRfcommSocket(true, true);
+            } catch (IOException ex) {
+                Log.e(TAG, "CloseSocket error: " + ex);
+            }
 
             if (mAcceptThread != null) {
                 try {
@@ -829,11 +846,6 @@ public class BluetoothMasService extends Service {
                 mServerSession = null;
             }
 
-            try {
-                closeSocket();
-            } catch (IOException ex) {
-                Log.e(TAG, "CloseSocket error: " + ex);
-            }
             if (VERBOSE) Log.v(TAG, "Mas connection closed");
         }
 
@@ -875,7 +887,27 @@ public class BluetoothMasService extends Service {
         private void stopObexServerSession() {
             if (VERBOSE) Log.v(TAG, "Map Service stopObexServerSession ");
 
-            closeConnection();
+            try {
+                closeRfcommSocket(false, true);
+            } catch (IOException ex) {
+                Log.e(TAG, "CloseSocket error: " + ex);
+            }
+
+            if (mAcceptThread != null) {
+                try {
+                    mAcceptThread.shutdown();
+                    mAcceptThread.join();
+                } catch (InterruptedException ex) {
+                    Log.w(TAG, "mAcceptThread  close error" + ex);
+                } finally {
+                    mAcceptThread = null;
+                }
+            }
+
+            if (mServerSession != null) {
+                mServerSession.close();
+                mServerSession = null;
+            }
 
             // Last obex transaction is finished, we start to listen for incoming
             // connection again
@@ -904,28 +936,30 @@ public class BluetoothMasService extends Service {
             public void run() {
                 while (!stopped) {
                     try {
-                        BluetoothSocket connSocket = mServerSocket.accept();
+                        mConnSocket = mServerSocket.accept();
+                        if (mConnSocket == null) {
+                            Log.i(TAG, "CONNECTION SOCKET NULL");
+                            break;
+                        }
 
-                        BluetoothDevice device = connSocket.getRemoteDevice();
-                        mRemoteDevice = device;
-                        if (device == null) {
+                        mRemoteDevice = mConnSocket.getRemoteDevice();
+                        if (mRemoteDevice == null) {
                             Log.i(TAG, "getRemoteDevice() = null");
                             break;
                         }
-                        String remoteDeviceName = device.getName();
+                        String remoteDeviceName = mRemoteDevice.getName();
                         // In case getRemoteName failed and return null
                         if (TextUtils.isEmpty(remoteDeviceName)) {
                             remoteDeviceName = getString(R.string.defaultname);
                         }
 
-                        if (!mConnectionManager.isAllowedConnection(device)) {
-                            connSocket.close();
+                        if (!mConnectionManager.isAllowedConnection(mRemoteDevice)) {
+                            mConnSocket.close();
                             continue;
                         }
-                        mConnSocket = connSocket;
                         boolean trust = false;
                         if (trustDevices != null)
-                           trust = trustDevices.contains(device);
+                           trust = trustDevices.contains(mRemoteDevice);
                         if (VERBOSE) Log.v(TAG, "GetTrustState() = " + trust);
                         if (mIsRequestBeingNotified) {
                             if (VERBOSE) Log.v(TAG, "Request notification is still on going.");
@@ -938,7 +972,7 @@ public class BluetoothMasService extends Service {
                                         + remoteDeviceName + " automatically as trusted device");
                             }
                             try {
-                                startObexServerSession(device, mnsObj);
+                                startObexServerSession(mRemoteDevice, mnsObj);
                             } catch (IOException ex) {
                                 Log.e(TAG, "catch exception starting obex server session"
                                     + ex.toString());
@@ -946,7 +980,7 @@ public class BluetoothMasService extends Service {
                         } else {
                             if (VERBOSE) Log.v(TAG, "trust is false.");
                             mConnectionManager.setWaitingForConfirmation(mMasId);
-                            createMapNotification(device);
+                            createMapNotification(mRemoteDevice);
                             if (VERBOSE) Log.v(TAG, "incomming connection accepted from: "
                                 + remoteDeviceName);
                             mSessionStatusHandler.sendMessageDelayed(
@@ -968,14 +1002,6 @@ public class BluetoothMasService extends Service {
                 if (VERBOSE) Log.v(TAG, "AcceptThread shutdown for MAS id: " + mMasId);
                 stopped = true;
                 interrupt();
-                if (mServerSocket != null) {
-                    try {
-                        mServerSocket.close();
-                        mServerSocket = null;
-                    } catch (IOException e) {
-                        Log.e(TAG, "Failed to close socket", e);
-                    }
-                }
             }
         }
     }

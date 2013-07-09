@@ -689,13 +689,6 @@ public class BluetoothMasAppEmail extends BluetoothMasAppIf {
                 String readStr, String name) throws BadRequestException {
         if (V) Log.v(TAG, " Before fromBmessageemail method:: "+readStr);
 
-        BmessageConsts bMsg = MapUtils.fromBmessageEmail(mContext,readStr,mMasId);
-        String address = bMsg.getRecipientVcard_email();
-        String text = bMsg.getBody_msg();
-        String subject = bMsg.getSubject();
-        String originator = bMsg.getOriginatorVcard_email();
-        String origName = bMsg.getOriginatorVcard_name();
-
         String fullPath = (name == null || name.length() == 0)
                 ? mCurrentPath : mCurrentPath + "/" + name;
         String splitStrings[] = fullPath.split("/");
@@ -711,6 +704,14 @@ public class BluetoothMasAppEmail extends BluetoothMasAppIf {
         } else {
             folderName = splitStrings[tmp - 1];
         }
+
+        BmessageConsts bMsg = MapUtils.fromBmessageEmail(mContext, readStr, mMasId, folderName);
+        String address = bMsg.getRecipientVcard_email();
+        String text = bMsg.getBody_msg();
+        String subject = bMsg.getSubject();
+        String originator = bMsg.getOriginatorVcard_email();
+        String origName = bMsg.getOriginatorVcard_name();
+
         if (!isAllowedEmailFolderForPush(folderName)) {
             rsp.msgHandle = null;
             rsp.response = ResponseCodes.OBEX_HTTP_FORBIDDEN;

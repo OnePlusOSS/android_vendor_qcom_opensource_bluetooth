@@ -140,25 +140,19 @@ public class EmailUtils {
         if (V){
             Log.v(TAG, ":: Message Id in getMessageSizeEmail ::"+ messageId);
         }
-        int msgSize = 0;
+        int msgSize = -1;
+        String[] EMAIL_MSGSIZE_PROJECTION = new String[] { "LENGTH(textContent)", "LENGTH(htmlContent)" };
         String textContent, htmlContent;
         Uri uri = Uri.parse("content://com.android.email.provider/body");
 
         Cursor cr = context.getContentResolver().query(
-                uri, null, "messageKey = "+ messageId , null, null);
+                uri, EMAIL_MSGSIZE_PROJECTION, "messageKey = "+ messageId , null, null);
 
         if (cr != null && cr.moveToFirst()) {
             do {
-                textContent = cr.getString(cr.getColumnIndex("textContent"));
-                htmlContent = cr.getString(cr.getColumnIndex("htmlContent"));
-                if(textContent != null && textContent.length() != 0){
-                    msgSize = textContent.length();
-                }
-                else if(textContent == null){
-                    if(htmlContent != null && htmlContent.length() != 0){
-                        msgSize = htmlContent.length();
-                    }
-                }
+                msgSize = cr.getInt(0);
+                if(msgSize == -1 || msgSize == 0)
+                   msgSize = cr.getInt(1);
                 break;
             } while (cr.moveToNext());
         }
