@@ -339,7 +339,7 @@ public class BluetoothFtpService extends Service {
             notifyAuthCancelled();
             removeAuthChallTimer();
             removeFtpNotification(NOTIFICATION_ID_ACCESS);
-        } else if (action.equals(BluetoothDevice.ACTION_ACL_DISCONNECTED)) {
+        } else if (action.equals(BluetoothDevice.ACTION_ACL_DISCONNECTED) && isWaitingAuthorization) {
             BluetoothDevice device =
                 intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
             if (device != null && device.equals(mRemoteDevice)) {
@@ -457,12 +457,14 @@ public class BluetoothFtpService extends Service {
 
             if (mRfcommServerSocket != null) {
                 mRfcommServerSocket.close();
+                mRfcommServerSocket =null ;
             }
         }
 
         if (accept == true) {
             if (mConnSocket != null) {
                 mConnSocket.close();
+                mConnSocket = null;
             }
         }
     }
@@ -489,9 +491,6 @@ public class BluetoothFtpService extends Service {
                 Log.w(TAG, "mAcceptThread close error" + ex);
             }
         }
-
-        mRfcommServerSocket = null;
-        mConnSocket = null;
 
         mHasStarted = false;
         if (stopSelfResult(mStartId)) {
@@ -557,7 +556,6 @@ public class BluetoothFtpService extends Service {
 
         try {
             closeRfcommSocket(false, true);
-            mConnSocket = null;
         } catch (IOException e) {
             Log.e(TAG, "closeSocket error: " + e.toString());
         }

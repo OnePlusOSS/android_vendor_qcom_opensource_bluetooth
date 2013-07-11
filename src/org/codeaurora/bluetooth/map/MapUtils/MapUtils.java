@@ -59,6 +59,7 @@ import static com.android.vcard.VCardConstants.PROPERTY_N;
 import static com.android.vcard.VCardConstants.PROPERTY_TEL;
 import static com.android.vcard.VCardConstants.VERSION_V21;
 import static com.android.vcard.VCardConstants.VERSION_V30;
+import static org.codeaurora.bluetooth.map.MapUtils.SmsMmsUtils.DRAFT;
 
 /**
  * MapUtils is a class of utility methods that provide routines for converting
@@ -920,7 +921,7 @@ public class MapUtils {
         String vCard = fetchRecipientVcard(bmsg);
 
         RecipientVCard recipient = parseVCard(vCard);
-        if (recipient.mTel.length() == 0) {
+        if (recipient.mTel.length() == 0 || recipient.mTel.contains(",") || recipient.mTel.contains(";")) {
             throw new BadRequestException("No TEL in vCard");
         }
         bMsgObj.setRecipientVcard_phone_number(recipient.mTel);
@@ -974,7 +975,8 @@ public class MapUtils {
         RecipientVCard recipient = parseVCard(vCard);
         if (recipient.mEmail.length() > 0) {
             phoneNumber = recipient.mEmail;
-        } else if (recipient.mTel.length() > 0) {
+        } else if (recipient.mTel.length() == 0 || recipient.mTel.contains(",")
+            || recipient.mTel.contains(";")) {
             phoneNumber = recipient.mTel;
         } else {
             throw new BadRequestException("No Email/Tel in vCard");
@@ -1024,13 +1026,13 @@ public class MapUtils {
      */
 
     public static BmessageConsts fromBmessageEmail(Context context,
-                        String bmsg, int mMasId) throws BadRequestException {
+                        String bmsg, int mMasId, String folderName) throws BadRequestException {
         BmessageConsts bMsgObj = new BmessageConsts();
         String vCard = fetchRecipientVcard(bmsg);
         if (V) Log.v(TAG, "vCard Info: " + vCard);
 
         RecipientVCard recipient = parseVCard(vCard);
-        if (recipient.mEmail.length() == 0) {
+        if (recipient.mEmail.length() == 0 && !(DRAFT.equalsIgnoreCase(folderName))) {
             throw new BadRequestException("No Email in recipient vCard");
         }
         bMsgObj.setRecipientVcard_email(recipient.mEmail);
