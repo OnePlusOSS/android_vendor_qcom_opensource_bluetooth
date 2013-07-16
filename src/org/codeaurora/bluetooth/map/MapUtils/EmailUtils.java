@@ -639,8 +639,17 @@ public class EmailUtils {
                 if (emailBody == null || emailBody.length() == 0){
                     String msgBody = cr2.getString(cr2.getColumnIndex("htmlContent"));
                     if (msgBody != null){
+                        msgBody = msgBody.replaceAll("(?s)(<title>)(.*?)(</title>)", "");
+                        msgBody = msgBody.replaceAll("(?s)(<style type=\"text/css\".*?>)(.*?)(</style>)", "");
                         CharSequence msgText = Html.fromHtml(msgBody);
                         emailBody = msgText.toString();
+                        // Wash comments added by Exchange
+                        emailBody = emailBody.replaceAll("(?s)(<!--)(.*?)(-->)", "");
+                        // Solves problem with Porche Car-kit and Gmails.
+                        // Changes unix style line conclusion to DOS style
+                        emailBody = emailBody.replaceAll("(?s)(\\r)", "");
+                        emailBody = emailBody.replaceAll("(?s)(\\n)", "\r\n");
+
                     }
                 }
             }
