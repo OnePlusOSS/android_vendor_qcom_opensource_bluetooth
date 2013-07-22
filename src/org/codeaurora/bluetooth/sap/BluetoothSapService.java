@@ -45,7 +45,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import android.bluetooth.BluetoothAdapter;
-import android.os.SystemService;
+import android.os.SystemProperties;
 import android.app.Service;
 import android.bluetooth.IBluetooth;
 import android.bluetooth.BluetoothServerSocket;
@@ -253,6 +253,11 @@ public class BluetoothSapService extends Service {
     public static final String EXTRA_BLUETOOTH_DEVICE =
                                    "org.codeaurora.bluetooth.sap.bluetoothdevice";
 
+    /**
+     * String signifies the SAP profile status
+     */
+    public static final String BLUETOOTH_SAP_PROFILE_STATUS = "bluetooth.sap.status";
+
     public static final ParcelUuid SAP = ParcelUuid.fromString(SAP_UUID);
 
     private static final Object mAcceptLock = new Object();
@@ -405,7 +410,7 @@ public class BluetoothSapService extends Service {
                 }
 
                 Log.v(TAG, "Starting SAP server process");
-                SystemService.start("bt-sap");
+                SystemProperties.set(BLUETOOTH_SAP_PROFILE_STATUS, "running");
 
                 mSapHandler.sendMessage(mSapHandler
                         .obtainMessage(MESSAGE_START_LISTENER));
@@ -422,7 +427,7 @@ public class BluetoothSapService extends Service {
 
                 if (mSapEnable) {
                     Log.v(TAG, "Stopping SAP server process");
-                    SystemService.stop("bt-sap");
+                    SystemProperties.set(BLUETOOTH_SAP_PROFILE_STATUS, "stopped");
 
                     synchronized(mConnection) {
                         try {
