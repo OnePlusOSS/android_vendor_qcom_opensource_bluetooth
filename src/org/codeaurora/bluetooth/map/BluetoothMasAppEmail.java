@@ -82,9 +82,9 @@ public class BluetoothMasAppEmail extends BluetoothMasAppIf {
 
     private ContentObserver mObserver;
     private static final int[] SPECIAL_MAILBOX_TYPES
-            = {TYPE_DELETED, TYPE_DRAFT, TYPE_INBOX, TYPE_OUTBOX, TYPE_SENT};
+            = {TYPE_INBOX, TYPE_DRAFT, TYPE_OUTBOX, TYPE_SENT, TYPE_DELETED};
     private static final String[] SPECIAL_MAILBOX_MAP_NAME
-            = {DELETED, DRAFT, INBOX, OUTBOX, SENT};
+            = {INBOX, DRAFT, OUTBOX, SENT, DELETED};
     private HashMap<Integer, String> mSpecialMailboxName = new HashMap<Integer, String>();
 
     public BluetoothMasAppEmail(Context context, Handler handler, BluetoothMns mnsClient,
@@ -160,7 +160,7 @@ public class BluetoothMasAppEmail extends BluetoothMasAppIf {
                 curType = SPECIAL_MAILBOX_TYPES[i];
                 if (V) Log.v(TAG, " getCompleteFolderList: Current Type: " + curType);
                 for (String str : list) {
-                    type = EmailUtils.getTypeForFolder(mContext, id, str);
+                    type = EmailUtils.getTypeForFolderAtPath(mContext, id, str);
                     if (V) Log.v(TAG, " getCompleteFolderList: type: " + type);
                     if (type == curType) {
                         if (V) Log.v(TAG, " getCompleteFolderList: removing folder : " + str);
@@ -170,16 +170,13 @@ public class BluetoothMasAppEmail extends BluetoothMasAppIf {
                 }
                 if (!list.contains(SPECIAL_MAILBOX_MAP_NAME[i])) {
                     if (V) Log.v(TAG, " getCompleteFolderList: adding default folder : "
-                        + SPECIAL_MAILBOX_MAP_NAME[i]);
-                    list.add(SPECIAL_MAILBOX_MAP_NAME[i]);
+                        + SPECIAL_MAILBOX_MAP_NAME[i] + "i:" + i);
+                    list.add(i,SPECIAL_MAILBOX_MAP_NAME[i]);
                 }
             }
             for (String str : list) {
-                type = EmailUtils.getTypeForFolder(mContext, id, str);
-                if (type <= ((EmailUtils.TYPE_DELETED) + 1)) {
                     if (V) Log.v(TAG, " getCompleteFolderList: Adding a valid folder:" + str);
                     finalList.add(str);
-                }
             }
         }
         else {
@@ -191,7 +188,6 @@ public class BluetoothMasAppEmail extends BluetoothMasAppIf {
                 String folderStr = str.substring(path.length()+ 1);
                 String folder[] = folderStr.split("/");
                 if(folder.length == 1){
-                    type = EmailUtils.getTypeForFolder(mContext, id, folder[0]);
                     if (V) Log.v(TAG, " getCompleteFolderList: Add Folder:" + folder[0]);
                     finalList.add(folder[0]);
                 }
@@ -502,6 +498,7 @@ public class BluetoothMasAppEmail extends BluetoothMasAppIf {
         if (accountId == -1) {
             accountId = EmailUtils.getAccountId(mMasId);
         }
+        String whereClause = "UPPER(displayName) = '"+folder.toUpperCase().trim()+"'";
         if (DRAFT.equalsIgnoreCase(folder)) {
             List<String> folders = EmailUtils.getFoldersForType(mContext, accountId,
                     EmailUtils.TYPE_DRAFT);
@@ -515,9 +512,9 @@ public class BluetoothMasAppEmail extends BluetoothMasAppIf {
             } else {
                 folder = folders.get(0);
             }
+            whereClause = "TYPE = '"+EmailUtils.TYPE_DRAFT+"'";
         }
 
-        String whereClause = "UPPER(displayName) = '"+folder.toUpperCase().trim()+"'";
         cr = mContext.getContentResolver().query(
                 Uri.parse("content://com.android.email.provider/mailbox"),
                 null, whereClause, null, null);

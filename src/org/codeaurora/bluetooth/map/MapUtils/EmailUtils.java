@@ -631,8 +631,6 @@ public class EmailUtils {
             StringBuilder sb = new StringBuilder();
             String emailBody = null;
 
-            //Set content type according to content from body table
-            String contenType = "text/plain";
             if (cr2.getCount() > 0) {
                 cr2.moveToFirst();
                 emailBody = cr2.getString(cr2.getColumnIndex("textContent"));
@@ -1052,6 +1050,21 @@ public class EmailUtils {
         sb.append(DISPLAY_NAME);
         sb.append("=");
         sb.append("'"+folderName+"'");
+        return SqlHelper.getFirstIntForColumn(context, EMAIL_BOX_URI, TYPE, sb.toString(), null);
+    }
+    public static int getTypeForFolderAtPath(Context context, long id, String path) {
+
+        if (V) Log.v(TAG, "getTypeForFolder: id = " + id + ", folderName = " + path);
+        StringBuilder sb = new StringBuilder();
+        if (id > 0) {
+            sb.append(ACCOUNT_KEY);
+            sb.append("=");
+            sb.append(id);
+            sb.append(" AND ");
+        }
+        sb.append(SERVER_ID);
+        sb.append("=");
+        sb.append("'"+path+"'");
         return SqlHelper.getFirstIntForColumn(context, EMAIL_BOX_URI, TYPE, sb.toString(), null);
     }
 }

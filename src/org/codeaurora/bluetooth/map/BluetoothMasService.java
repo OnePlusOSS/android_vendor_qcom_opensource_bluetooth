@@ -79,9 +79,6 @@ public class BluetoothMasService extends Service {
      */
     public static final boolean DEBUG = true;
     public static final boolean VERBOSE = true;
-  //  public static final boolean DEBUG = false;
-    //public static final boolean VERBOSE = false;
-
     /**
      * Intent indicating incoming connection request which is sent to
      * BluetoothMasActivity
@@ -423,6 +420,7 @@ public class BluetoothMasService extends Service {
                }
             }
 
+            removeTimeoutMsg = false;
         } else {
             removeTimeoutMsg = false;
         }
@@ -547,12 +545,12 @@ public class BluetoothMasService extends Service {
             getString(R.string.map_notif_ticker), System.currentTimeMillis());
         notification.setLatestEventInfo(this, getString(R.string.map_notif_ticker),
                 getString(R.string.map_notif_message, name), PendingIntent
-                        .getActivity(this, 0, clickIntent, 0));
+                        .getActivity(this, 0, clickIntent, PendingIntent.FLAG_ONE_SHOT));
 
         notification.flags |= Notification.FLAG_AUTO_CANCEL;
         notification.flags |= Notification.FLAG_ONLY_ALERT_ONCE;
         notification.defaults = Notification.DEFAULT_SOUND;
-        notification.deleteIntent = PendingIntent.getBroadcast(this, 0, deleteIntent, 0);
+        notification.deleteIntent = PendingIntent.getBroadcast(this, 0, deleteIntent, PendingIntent.FLAG_ONE_SHOT);
         nm.notify(NOTIFICATION_ID_ACCESS, notification);
 
 
@@ -766,7 +764,6 @@ public class BluetoothMasService extends Service {
             // It's possible that create will fail in some cases. retry for 10 times
             for (int i = 0; i < CREATE_RETRY_TIME && !mInterrupted; i++) {
                 try {
-                    //mServerSocket = mAdapter.listenUsingRfcommOn(mPortNum);
                     if(mPortNum == MAS1_PORT_NUM)
                        mServerSocket  = mAdapter.listenUsingRfcommWithServiceRecord("Email Message Access", MessageAccessServer.getUuid());
                     else
@@ -990,11 +987,9 @@ public class BluetoothMasService extends Service {
                         }
                         stopped = true; // job done ,close this thread;
                     } catch (IOException ex) {
-                        if (stopped) {
-                            break;
-                        }
                         if (VERBOSE)
                             Log.v(TAG, "Accept exception: " + ex.toString());
+                        stopped = true; // close this thread from exception.
                     }
                 }
             }
