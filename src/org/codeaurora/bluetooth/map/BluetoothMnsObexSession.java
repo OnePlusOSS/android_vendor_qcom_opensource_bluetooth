@@ -174,9 +174,7 @@ public class BluetoothMnsObexSession {
                          val);
         request.setHeader(HeaderSet.TYPE, TYPE_EVENT);
         request.setHeader(HeaderSet.APPLICATION_PARAMETER, ap.getAPPparam());
-
-        request.mConnectionID = new byte[4];
-        System.arraycopy(hsConnect.mConnectionID, 0, request.mConnectionID, 0, 4);
+        request.setHeader(HeaderSet.CONNECTION_ID, hsConnect.mConnectionID);
 
         ClientOperation putOperation = null;
         OutputStream outputStream = null;
