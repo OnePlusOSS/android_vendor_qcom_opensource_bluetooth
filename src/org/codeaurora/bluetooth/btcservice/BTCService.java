@@ -79,6 +79,8 @@ public class BTCService extends Service
     private static OutputStream mOutputStream = null;
     private static Thread mSocketAcceptThread;
     private static boolean mLocalConnectInitiated = false;
+    private static final boolean D = false/*Constants.DEBUG*/;
+    private static final boolean V = false/*Constants.VERBOSE*/;
     private static final Object mLock = new Object();
 
     public enum BTCEvent {
@@ -119,16 +121,16 @@ public class BTCService extends Service
         if (mSocket != null) {
             mSocket.close();
             mSocket = null;
-            Log.v(LOGTAG, "Server Socket closed");
+            if (V) Log.v(LOGTAG, "Server Socket closed");
         }
         if (mRemoteSocket != null) {
             mRemoteSocket.close();
             mRemoteSocket = null;
-            Log.v(LOGTAG, "Client Socket closed");
+            if (V) Log.v(LOGTAG, "Client Socket closed");
         }
         if( mSocketAcceptThread != null ) {
             mSocketAcceptThread.interrupt();
-            Log.v(LOGTAG, "Acceptor thread stopped");
+            if (V) Log.v(LOGTAG, "Acceptor thread stopped");
         }
     }
     }
@@ -142,9 +144,9 @@ public class BTCService extends Service
      *        -2 when there is issue while writing on client socket.
      */
     static public int sendEvent(BTCEvent event) {
-        Log.v(LOGTAG, "sendEvent: " + event.getValue());
+        if (V) Log.v(LOGTAG, "sendEvent: " + event.getValue());
         if (mRemoteSocket == null) {
-            Log.v(LOGTAG, "No Valid Connection" );
+            if(D) Log.d(LOGTAG, "No Valid Connection" );
             return -1;
         }
 
@@ -155,8 +157,8 @@ public class BTCService extends Service
             mOutputStream.write(buffer.array());
         }
         catch (java.io.IOException e) {
-            Log.e(LOGTAG, "Error while posting the event: " + event + "Error:" + e);
-            Log.e(LOGTAG, "connectoin is closed for Unknown reason, restart the acceptor thread ");
+            if (D) Log.d(LOGTAG, "Error while posting the event: " + event + "Error:" + e);
+            if (D) Log.d(LOGTAG, "connectoin is closed for Unknown reason, restart the acceptor thread ");
             startListener();
             return -2;
         }
@@ -176,7 +178,7 @@ public class BTCService extends Service
         public void run() {
         do {
            try {
-               Log.v(LOGTAG, "Waiting for connection...");
+               if (V) Log.v(LOGTAG, "Waiting for connection...");
                try {
                    mRemoteSocket = mSocket.accept();
                } catch (java.io.IOException e) {
@@ -187,7 +189,7 @@ public class BTCService extends Service
                if (mLocalConnectInitiated) {
                    //This is just a local connection
                    //to unblock the accept
-                   Log.e(LOGTAG, "Terminator in action: ");
+                   if (D) Log.d(LOGTAG, "Terminator in action: ");
                    cleanupService();
                    mLocalConnectInitiated = false;
                    return;
