@@ -772,8 +772,9 @@ public class BluetoothMasAppSmsMms extends BluetoothMasAppIf {
             String address = cr.getString(cr.getColumnIndex("address"));
 
             // Search the database for the given address
-            Cursor crThreadId = mContext.getContentResolver().query(Uri.parse("content://sms/"),
-                    null, "address = " + address + " AND thread_id != -1", null, null);
+            String whereClause = "address = '" + address + "' AND thread_id != -1" ;
+            Cursor crThreadId = mContext.getContentResolver().query(Uri.parse("content://sms/"),null,
+                                    whereClause, null, null);
             if (crThreadId != null && crThreadId.moveToFirst()) {
                 // A thread for the given address exists in the database
                 String threadIdStr = crThreadId.getString(crThreadId.getColumnIndex("thread_id"));
