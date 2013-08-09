@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2012, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2010-2012,2013 The Linux Foundation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -922,7 +922,7 @@ public class MapUtils {
 
         RecipientVCard recipient = parseVCard(vCard);
         if (recipient.mTel.length() == 0 || recipient.mTel.contains(",") || recipient.mTel.contains(";")) {
-            throw new BadRequestException("No TEL in vCard");
+            throw new BadRequestException("Invalid TEL in vCard");
         }
         bMsgObj.setRecipientVcard_phone_number(recipient.mTel);
         if (V) Log.v(TAG, "Tel: " + recipient.mTel);
@@ -975,11 +975,11 @@ public class MapUtils {
         RecipientVCard recipient = parseVCard(vCard);
         if (recipient.mEmail.length() > 0) {
             phoneNumber = recipient.mEmail;
-        } else if (recipient.mTel.length() == 0 || recipient.mTel.contains(",")
-            || recipient.mTel.contains(";")) {
+        } else if (!(recipient.mTel.length() == 0 || recipient.mTel.contains(",")
+            || recipient.mTel.contains(";"))) {
             phoneNumber = recipient.mTel;
         } else {
-            throw new BadRequestException("No Email/Tel in vCard");
+            throw new BadRequestException("Invalid Email/Tel in vCard");
         }
 
         if (V) Log.v(TAG, "Email: " + recipient.mEmail);
@@ -1509,8 +1509,11 @@ public class MapUtils {
         if (pos > 0) {
             int beginVersionPos = pos
                     + (("BEGIN:MSG").length() + CRLF.length());
-            int endVersionPos = (body.indexOf("END:MSG", beginVersionPos) - CRLF
-                    .length());
+            int endVersionPos = body.lastIndexOf("\r\nEND:MSG");
+            if(endVersionPos == -1){
+                Log.v(TAG, "ill-Formatted END:MSG bMessage");
+                return "";
+            }
             return body.substring(beginVersionPos, endVersionPos);
         } else {
             return "";
