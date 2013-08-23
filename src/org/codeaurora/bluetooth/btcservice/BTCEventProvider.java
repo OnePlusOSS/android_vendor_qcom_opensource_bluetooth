@@ -53,8 +53,8 @@ import java.lang.Object;
 
 public class BTCEventProvider extends BroadcastReceiver {
     private static final String TAG = "BTCEventProvider";
-    private static final boolean D = /*Constants.DEBUG*/true;
-    private static final boolean V = true/*Constants.VERBOSE*/;
+    private static final boolean D = /*Constants.DEBUG*/false;
+    private static final boolean V = false/*Constants.VERBOSE*/;
     private int state;
     BTCService.BTCEvent event = BTCService.BTCEvent.BLUETOOTH_NONE;
 
@@ -72,7 +72,7 @@ public class BTCEventProvider extends BroadcastReceiver {
                 if (service != null) {
                     event =  BTCService.BTCEvent.BLUETOOTH_ON;
                 } else {
-                    Log.e(TAG, "Could Not Start BTC Service ");
+                    if (D) Log.d(TAG, "Could Not Start BTC Service ");
                     return;
                 }
             } else if (BluetoothAdapter.STATE_OFF == state) {
@@ -125,10 +125,10 @@ public class BTCEventProvider extends BroadcastReceiver {
             if (V) Log.v(TAG, "BluetoothA2dp.ACTION_PLAYING_STATE_CHANGED");
             state = intent.getIntExtra(BluetoothProfile.EXTRA_STATE, BluetoothAdapter.ERROR);
             if (BluetoothA2dp.STATE_PLAYING == state) {
-                if (V) Log.v(TAG, "A2DP. PLAYING_STATE_CHANGED: CONNECTED");
+                if (V) Log.v(TAG, "A2DP. PLAYING_STATE_CHANGED: PLAYING");
                 event =  BTCService.BTCEvent.BLUETOOTH_SINK_STREAM_STARTED;
             } else if (BluetoothA2dp.STATE_NOT_PLAYING == state) {
-                if (V) Log.v(TAG, "A2DP.PLAYING_STATE_CHANGED: DISCONNECTED");
+                if (V) Log.v(TAG, "A2DP.PLAYING_STATE_CHANGED: PLAYING_STOPPED");
                 event =  BTCService.BTCEvent.BLUETOOTH_SINK_STREAM_STOPPED;
             }
         } else if (action.equals(BluetoothInputDevice.ACTION_CONNECTION_STATE_CHANGED)) {
@@ -150,10 +150,10 @@ public class BTCEventProvider extends BroadcastReceiver {
               if (V) Log.v(TAG, "Event:" + event.getValue() + "Written Succesfully");
            }
            else {
-              Log.e(TAG, "Error while sending Event:" + event.getValue());
+              if (D) Log.d(TAG, "Error while sending Event:" + event.getValue());
            }
            if (event ==  BTCService.BTCEvent.BLUETOOTH_OFF) {
-               Log.v(TAG, "Stop the BTC Service");
+               if (V) Log.v(TAG, "Stop the BTC Service");
                context.stopService(new Intent(context, BTCService.class));
            }
         }
