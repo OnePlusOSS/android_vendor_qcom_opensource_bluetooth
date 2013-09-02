@@ -39,6 +39,7 @@ import android.os.Handler;
 import android.telephony.SmsManager;
 import android.telephony.SmsMessage;
 import android.telephony.TelephonyManager;
+import android.provider.Telephony.Threads;
 import android.text.format.Time;
 import android.util.Log;
 import android.util.TimeFormatException;
@@ -1256,6 +1257,63 @@ public class BluetoothMasAppSmsMms extends BluetoothMasAppIf {
         }
         return folderName;
     }
+    /**
+     * Get SMS RecipientAddresses for DRAFT folder based on threadId
+     *
+    */
+    private String getMessageSmsRecipientAddress(int threadId){
+       String [] RECIPIENT_ID_PROJECTION = { "recipient_ids" };
+        /*
+         1. Get Recipient Ids from Threads.CONTENT_URI
+         2. Get Recipient Address for corresponding Id from canonical-addresses table.
+        */
+
+        Uri sAllCanonical = Uri.parse("content://mms-sms/canonical-addresses");
+        Uri sAllThreadsUri =  Threads.CONTENT_URI.buildUpon().appendQueryParameter("simple", "true").build();
+        Cursor cr = null;
+        String recipientAddress= "";
+        String recipientIds = null;
+        String whereClause = "_id="+threadId;
+        cr = mContext.getContentResolver().query(sAllThreadsUri, RECIPIENT_ID_PROJECTION, whereClause, null,
+                null);
+        if (cr != null && cr.moveToFirst()) {
+            recipientIds = cr.getString(0);
+            if (V) Log.v(TAG, "cursor.getCount(): " + cr.getCount() + "recipientIds: "+ recipientIds +"whrClus: "+ whereClause );
+        }
+        if(cr != null){
+            cr.close();
+            cr = null;
+        }
+
+        if (V) Log.v(TAG, "recipientIds with spaces: "+ recipientIds +"\n");
+
+        if(recipientIds != null) {
+           String recipients[] = null;
+           whereClause = "";
+           recipients = recipientIds.split(" ");
+           for (String id: recipients) {
+                if(whereClause.length() != 0)
+                   whereClause +=" OR ";
+                whereClause +="_id="+id;
+           }
+           cr = mContext.getContentResolver().query(sAllCanonical , null, whereClause, null, null);
+           if (cr != null && cr.moveToFirst()) {
+              do {
+                //TODO: Multiple Recipeints are appended with ";" for now.
+                if(recipientAddress.length() != 0 )
+                   recipientAddress+=";";
+                recipientAddress+=cr.getString(cr.getColumnIndex("address"));
+              } while(cr.moveToNext());
+           }
+           if(cr != null)
+              cr.close();
+
+        }
+
+        if(V) Log.v(TAG,"Final recipientAddress : "+ recipientAddress);
+        return recipientAddress;
+
+     }
 
     /**
      * Build an MMS bMessage when given a message handle
@@ -2047,6 +2105,7 @@ public class BluetoothMasAppSmsMms extends BluetoothMasAppIf {
             int subjectInd = cursor.getColumnIndex("subject");
             int typeInd = cursor.getColumnIndex("type");
             int bodyInd = cursor.getColumnIndex("body");
+            int threadIdInd = cursor.getColumnIndex("thread_id");
 
             do {
                 /*
@@ -2147,6 +2206,11 @@ public class BluetoothMasAppSmsMms extends BluetoothMasAppIf {
                 String timestampSms = cursor.getString(dateInd);
                 String addressSms = cursor.getString(addressInd);
                 String readStatusSms = cursor.getString(readInd);
+                String threadIdStr = cursor.getString(threadIdInd);
+                if(addressSms == null &&( DRAFT.equalsIgnoreCase(folder) || DRAFTS.equalsIgnoreCase(folder))) {
+                      addressSms = getMessageSmsRecipientAddress(Integer.valueOf(threadIdStr));
+                      if(V)  Log.v(TAG, "threadId = " + threadIdStr + " adressSms:" + addressSms +"\n");
+                }
 
                 MsgListingConsts ml = bldSmsMsgLstItem(appParams, subjectSms,
                                 timestampSms, addressSms, msgIdSms,
