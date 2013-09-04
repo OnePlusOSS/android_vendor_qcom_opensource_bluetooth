@@ -611,6 +611,16 @@ public class EmailUtils {
                         bmsg.setRecipientVcard_email(multiRecepients.trim());
                     }
                 }
+                else if(recipientName.contains(",")){
+                    multiRecepients = recipientName.replace(',', ';');
+                    if(multiRecepients != null){
+                        if (V){
+                            Log.v(TAG, " ::Recepient name :: " + multiRecepients);
+                        }
+                        bmsg.setRecipientVcard_name(multiRecepients.trim());
+                        bmsg.setRecipientVcard_email(multiRecepients.trim());
+                    }
+                }
                 else{
                     bmsg.setRecipientVcard_name(recipientName.trim());
                     bmsg.setRecipientVcard_email(recipientName.trim());

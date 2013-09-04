@@ -835,36 +835,73 @@ public class MapUtils {
             // End Originator
 
             sb.append("BEGIN:BENV").append("\r\n");
+            if ((bmsg.recipient_vcard_email != null) &&
+                            (bmsg.recipient_vcard_email.contains(";"))) {
+                if (V) Log.v (TAG, "recipient_vcard_name:" + bmsg.recipient_vcard_name);
+                if (V) Log.v (TAG, "recipient_vcard_phone_number:" + bmsg.recipient_vcard_email);
+                String emailTokens[] = bmsg.recipient_vcard_email.split(";");
+                String nameTokens[] = bmsg.recipient_vcard_name.split(";");
+                if (V) Log.v (TAG, "Length:name:" + nameTokens.length + "number:" + emailTokens.length);
+                for (int i=0; i < emailTokens.length; i++) {
+                    // Recipient
+                    sb.append("BEGIN:VCARD").append("\r\n");
 
-            // Recipient
-            sb.append("BEGIN:VCARD").append("\r\n");
+                    if (bmsg.vcard_version != null) {
+                        sb.append("VERSION:").append(bmsg.vcard_version).append("\r\n");
+                    } else {
 
-            if (bmsg.vcard_version != null) {
-                sb.append("VERSION:").append(bmsg.vcard_version).append("\r\n");
+                    }
+
+                    if (nameTokens[i] != null) {
+                        sb.append("N:").append(nameTokens[i])
+                            .append("\r\n");
+                        sb.append("FN:").append(nameTokens[i])
+                           .append("\r\n");
+                    } else {
+
+                    }
+                    sb.append("TEL:").append("\r\n");
+
+                    if (emailTokens[i] != null) {
+                        sb.append("EMAIL:").append(emailTokens[i])
+                            .append("\r\n");
+                    } else {
+
+                    }
+
+                    sb.append("END:VCARD").append("\r\n");
+                    // End Recipient
+                }
             } else {
+                // Recipient
+                sb.append("BEGIN:VCARD").append("\r\n");
+                if (bmsg.vcard_version != null) {
+                   sb.append("VERSION:").append(bmsg.vcard_version).append("\r\n");
+                } else {
 
-            }
-            if (bmsg.recipient_vcard_name != null) {
-                sb.append("N:").append(bmsg.recipient_vcard_name)
+                }
+                if (bmsg.recipient_vcard_name != null) {
+                   sb.append("N:").append(bmsg.recipient_vcard_name)
                         .append("\r\n");
-            } else {
+                } else {
 
-            }
-            if (bmsg.recipient_vcard_name != null) {
-                sb.append("FN:").append(bmsg.recipient_vcard_name)
+                }
+                if (bmsg.recipient_vcard_name != null) {
+                   sb.append("FN:").append(bmsg.recipient_vcard_name)
                         .append("\r\n");
-            } else {
+                } else {
 
-            }
-            sb.append("TEL:").append("\r\n");
-            if (bmsg.recipient_vcard_email != null) {
-                sb.append("EMAIL:").append(bmsg.recipient_vcard_email)
+                }
+                sb.append("TEL:").append("\r\n");
+                if (bmsg.recipient_vcard_email != null) {
+                   sb.append("EMAIL:").append(bmsg.recipient_vcard_email)
                         .append("\r\n");
-            } else {
+                } else {
 
+                }
+                sb.append("END:VCARD").append("\r\n");
+                // End Recipient
             }
-            sb.append("END:VCARD").append("\r\n");
-            // End Recipient
 
             sb.append("BEGIN:BBODY").append("\r\n");
 
