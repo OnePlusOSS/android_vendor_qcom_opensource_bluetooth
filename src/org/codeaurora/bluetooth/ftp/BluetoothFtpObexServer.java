@@ -441,12 +441,7 @@ public class BluetoothFtpObexServer extends ServerRequestHandler {
                 Log.e(TAG, "onPut File receive"+ e1.toString());
                 if (D) Log.d(TAG, "Error when receiving file");
                 ((ServerOperation)op).isAborted = true;
-                /* If the transfer completed due to a
-                 * abort from Ftp client, clean up the
-                 * file in the Server
-                 */
-                fileinfo.delete();
-                return ResponseCodes.OBEX_HTTP_BAD_REQUEST;
+                sIsAborted = true;
             }
 
             long finishtimestamp = System.currentTimeMillis();
@@ -462,6 +457,16 @@ public class BluetoothFtpObexServer extends ServerRequestHandler {
                 }
             }
             if(D) Log.d(TAG,"close Stream >");
+            if(sIsAborted == true){
+                sIsAborted = false;
+                /* If the transfer completed due to a
+                 * abort from Ftp client, clean up the
+                 * file in the Server
+                 */
+                fileinfo.delete();
+                Log.e(TAG, " SET isAborted on excepton");
+                return ResponseCodes.OBEX_HTTP_BAD_REQUEST;
+            }
             if (!closeStream(in_stream, op)) {
                 if (D) Log.d(TAG,"Failed to close Input stream");
                 return ResponseCodes.OBEX_HTTP_INTERNAL_ERROR;
