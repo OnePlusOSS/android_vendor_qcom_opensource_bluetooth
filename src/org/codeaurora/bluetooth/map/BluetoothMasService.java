@@ -801,9 +801,10 @@ public class BluetoothMasService extends Service {
         }
 
       private final void closeRfcommSocket(boolean server, boolean accept) throws IOException {
+          if (VERBOSE) Log.v(TAG, "closeRfcommSocket server: "+server + "  conn: " +accept);
           if (server == true) {
             // Stop the possible trying to init serverSocket
-            mInterrupted = false;
+            mInterrupted = true;
 
              if (mServerSocket != null) {
                  mServerSocket.close();
@@ -821,6 +822,11 @@ public class BluetoothMasService extends Service {
 
         public void closeConnection() {
             if (VERBOSE) Log.v(TAG, "Mas connection closing");
+            try {
+                closeRfcommSocket(true, true);
+            } catch (IOException ex) {
+                Log.e(TAG, "CloseSocket error: " + ex);
+            }
 
             if (mAcceptThread != null) {
                 try {
@@ -836,11 +842,6 @@ public class BluetoothMasService extends Service {
             if (mServerSession != null) {
                 mServerSession.close();
                 mServerSession = null;
-            }
-            try {
-                closeRfcommSocket(true, true);
-            } catch (IOException ex) {
-                Log.e(TAG, "CloseSocket error: " + ex);
             }
 
             if (VERBOSE) Log.v(TAG, "Mas connection closed");
