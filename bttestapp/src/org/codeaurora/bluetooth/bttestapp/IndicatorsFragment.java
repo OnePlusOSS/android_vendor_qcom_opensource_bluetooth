@@ -26,7 +26,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/*package org.codeaurora.bttestapp;
+package org.codeaurora.bluetooth.bttestapp;
 
 import android.app.Activity;
 import android.app.Fragment;
@@ -43,9 +43,9 @@ import android.widget.CompoundButton;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
-import com.qualcomm.bttestapp.R;
-*/
-/*public class IndicatorsFragment extends Fragment implements OnClickListener {
+import org.codeaurora.bluetooth.bttestapp.R;
+
+public class IndicatorsFragment extends Fragment implements OnClickListener {
 
     private HfpTestActivity mActivity;
 
@@ -351,4 +351,4 @@ import com.qualcomm.bttestapp.R;
         }
         mIndVrState.setEnabled(false);
     }
-}*/
+}

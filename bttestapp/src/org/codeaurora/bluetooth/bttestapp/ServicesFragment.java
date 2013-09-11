@@ -32,7 +32,7 @@ import android.app.Activity;
 import android.app.ListFragment;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-//import android.bluetooth.BluetoothHandsfreeClient;
+import android.bluetooth.BluetoothHandsfreeClient;
 import android.bluetooth.BluetoothMasInstance;
 import android.bluetooth.BluetoothProfile;
 import android.content.BroadcastReceiver;
@@ -86,7 +86,7 @@ public class ServicesFragment extends ListFragment {
 
             Log.v(TAG, "mReceiver got " + action);
 
-    /*        if (ProfileService.ACTION_HFP_CONNECTION_STATE.equals(action)) {
+            if (ProfileService.ACTION_HFP_CONNECTION_STATE.equals(action)) {
                 connState = intent.getBooleanExtra(ProfileService.EXTRA_CONNECTED, false);
 
                 Service srv = new Service(Service.Type.HFP, null);
@@ -98,7 +98,7 @@ public class ServicesFragment extends ListFragment {
 
                 connEvent = true;
 
-            } else */if (ProfileService.ACTION_PBAP_CONNECTION_STATE.equals(action)) {
+            } else if (ProfileService.ACTION_PBAP_CONNECTION_STATE.equals(action)) {
                 connState = intent.getBooleanExtra(ProfileService.EXTRA_CONNECTED, false);
 
                 Service srv = new Service(Service.Type.PBAP, null);
@@ -170,7 +170,7 @@ public class ServicesFragment extends ListFragment {
         final BluetoothMasInstance mMasInstance;
 
         enum Type {
-       //     HFP("Hands-Free Profile (AG)"),
+            HFP("Hands-Free Profile (AG)"),
             PBAP("Phone Book Access Profile (PSE)"),
             MAP("Message Access Profile (MSE)");
 
@@ -265,7 +265,7 @@ public class ServicesFragment extends ListFragment {
             // need to update switch state on new view
             if (mActivity.mProfileService != null) {
                 switch (srv.mType) {
-                  /*  case HFP: {
+                    case HFP: {
                         BluetoothHandsfreeClient cli = mActivity.mProfileService.getHfpClient();
 
                         if (cli == null || bluetoothOn == false) {
@@ -295,7 +295,7 @@ public class ServicesFragment extends ListFragment {
 
                         break;
                     }
-*/
+
                     case PBAP: {
                         BluetoothPbapClient cli = mActivity.mProfileService.getPbapClient();
 
@@ -406,7 +406,7 @@ public class ServicesFragment extends ListFragment {
             Service srv = mServices.get((Integer) buttonView.getTag());
 
             switch (srv.mType) {
-/*                case HFP:
+                case HFP:
                     if (isChecked) {
                         mActivity.mProfileService.getHfpClient().connect(mActivity.mDevice);
                         buttonView.setEnabled(false);
@@ -415,7 +415,7 @@ public class ServicesFragment extends ListFragment {
                         buttonView.setEnabled(false);
                     }
                     break;
-*/
+
                 case PBAP:
                     if (isChecked) {
                         mActivity.mProfileService.getPbapClient().connect();
@@ -502,10 +502,10 @@ public class ServicesFragment extends ListFragment {
                 intent = new Intent(getActivity(), PbapTestActivity.class);
                 break;
 
-/*            case HFP:
+            case HFP:
                 intent = new Intent(getActivity(), HfpTestActivity.class);
                 break;
-*/
+
             case MAP:
                 intent = new Intent(getActivity(), MapTestActivity.class);
                 intent.putExtra(ProfileService.EXTRA_MAP_INSTANCE_ID, srv.mMasInstance.getId());

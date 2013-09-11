@@ -26,7 +26,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/*package org.codeaurora.bttestapp;
+package org.codeaurora.bluetooth.bttestapp;
 
 import android.app.Activity;
 import android.app.Fragment;
@@ -50,7 +50,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.qualcomm.bttestapp.R;
+import org.codeaurora.bluetooth.bttestapp.R;
 
 public class CallsListFragment extends Fragment implements OnClickListener, OnItemClickListener {
 
@@ -464,4 +464,4 @@ public class CallsListFragment extends Fragment implements OnClickListener, OnIt
 
         mActionExplicitTransfer.setEnabled(mActivity.mFeatMergeDetach && (adapter.getCount() > 1));
     }
-}*/
+}

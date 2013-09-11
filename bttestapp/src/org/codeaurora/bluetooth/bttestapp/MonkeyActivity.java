@@ -54,9 +54,9 @@ public class MonkeyActivity extends Activity {
 
     private static final String TAG = "MonkeyActivity";
 
-    public static final String ACTION_MONKEY = "com.qualcomm.bluetooth.action.MONKEY";
+    public static final String ACTION_MONKEY = "org.codeaurora.bluetooth.action.MONKEY";
 
-    public static final String ACTION_MONKEY_QUERY = "com.qualcomm.bluetooth.action.MONKEY_QUERY";
+    public static final String ACTION_MONKEY_QUERY = "org.codeaurora.bluetooth.action.MONKEY_QUERY";
 
     public static final String EXTRA_OP = "extra.op";
     public static final String EXTRA_DIALOG_TAG = "extra.dialogTag";
