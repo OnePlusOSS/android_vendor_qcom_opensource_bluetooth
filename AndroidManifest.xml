@@ -144,5 +144,32 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 <action android:name="android.bluetooth.device.action.ACL_DISCONNECTED"/>
             </intent-filter>
         </receiver>
+        <activity android:name=".dun.BluetoothDunPermissionActivity"
+            android:process="@string/process"
+            android:excludeFromRecents="true"
+            android:enabled="@bool/profile_supported_dun"
+            android:theme="@*android:style/Theme.Holo.Dialog.Alert">
+            <intent-filter>
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+        <service
+            android:process="@string/process"
+            android:name=".dun.BluetoothDunService"
+            android:enabled="@bool/profile_supported_dun" >
+            <intent-filter>
+                <action android:name="android.bluetooth.IBluetoothDun" />
+            </intent-filter>
+       </service>
+        <receiver
+            android:process="@string/process"
+            android:enabled="@bool/profile_supported_dun"
+            android:name=".dun.BluetoothDunReceiver">
+            <intent-filter>
+                <action android:name="android.bluetooth.adapter.action.STATE_CHANGED"/>
+                <action android:name="android.bluetooth.device.action.BOND_STATE_CHANGED"/>
+                <action android:name="android.bluetooth.device.action.ACL_DISCONNECTED"/>
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>
