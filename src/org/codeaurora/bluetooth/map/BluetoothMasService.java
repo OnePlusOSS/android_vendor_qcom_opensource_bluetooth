@@ -932,7 +932,7 @@ public class BluetoothMasService extends Service {
 
             @Override
             public void run() {
-                while (!stopped) {
+                while (!stopped && mServerSocket != null) {
                     try {
                         mConnSocket = mServerSocket.accept();
                         if (mConnSocket == null) {
