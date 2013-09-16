@@ -2004,8 +2004,17 @@ public class BluetoothMasAppSmsMms extends BluetoothMasAppIf {
             String recipientName = null;
             if (isOutgoingSMSMessage(msgType) == false) {
                 recipientName = getOwnerName();
-            } else {
-                recipientName = getContactName(address);
+            } else if( address != null) {
+                String firstRecipient = address;
+                // Get first Recipient Name for multiple recipient addressing
+                if(firstRecipient.contains(";") ){
+                   firstRecipient = firstRecipient.split(";")[0];
+                }
+                else if (firstRecipient.contains(",")){
+                   firstRecipient = firstRecipient.split(",")[0];
+                }
+
+                recipientName = getContactName(firstRecipient);
             }
             ml.setRecepient_name(recipientName);
         }
