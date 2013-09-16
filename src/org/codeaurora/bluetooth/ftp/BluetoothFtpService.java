@@ -216,7 +216,6 @@ public class BluetoothFtpService extends Service {
 
 
     private BluetoothSocket mConnSocket = null;
-    private static HashSet<BluetoothDevice> trustDevices = new HashSet<BluetoothDevice>();
     private BluetoothDevice mRemoteDevice = null;
 
     private static String sRemoteDeviceName = null;
@@ -313,8 +312,10 @@ public class BluetoothFtpService extends Service {
             isWaitingAuthorization = false;
 
                 if (intent.getBooleanExtra(BluetoothFtpService.EXTRA_ALWAYS_ALLOWED, false)) {
-                   trustDevices.add(mRemoteDevice);
-                  Log.v(TAG, "setTrust() D: " + mRemoteDevice.getName()+ "ADDED: " + trustDevices.contains(mRemoteDevice));
+                    if(mRemoteDevice != null) {
+                       mRemoteDevice.setTrust(true);
+                       Log.v(TAG, "setTrust() TRUE " + mRemoteDevice.getName());
+                    }
                 }
                 try {
                     if (mConnSocket != null) {
@@ -350,21 +351,6 @@ public class BluetoothFtpService extends Service {
                    removeTimeoutMsg = false;
                  }
             }
-        } else if ( BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
-
-            if (intent.hasExtra(BluetoothDevice.EXTRA_DEVICE)) {
-               BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                if(device != null)
-                    Log.d(TAG,"device: "+ device.getName());
-                if(mRemoteDevice != null)
-                    Log.d(TAG," Remtedevie: "+mRemoteDevice.getName());
-               if (device != null && trustDevices.contains(device) &&
-                     intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.BOND_NONE) == BluetoothDevice.BOND_NONE) {
-                   Log.d(TAG,"BOND_STATE_CHANGED RFRSH trustDevices"+ device.getName());
-                   trustDevices.remove(device);
-               }
-            }
-
         } else {
             removeTimeoutMsg = false;
         }
@@ -644,8 +630,8 @@ public class BluetoothFtpService extends Service {
                     mSessionStatusHandler.sendMessage(mSessionStatusHandler
                            .obtainMessage(MSG_INTERNAL_OBEX_RFCOMM_SESSION_UP));
                         boolean trust = false;
-                    if (trustDevices != null)
-                       trust = trustDevices.contains(mRemoteDevice);
+                    if (mRemoteDevice != null)
+                       trust = mRemoteDevice.getTrustState();
 
                     if (VERBOSE) Log.v(RTAG, "GetTrustState() = " + trust);
 

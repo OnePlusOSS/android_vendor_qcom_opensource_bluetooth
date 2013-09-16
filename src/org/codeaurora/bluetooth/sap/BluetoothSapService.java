@@ -270,8 +270,6 @@ public class BluetoothSapService extends Service {
 
     private HashMap<BluetoothDevice, BluetoothSapDevice> mSapDevices;
 
-    private static HashSet<BluetoothDevice> trustDevices = new HashSet<BluetoothDevice>();
-
     private IBinder mSapBinder;
 
     private BluetoothAdapter mAdapter;
@@ -484,8 +482,10 @@ public class BluetoothSapService extends Service {
             }
 
             if (intent.getBooleanExtra(BluetoothSapService.SAP_EXTRA_ALWAYS_ALLOWED, false) == true) {
-                   trustDevices.add(mRemoteDevice);
-                  Log.v(TAG, "setTrust() TRUE " + mRemoteDevice.getName());
+                  if(mRemoteDevice != null) {
+                     mRemoteDevice.setTrust(true);
+                     Log.v(TAG, "setTrust() TRUE " + mRemoteDevice.getName());
+                  }
             }
             /* start the uplink thread */
             startUplinkThread();
@@ -495,21 +495,6 @@ public class BluetoothSapService extends Service {
             sendErrorConnResp();
             closeRfcommSocket();
             startRfcommListenerThread();
-        } else if ( BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
-
-            if (intent.hasExtra(BluetoothDevice.EXTRA_DEVICE)) {
-               BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                if(device != null)
-                    Log.d(TAG,"device: "+ device.getName());
-                if(mRemoteDevice != null)
-                    Log.d(TAG," Remtedevie: "+mRemoteDevice.getName());
-               if (device != null && trustDevices.contains(device) &&
-                     intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.BOND_NONE) == BluetoothDevice.BOND_NONE) {
-                   Log.d(TAG,"BOND_STATE_CHANGED REFRESH trustDevices"+ device.getName());
-                   trustDevices.remove(device);
-               }
-            }
-
         } else {
             removeTimeoutMsg = false;
         }
@@ -835,8 +820,8 @@ public class BluetoothSapService extends Service {
                         break;
                     }
                     boolean trust = false;
-                    if (trustDevices != null)
-                        trust = trustDevices.contains(mRemoteDevice);
+                    if (mRemoteDevice != null)
+                        trust = mRemoteDevice.getTrustState();
                     if (VERBOSE) Log.v(TAG, "GetTrustState() = " + trust);
 
                     if (trust) {

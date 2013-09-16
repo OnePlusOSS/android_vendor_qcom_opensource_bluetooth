@@ -182,7 +182,6 @@ public class BluetoothMasService extends Service {
 
     BluetoothMns mnsClient;
     private static BluetoothDevice mRemoteDevice = null;
-    private static HashSet<BluetoothDevice> trustDevices = new HashSet<BluetoothDevice>();
 
     private boolean mHasStarted = false;
     private int mStartId = -1;
@@ -389,8 +388,10 @@ public class BluetoothMasService extends Service {
                return;
             }
             if (intent.getBooleanExtra(BluetoothMasService.EXTRA_ALWAYS_ALLOWED, false) == true) {
-                   trustDevices.add(mRemoteDevice);
-                  Log.v(TAG, "setTrust() TRUE " + mRemoteDevice.getName());
+                if(mRemoteDevice != null) {
+                   mRemoteDevice.setTrust(true);
+                   Log.v(TAG, "setTrust() TRUE " + mRemoteDevice.getName());
+                }
             }
             Log.v(TAG, "parseIntent 2: mIsEmailEnabled: " + mIsEmailEnabled);
             if(mIsEmailEnabled) {
@@ -405,22 +406,6 @@ public class BluetoothMasService extends Service {
             notifyAuthKeyInput(sessionkey);
         } else if (AUTH_CANCELLED_ACTION.equals(action)) {
             notifyAuthCancelled();
-        } else if ( BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
-
-            if (intent.hasExtra(BluetoothDevice.EXTRA_DEVICE)) {
-               BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                if(device != null)
-                    Log.d(TAG,"device: "+ device.getName());
-                if(mRemoteDevice != null)
-                    Log.d(TAG," Remtedevie: "+mRemoteDevice.getName());
-               if (device != null && trustDevices.contains(device) &&
-                     intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.BOND_NONE) == BluetoothDevice.BOND_NONE) {
-                   Log.d(TAG,"BOND_STATE_CHANGED REFRESH trustDevices"+ device.getName());
-                   trustDevices.remove(device);
-               }
-            }
-
-            removeTimeoutMsg = false;
         } else {
             removeTimeoutMsg = false;
         }
@@ -957,8 +942,8 @@ public class BluetoothMasService extends Service {
                             continue;
                         }
                         boolean trust = false;
-                        if (trustDevices != null)
-                           trust = trustDevices.contains(mRemoteDevice);
+                        if (mRemoteDevice != null)
+                           trust = mRemoteDevice.getTrustState();
                         if (VERBOSE) Log.v(TAG, "GetTrustState() = " + trust);
                         if (mIsRequestBeingNotified) {
                             if (VERBOSE) Log.v(TAG, "Request notification is still on going.");
