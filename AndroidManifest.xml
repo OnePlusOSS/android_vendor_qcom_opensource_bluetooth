@@ -48,6 +48,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <uses-permission android:name="android.permission.MMS_PUSH"></uses-permission>
     <uses-permission android:name="com.android.email.permission.ACCESS_PROVIDER"/>
     <uses-permission android:name="com.android.email.permission.READ_ATTACHMENT"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_MEDIA_STORAGE" />
     <application android:process="com.android.bluetooth">
         <uses-library android:name="javax.obex" />
         <service
@@ -71,7 +73,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 <action android:name="android.bluetooth.input.profile.action.CONNECTION_STATE_CHANGED" />
             </intent-filter>
         </receiver>
- <activity android:name=".map.BluetoothMasActivity"
+        <activity android:name=".map.BluetoothMasActivity"
             android:process="@string/process"
             android:excludeFromRecents="true"
             android:enabled="@bool/profile_supported_map"

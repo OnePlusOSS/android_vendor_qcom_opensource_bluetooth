@@ -292,7 +292,7 @@ public class FileUtils {
                 return;
             }
 
-            args.putString("filepath", path);
+            args.putString("filepath", name);
             args.putString("mimetype", mimeType);
             msg.obj = args;
             msg.sendToTarget();
