@@ -612,7 +612,7 @@ public class BluetoothFtpService extends Service {
 
         @Override
         public void run() {
-            while (!stopped) {
+            while (!stopped && mRfcommServerSocket != null) {
                 try {
                     Log.v(RTAG,"Run Accept thread");
                     mConnSocket = mRfcommServerSocket.accept();
