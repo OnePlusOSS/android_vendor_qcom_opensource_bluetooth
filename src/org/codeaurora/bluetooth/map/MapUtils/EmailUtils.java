@@ -48,6 +48,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
 import java.util.Locale;
+import org.apache.commons.codec.net.QuotedPrintableCodec;
+import org.apache.commons.codec.DecoderException;
 
 public class EmailUtils {
     public static final String TAG = "EmailUtils";
@@ -193,6 +195,46 @@ public class EmailUtils {
             Log.v(TAG, "folderName :: " + folderName);
         }
         return folderName;
+    }
+
+
+  public static String decodeEncodedWord(String checkEncoded) {
+        if (checkEncoded != null && (checkEncoded.contains("=?") == false)) {
+             if(V) Log.v(TAG, " Decode NotRequired" + checkEncoded);
+            return checkEncoded;
+        }
+
+        int begin = checkEncoded.indexOf("=?", 0);
+
+        int endScan = begin + 2;
+        if (begin != -1) {
+            int qm1 = checkEncoded.indexOf('?', endScan + 2);
+            int qm2 = checkEncoded.indexOf('?', qm1 + 1);
+            if (qm2 != -1) {
+                    endScan = qm2 + 1;
+                }
+        }
+
+        int end = begin == -1 ? -1 : checkEncoded.indexOf("?=", endScan);
+        if (end == -1)
+               return checkEncoded;
+        checkEncoded = checkEncoded.substring((endScan - 1), (end + 1));
+
+        // TODO: Handle encoded words as defined by MIME standard RFC 2047
+        // Encoded words will have the form =?charset?enc?Encoded word?= where
+        // enc is either 'Q' or 'q' for quoted-printable and 'B' or 'b' for Base64
+        QuotedPrintableCodec qpDecode = new QuotedPrintableCodec("UTF-8");
+        String decoded = null;
+        try {
+             decoded = qpDecode.decode(checkEncoded);
+        }catch (DecoderException e ){
+            if(V) Log.v(TAG, "decode exception");
+            return checkEncoded;
+        }
+        if (decoded == null) {
+            return checkEncoded;
+       }
+       return decoded;
     }
 
     public static String getConditionString(String folderName, Context context,
@@ -346,20 +388,19 @@ public class EmailUtils {
         }
 
         if ((appParams.ParameterMask & BIT_SENDER_NAME) != 0) {
-            if(senderName != null) {
-                if(senderName.contains("")){
-                    String[] senderStr = senderName.split("");
-                    if(senderStr !=null && senderStr.length > 0){
-                        if (V){
-                            Log.v(TAG, " ::Sender name split String 0:: " + senderStr[0]
-                                    + "::Sender name split String 1:: " + senderStr[1]);
-                        }
-                        emailMsg.setSender_name(senderStr[1].trim());
-                    }
-                }
-                else{
-                    emailMsg.setSender_name(senderName.trim());
-                }
+            if(senderName != null && senderName.contains("")){
+                String[] senderStr = senderName.split("");
+                if(senderStr !=null && senderStr.length > 0){
+                     if (V){
+                         Log.v(TAG, " ::Sender name split String 0:: " + senderStr[0]
+                                 + "::Sender name split String 1:: " + senderStr[1]);
+                     }
+                     senderName = senderStr[1];
+                 }
+            }
+            if (senderName != null) {
+                senderName = decodeEncodedWord(senderName);
+                emailMsg.setSender_name(senderName.trim());
             }
        }
 
