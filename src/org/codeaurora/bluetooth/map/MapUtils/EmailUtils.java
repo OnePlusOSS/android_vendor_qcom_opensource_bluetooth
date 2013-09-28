@@ -704,7 +704,7 @@ public class EmailUtils {
             }
 
             bmsg.setBody_msg(sb.toString());
-            bmsg.setBody_length(sb.length() + 22);
+            bmsg.setBody_length(sb.toString().getBytes().length + 22);
             // Send a bMessage
             if (V){
                 Log.v(TAG, "bMessageEmail test\n");
