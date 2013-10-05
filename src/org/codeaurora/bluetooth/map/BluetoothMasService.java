@@ -352,7 +352,7 @@ public class BluetoothMasService extends Service {
     }
 
     // process the intent from receiver
-    private void parseIntent(final Intent intent) {
+    private synchronized void parseIntent(final Intent intent) {
         String action = intent.getStringExtra("action");
         if (VERBOSE)
             Log.v(TAG, "action: " + action);
