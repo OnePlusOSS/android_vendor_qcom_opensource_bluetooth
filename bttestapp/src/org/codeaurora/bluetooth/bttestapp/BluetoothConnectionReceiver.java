@@ -43,9 +43,9 @@ public class BluetoothConnectionReceiver extends BroadcastReceiver {
 
     private final static String TAG = "BluetoothConnectionReceiver";
 
-    public static final String ACTION_NEW_BLUETOOTH_DEVICE = "com.qualcomm.bluetooth.action.NEW_BLUETOOTH_DEVICE";
+    public static final String ACTION_NEW_BLUETOOTH_DEVICE = "org.codeaurora.bluetooth.action.NEW_BLUETOOTH_DEVICE";
 
-    public static final String EXTRA_DEVICE_ADDRESS = "com.qualcomm.bluetooth.extra.DEVICE_ADDRESS";
+    public static final String EXTRA_DEVICE_ADDRESS = "org.codeaurora.bluetooth.extra.DEVICE_ADDRESS";
 
     private static ArrayList<IBluetoothConnectionObserver> observers = new ArrayList<IBluetoothConnectionObserver>();
 

@@ -27,7 +27,7 @@
  */
 
 
-/*package org.codeaurora.bttestapp;
+package org.codeaurora.bluetooth.bttestapp;
 
 import android.app.Activity;
 import android.app.Fragment;
@@ -52,7 +52,7 @@ import android.widget.ImageButton;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
-import com.qualcomm.bttestapp.R;
+import org.codeaurora.bluetooth.bttestapp.R;
 
 public class DialpadFragment extends Fragment implements OnClickListener, OnLongClickListener {
 
@@ -282,4 +282,4 @@ public class DialpadFragment extends Fragment implements OnClickListener, OnLong
     public void setNumber(String number) {
         mNumberEdit.setText(number);
     }
-}*/
+}

@@ -27,7 +27,7 @@
  */
 
 
-/*package org.codeaurora.bttestapp;
+package org.codeaurora.bluetooth.bttestapp;
 
 import android.app.ActionBar;
 import android.app.DialogFragment;
@@ -48,10 +48,10 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
 
-import com.qualcomm.bttestapp.CallHistoryDialogFragment.CallHistoryDialogListener;
-import com.qualcomm.bttestapp.R;
-import com.qualcomm.bttestapp.util.Logger;
-import com.qualcomm.bttestapp.util.MonkeyEvent;
+import org.codeaurora.bluetooth.bttestapp.CallHistoryDialogFragment.CallHistoryDialogListener;
+import org.codeaurora.bluetooth.bttestapp.R;
+import org.codeaurora.bluetooth.bttestapp.util.Logger;
+import org.codeaurora.bluetooth.bttestapp.util.MonkeyEvent;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -73,12 +73,12 @@ public class HfpTestActivity extends MonkeyActivity implements IBluetoothConnect
 
     private ActionBar mActionBar = null;
 
-   // /* this should be visible for fragments ///
+   // this should be visible for fragments
     BluetoothHandsfreeClient mBluetoothHandsfreeClient;
     ProfileService mProfileService = null;
     BluetoothDevice mDevice;
 
-    ///* this should be done in a more elegant way //
+    // this should be done in a more elegant way //
     public boolean mFeatVtag;
     public boolean mFeatVoiceRecognition;
     public boolean mFeatThreeWayCalling;
@@ -173,7 +173,7 @@ public class HfpTestActivity extends MonkeyActivity implements IBluetoothConnect
                 return;
             }
 
-            /// we add any "new" call to list and put in at the beginning
+            // we add any "new" call to list and put in at the beginning
             if (state == BluetoothHandsfreeClientCall.CALL_STATE_ALERTING ||
                     state == BluetoothHandsfreeClientCall.CALL_STATE_DIALING ||
                     state == BluetoothHandsfreeClientCall.CALL_STATE_INCOMING ||
@@ -233,9 +233,7 @@ public class HfpTestActivity extends MonkeyActivity implements IBluetoothConnect
         }
     };
 
-    ///*
-     * HFP Service Connection.
-     ///
+    // HFP Service Connection.
     private final ServiceConnection mHfpServiceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
@@ -513,4 +511,4 @@ public class HfpTestActivity extends MonkeyActivity implements IBluetoothConnect
         mFeatAcceptHeldOrWaiting = b.containsKey(BluetoothHandsfreeClient.EXTRA_AG_FEATURE_ACCEPT_HELD_OR_WAITING_CALL);
         mFeatReleaseHeldOrWaiting = b.containsKey(BluetoothHandsfreeClient.EXTRA_AG_FEATURE_RELEASE_HELD_OR_WAITING_CALL);
     }
-}*/
+}

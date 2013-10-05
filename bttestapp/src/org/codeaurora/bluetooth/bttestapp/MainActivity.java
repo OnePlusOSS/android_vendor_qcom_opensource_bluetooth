@@ -110,9 +110,9 @@ public class MainActivity extends MonkeyActivity {
                     for (Parcelable uuid : uuids) {
                         if (BluetoothUuid.PBAP_PSE.equals(uuid)) {
                             mServicesFragment.addService(ServicesFragment.Service.Type.PBAP, null);
-                        } /*else if (BluetoothUuid.Handsfree_AG.equals(uuid)) {
+                        } else if (BluetoothUuid.Handsfree_AG.equals(uuid)) {
                             mServicesFragment.addService(ServicesFragment.Service.Type.HFP, null);
-                        }*/
+                        }
                     }
                 }
 

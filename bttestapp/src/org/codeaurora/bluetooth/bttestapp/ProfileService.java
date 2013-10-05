@@ -34,7 +34,7 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-//import android.bluetooth.BluetoothHandsfreeClient;
+import android.bluetooth.BluetoothHandsfreeClient;
 import android.bluetooth.BluetoothMasInstance;
 import android.bluetooth.BluetoothProfile;
 import android.bluetooth.BluetoothProfile.ServiceListener;
@@ -101,7 +101,7 @@ public class ProfileService extends Service {
 
     private final BluetoothAdapter mAdapter = BluetoothAdapter.getDefaultAdapter();
 
-    //private BluetoothHandsfreeClient mHfpClient = null;
+    private BluetoothHandsfreeClient mHfpClient = null;
 
     private BluetoothPbapClient mPbapClient = null;
 
@@ -534,7 +534,7 @@ public class ProfileService extends Service {
             String action = intent.getAction();
             Log.d(TAG, "received " + action);
 
-            /*if (BluetoothHandsfreeClient.ACTION_CONNECTION_STATE_CHANGED.equals(action)) {
+            if (BluetoothHandsfreeClient.ACTION_CONNECTION_STATE_CHANGED.equals(action)) {
                 int state = intent.getIntExtra(BluetoothProfile.EXTRA_STATE, -1);
                 Intent new_intent = new Intent(ACTION_HFP_CONNECTION_STATE);
 
@@ -547,7 +547,7 @@ public class ProfileService extends Service {
                 }
 
                 ProfileService.this.sendBroadcast(new_intent);
-            } else */if (PBAP_AUTH_ACTION_RESPONSE.equals(action)) {
+            } else if (PBAP_AUTH_ACTION_RESPONSE.equals(action)) {
                 String key = intent.getStringExtra(PBAP_AUTH_EXTRA_KEY);
                 mPbapClient.setAuthResponse(key);
             } else if (PBAP_AUTH_ACTION_CANCEL.equals(action)) {
@@ -570,7 +570,7 @@ public class ProfileService extends Service {
         }
     };
 
-/*    private final ServiceListener mHfpServiceListener = new ServiceListener() {
+    private final ServiceListener mHfpServiceListener = new ServiceListener() {
         @Override
         public void onServiceConnected(int profile, BluetoothProfile proxy) {
             if (profile == BluetoothProfile.HANDSFREE_CLIENT) {
@@ -585,7 +585,7 @@ public class ProfileService extends Service {
             }
         }
     };
-*/
+
     private void createPbapAuthNotification() {
         NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
@@ -627,10 +627,10 @@ public class ProfileService extends Service {
         Log.v(TAG, "checkAndStop(): unbind=" + unbind + " disconnect=" + disconnect);
 
         if (unbind) {
-            /*if (mHfpClient != null &&
+            if (mHfpClient != null &&
                     mHfpClient.getConnectionState(mDevice) != BluetoothProfile.STATE_DISCONNECTED) {
                 canStop = false;
-            }*/
+            }
 
             if (mPbapClient != null
                     && mPbapClient.getState() != BluetoothPbapClient.ConnectionState.DISCONNECTED) {
@@ -687,11 +687,11 @@ public class ProfileService extends Service {
         filter.addAction(PBAP_AUTH_ACTION_RESPONSE);
         filter.addAction(PBAP_AUTH_ACTION_CANCEL);
         filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
-        //filter.addAction(BluetoothHandsfreeClient.ACTION_CONNECTION_STATE_CHANGED);
+        filter.addAction(BluetoothHandsfreeClient.ACTION_CONNECTION_STATE_CHANGED);
         registerReceiver(mReceiver, filter);
 
-//        mAdapter.getProfileProxy(getApplicationContext(), mHfpServiceListener,
-  //              BluetoothProfile.HANDSFREE_CLIENT);
+        mAdapter.getProfileProxy(getApplicationContext(), mHfpServiceListener,
+                BluetoothProfile.HANDSFREE_CLIENT);
     }
 
     @Override
@@ -705,8 +705,8 @@ public class ProfileService extends Service {
     public void onDestroy() {
         Log.v(TAG, "onDestroy");
 
-        //mAdapter.closeProfileProxy(BluetoothProfile.HANDSFREE_CLIENT,
-          //      mHfpClient);
+        mAdapter.closeProfileProxy(BluetoothProfile.HANDSFREE_CLIENT,
+                mHfpClient);
 
         unregisterReceiver(mReceiver);
 
@@ -724,9 +724,9 @@ public class ProfileService extends Service {
             return;
         }
 
-        /*if (mHfpClient != null) {
+        if (mHfpClient != null) {
             mHfpClient.disconnect(mDevice);
-        }*/
+        }
 
         if (mPbapClient != null) {
             mPbapClient.disconnect();
@@ -751,9 +751,9 @@ public class ProfileService extends Service {
         mMapSessionData = new HashMap<Integer, MapSessionData>();
     }
 
-    /*public BluetoothHandsfreeClient getHfpClient() {
+    public BluetoothHandsfreeClient getHfpClient() {
         return mHfpClient;
-    }*/
+    }
 
     public BluetoothPbapClient getPbapClient() {
         if (mDevice == null) {
