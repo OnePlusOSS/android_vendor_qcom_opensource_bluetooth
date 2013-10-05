@@ -746,12 +746,9 @@ public class BluetoothFtpService extends Service {
                     break;
                 case MSG_INTERNAL_OBEX_RFCOMM_SESSION_UP:
                     if (VERBOSE) Log.v(TAG,"MSG_INTERNAL_OBEX_RFCOMM_SESSION_UP");
-                    try {
-                        closeRfcommSocket(true, false);
-                        mRfcommServerSocket = null;
-                    } catch (IOException ex) {
-                        Log.e(TAG, "CloseSocket error: " + ex);
-                    }
+                    /*Avoid RfcommServer socket close to avoid SDP
+                     *re-registration for every FTP connection request
+                     */
                     break;
                 case MSG_OBEX_AUTH_CHALL:
                     createFtpNotification(AUTH_CHALL_ACTION);
