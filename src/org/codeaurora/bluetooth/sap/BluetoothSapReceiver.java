@@ -44,7 +44,7 @@ public class BluetoothSapReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
 
-        if(SystemProperties.getBoolean("ro.qualcomm.bluetooth.sap", false) == false) {
+        if(SystemProperties.getBoolean("ro.bluetooth.sap", false) == false) {
             return;
         }
 
