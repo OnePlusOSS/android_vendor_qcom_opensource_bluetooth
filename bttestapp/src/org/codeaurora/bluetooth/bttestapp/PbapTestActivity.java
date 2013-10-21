@@ -436,6 +436,12 @@ public class PbapTestActivity extends MonkeyActivity implements IBluetoothConnec
 
         getMenuInflater().inflate(R.menu.menu_pbap_test, menu);
 
+        if (mProfileService == null)
+        {
+            Logger.e(TAG, "mProfileSevice is null");
+            return false;
+        }
+
         if (mProfileService.getPbapClient().getState() != BluetoothPbapClient.ConnectionState.DISCONNECTED) {
             menu.findItem(R.id.menu_pbap_disconnect).setVisible(true);
         } else {
