@@ -735,64 +735,40 @@ public class BluetoothMasAppEmail extends BluetoothMasAppIf {
 
     private int setMsgStatusEmail(long handle,
             BluetoothMasAppParams bluetoothMasAppParams){
-        //Query the mailbox table to get the id values for Inbox and Trash folder
-        Uri uri1 = Uri.parse("content://com.android.email.provider/mailbox");
-        Cursor cr1 = mContext.getContentResolver().query(uri1, null,
-                "(UPPER(displayName) = 'INBOX' OR UPPER(displayName) LIKE '%TRASH%')", null, null);
-        int inboxFolderId = 0;
-        int deletedFolderId = 0;
-        int msgFolderId = 0;
-        String folderName;
-        if (cr1 != null && cr1.moveToFirst()) {
-            do {
-                folderName = cr1.getString(cr1.getColumnIndex("displayName"));
-                if(folderName.equalsIgnoreCase("INBOX")){
-                    inboxFolderId = cr1.getInt(cr1.getColumnIndex("_id"));
-                } else {
-                    deletedFolderId = cr1.getInt(cr1.getColumnIndex("_id"));
-                }
-            } while (cr1.moveToNext());
-        }
-        if (cr1 != null) {
-            cr1.close();
-        }
 
-        //Query the message table for the given message id
         long emailMsgId = handle - 0;
         emailMsgId = handle - OFFSET_START;
-        Uri uri2 = Uri.parse("content://com.android.email.provider/message/"+emailMsgId);
-        Cursor crEmail = mContext.getContentResolver().query(uri2, null, null, null, null);
-        if (crEmail != null && crEmail.moveToFirst()) {
-            if (bluetoothMasAppParams.StatusIndicator == 0) {
-                /* Read Status */
-                ContentValues values = new ContentValues();
-                values.put("flagRead", bluetoothMasAppParams.StatusValue);
-                mContext.getContentResolver().update(uri2, values, null, null);
-            } else {
+        if (V) Log.v(TAG, " Msg id before Mail service:: " + emailMsgId);
+
+        long accountId = EmailUtils.getAccountId(mMasId);
+        if (V) Log.v(TAG, " Account id before Mail service:: " + accountId);
+
+        if(accountId <= -1 || emailMsgId <= -1){
+             return  ResponseCodes.OBEX_HTTP_BAD_REQUEST;
+        }
+
+        Intent emailIn = new Intent();
+        if (bluetoothMasAppParams.StatusIndicator == 0) {
+            // Read Status
+            emailIn.setAction("org.codeaurora.email.intent.action.MAIL_SERVICE_MESSAGE_READ");
+            emailIn.putExtra("org.codeaurora.email.intent.extra.MESSAGE_INFO",
+                (bluetoothMasAppParams.StatusValue ==1) ? 1:0);
+        } else {
                 if (bluetoothMasAppParams.StatusValue == 1) { //if the email is deleted
-                    msgFolderId = crEmail.getInt(crEmail.getColumnIndex("mailboxKey"));
-                    if(msgFolderId == deletedFolderId){
-                        // TODO: need to add notification for deleted email here
-                        mMnsClient.addMceInitiatedOperation(Long.toString(handle));
-                        mContext.getContentResolver().delete(
-                                Uri.parse("content://com.android.email.provider/message/"
-                                + emailMsgId), null, null);
-                    } else {
-                        ContentValues values = new ContentValues();
-                        values.put("mailboxKey", deletedFolderId);
-                        mContext.getContentResolver().update(uri2, values, null, null);
-                    }
+                    // TODO: need to add notification for deleted email here
+                    mMnsClient.addMceInitiatedOperation(Long.toString(handle));
+                    emailIn.setAction("org.codeaurora.email.intent.action.MAIL_SERVICE_DELETE_MESSAGE");
                 } else { // if the email is undeleted
+                    emailIn.setAction("org.codeaurora.email.intent.action.MAIL_SERVICE_MOVE_MESSAGE");
                     // TODO: restore it to original folder
-                    ContentValues values = new ContentValues();
-                    values.put("mailboxKey", inboxFolderId);
-                    mContext.getContentResolver().update(uri2, values, null, null);
+                    emailIn.putExtra("org.codeaurora.email.intent.extra.MESSAGE_INFO", TYPE_INBOX);
                 }
-            }
         }
-        if (crEmail != null) {
-            crEmail.close();
-        }
+
+        emailIn.putExtra("com.android.email.intent.extra.ACCOUNT", accountId);
+        emailIn.putExtra("org.codeaurora.email.intent.extra.MESSAGE_ID", emailMsgId);
+        mContext.startService(emailIn);
+
         return ResponseCodes.OBEX_HTTP_OK;
     }
 }
