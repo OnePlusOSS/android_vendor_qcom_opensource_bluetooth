@@ -101,7 +101,7 @@ public class BluetoothFtpActivity extends AlertActivity implements
             if (!BluetoothFtpService.USER_CONFIRM_TIMEOUT_ACTION.equals(intent.getAction())) {
                 return;
             }
-            onTimeout();
+            finish();
         }
     };
 
