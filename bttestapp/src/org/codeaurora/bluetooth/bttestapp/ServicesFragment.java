@@ -503,7 +503,12 @@ public class ServicesFragment extends ListFragment {
                 break;
 
             case HFP:
-                intent = new Intent(getActivity(), HfpTestActivity.class);
+                if (mActivity.mProfileService.getHfpClient() != null)
+                    intent = new Intent(getActivity(), HfpTestActivity.class);
+                else {
+                    Log.v(TAG, "HfpClient service is null");
+                    return;
+                }
                 break;
 
             case MAP:
