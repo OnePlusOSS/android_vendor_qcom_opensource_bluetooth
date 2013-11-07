@@ -1265,6 +1265,7 @@ public class BluetoothMasObexServer extends ServerRequestHandler {
             }
             return sendBody(op, appIfMsgListRsp.file);
         } else {
+            op.noEndofBody();
             return pushHeader(op, reply);
         }
     }
