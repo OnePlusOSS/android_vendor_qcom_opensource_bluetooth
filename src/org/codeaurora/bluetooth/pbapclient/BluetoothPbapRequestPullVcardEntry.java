@@ -37,6 +37,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import javax.obex.HeaderSet;
+import javax.obex.ResponseCodes;
 
 final class BluetoothPbapRequestPullVcardEntry extends BluetoothPbapRequest {
 
@@ -76,9 +77,17 @@ final class BluetoothPbapRequestPullVcardEntry extends BluetoothPbapRequest {
         Log.v(TAG, "readResponse");
 
         mResponse = new BluetoothPbapVcardList(stream, mFormat);
+    }
+    @Override
+    protected void checkResponseCode(int responseCode) throws IOException {
+        Log.v(TAG, "checkResponseCode");
 
         if (mResponse.getCount() == 0) {
-            throw new IOException("Invalid response received");
+            if (responseCode != ResponseCodes.OBEX_HTTP_NOT_FOUND) {
+                throw new IOException("Invalid response received");
+            } else {
+                Log.v(TAG, "Vcard Entry not found");
+            }
         }
     }
 

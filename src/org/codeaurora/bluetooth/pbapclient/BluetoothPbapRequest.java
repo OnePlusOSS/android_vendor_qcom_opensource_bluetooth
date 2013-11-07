@@ -101,6 +101,8 @@ abstract class BluetoothPbapRequest {
             mResponseCode = mOp.getResponseCode();
 
             Log.d(TAG, "mResponseCode=" + mResponseCode);
+
+            checkResponseCode(mResponseCode);
         } catch (IOException e) {
             Log.e(TAG, "IOException occured when processing request", e);
             mResponseCode = ResponseCodes.OBEX_HTTP_INTERNAL_ERROR;
@@ -129,6 +131,12 @@ abstract class BluetoothPbapRequest {
 
     protected void readResponseHeaders(HeaderSet headerset) {
         Log.v(TAG, "readResponseHeaders");
+
+        /* nothing here by dafault */
+    }
+
+    protected void checkResponseCode(int responseCode) throws IOException {
+        Log.v(TAG, "checkResponseCode");
 
         /* nothing here by dafault */
     }
