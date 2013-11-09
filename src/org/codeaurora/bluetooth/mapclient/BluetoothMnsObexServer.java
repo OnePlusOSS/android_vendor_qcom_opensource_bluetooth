@@ -78,6 +78,7 @@ class BluetoothMnsObexServer extends ServerRequestHandler {
             return ResponseCodes.OBEX_HTTP_INTERNAL_ERROR;
         }
 
+        reply.setHeader(HeaderSet.WHO, MNS_TARGET);
         return ResponseCodes.OBEX_HTTP_OK;
     }
 
