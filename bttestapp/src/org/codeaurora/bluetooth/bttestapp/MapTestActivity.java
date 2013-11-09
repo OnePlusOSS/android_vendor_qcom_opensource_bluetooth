@@ -1032,13 +1032,37 @@ public class MapTestActivity extends MonkeyActivity implements GetTextDialogList
 
     public void onClickGetMessagesListing(View view) {
         String folder = mSpinnerFolders.getSelectedItem().toString();
-        int maxListCount = Integer.parseInt(
-                mEditTextMaxListCountMessages.getText().toString());
-        int listStartOffset = Integer.parseInt(
-                mEditTextListStartOffsetMessages.getText().toString());
-        int subjectLength = Integer.parseInt(
-                mEditTextSubjectLength.getText().toString());
 
+        int maxListCount = 0;
+        int listStartOffset = 0;
+        int subjectLength = 0;
+
+        try {
+            maxListCount = Integer.parseInt(
+                    mEditTextMaxListCountMessages.getText().toString());
+        } catch (NumberFormatException e) {
+            Toast.makeText(this,
+                   "Incorrect maxListCount. Some defaults will be used",
+                         Toast.LENGTH_LONG).show();
+        }
+
+        try {
+            listStartOffset = Integer.parseInt(
+                    mEditTextListStartOffsetMessages.getText().toString());
+        } catch (NumberFormatException e) {
+            Toast.makeText(this,
+                   "Incorrect listStartOffset. Some defaults will be used",
+                         Toast.LENGTH_LONG).show();
+        }
+
+        try {
+            subjectLength = Integer.parseInt(
+                    mEditTextSubjectLength.getText().toString());
+        } catch (NumberFormatException e) {
+            Toast.makeText(this,
+                   "Incorrect subject lenght. Some defaults will be used",
+                         Toast.LENGTH_LONG).show();
+        }
         if (folder.equals(".")) {
             folder = "";
         }
