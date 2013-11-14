@@ -1725,11 +1725,10 @@ public class BluetoothMasAppSmsMms extends BluetoothMasAppIf {
         values.put("chset", 106);
         values.put("cd", "null");
         values.put("fn", "null");
-        values.put("cid", "<smil>");
+        values.put("cid", "<text_0>");
         values.put("cl", "text_0.txt");
         values.put("ctt_s", "null");
         values.put("ctt_t", "null");
-        values.put("_data", "null");
         values.put("text", mmsText);
 
         uri = Uri.parse("content://mms/" + msgID + "/part");
