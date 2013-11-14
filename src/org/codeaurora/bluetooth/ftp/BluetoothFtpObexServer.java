@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2008-2009, Motorola, Inc.
- * Copyright (c) 2010-2012 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2010-2012, 2013 The Linux Foundation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -61,6 +61,7 @@ import javax.obex.ServerOperation;
 import javax.obex.Operation;
 import javax.obex.HeaderSet;
 import javax.obex.ObexHelper;
+import android.os.Environment;
 
 public class BluetoothFtpObexServer extends ServerRequestHandler {
 
@@ -101,6 +102,12 @@ public class BluetoothFtpObexServer extends ServerRequestHandler {
 
     public static final String ROOT_FOLDER_PATH = "/sdcard";
 
+    public static final String ENV_PRIMARY_EXTERNAL_STORAGE = "EXTERNAL_STORAGE";
+    public static final String ENV_SECONDARY_EXTERNAL_STORAGE = "SECONDARY_STORAGE";
+    private String rootPrimaryStoragePath = null;
+    private String rootSecondaryStoragePath = null;
+    public static final String PRIMARY_INTERNAL_FOLDERNAME = "PHONE_MEMORY";
+    public static final String SECONDARY_EXTERNAL_FOLDERNAME = "EXTERNAL_MEMORY";
     private static final String FOLDER_NAME_DOT = ".";
 
     private static final String FOLDER_NAME_DOTDOT = "..";
@@ -190,8 +197,15 @@ public class BluetoothFtpObexServer extends ServerRequestHandler {
         Message msg = Message.obtain(mCallback);
         msg.what = BluetoothFtpService.MSG_SESSION_ESTABLISHED;
         msg.sendToTarget();
-        /* Initialise the mCurrentPath to ROOT path = /sdcard */
-        mCurrentPath = ROOT_FOLDER_PATH;
+        /*Initialize the internal, external storage root paths from Enivronment*/
+        rootPrimaryStoragePath = Environment.getExternalStorageDirectory().getPath();
+        rootSecondaryStoragePath = System.getenv(ENV_SECONDARY_EXTERNAL_STORAGE);
+        /*Initialize mCurrentPath to null to show Internal and External memory options*/
+        mCurrentPath = null;
+        if(D) Log.d(TAG,"ENV:  PRIMARY:  "+ rootPrimaryStoragePath +
+            "\n SEC: "+ rootSecondaryStoragePath +"\n");
+
+
         if (D) Log.d(TAG, "onConnect() -");
         return ResponseCodes.OBEX_HTTP_OK;
     }
@@ -525,7 +539,7 @@ public class BluetoothFtpObexServer extends ServerRequestHandler {
             return ResponseCodes.OBEX_HTTP_INTERNAL_ERROR;
         }
         if (D) Log.d(TAG, "backup=" + backup + " create=" + create +
-                   " name=" + tmp_path +"mCurrentPath = " + mCurrentPath);
+                   " name=" + tmp_path +"     mCurrentPath = " + mCurrentPath);
 
         /* If the name is "." or ".." do not allow to create or set the directory */
         if (TextUtils.equals(tmp_path, FOLDER_NAME_DOT) ||
@@ -543,14 +557,28 @@ public class BluetoothFtpObexServer extends ServerRequestHandler {
          * set the current path to ROOT Folder path
          */
         if (backup) {
-            if (current_path_tmp.length() != 0) {
+            if (D) Log.d(TAG, "current_tmp_path: " + current_path_tmp);
+            if (current_path_tmp.length() != 0 && current_path_tmp.equals(rootPrimaryStoragePath) == false
+                      && current_path_tmp.equals(rootSecondaryStoragePath) == false ) {
                 current_path_tmp = current_path_tmp.substring(0,
                         current_path_tmp.lastIndexOf("/"));
+            } else if (current_path_tmp.equals(rootPrimaryStoragePath ) ||
+               current_path_tmp.equals(rootSecondaryStoragePath)){
+             /* We have already reached the root folder but user tries to press the
+              * back button
+              */
+               current_path_tmp = null;
             }
         } else {
-            if (tmp_path == null) {
-                current_path_tmp = ROOT_FOLDER_PATH;
-            } else {
+            //SetPath here comes into picture only when tmp_path not null.
+            if (tmp_path == null ) {
+                current_path_tmp = null;
+            } else if ( tmp_path.equals(PRIMARY_INTERNAL_FOLDERNAME) ) {
+                current_path_tmp = rootPrimaryStoragePath;
+            } else if ( tmp_path.equals(SECONDARY_EXTERNAL_FOLDERNAME)) {
+                current_path_tmp = rootSecondaryStoragePath;
+            } else if(current_path_tmp != null){
+                //Allow only PRIMARY and SECONDARY FOLDERs at ROOT
                 current_path_tmp = current_path_tmp + "/" + tmp_path;
             }
         }
@@ -561,7 +589,7 @@ public class BluetoothFtpObexServer extends ServerRequestHandler {
          * else if the path doesnot exist and the create flag is not set we
          * return ResponseCodes.OBEX_HTTP_NOT_FOUND
          */
-        if ((current_path_tmp.length() != 0) &&
+        if ((current_path_tmp != null  && current_path_tmp.length() != 0) &&
                                   (!FileUtils.doesPathExist(current_path_tmp))) {
             if (D) Log.d(TAG, "Current path has valid length ");
             if (create) {
@@ -574,13 +602,16 @@ public class BluetoothFtpObexServer extends ServerRequestHandler {
                 if (D) Log.d(TAG, "path not found error");
                 return ResponseCodes.OBEX_HTTP_NOT_FOUND;
             }
+        } else if(current_path_tmp == null && create ){
+           // If path is null and create flag is set ,
+           // new folder requested at PRIMARY and SECONDARY FOlDEERs level,
+           // so return  ResponseCodes.OBEX_HTTP_NOT_ACCEPTABLE
+           return ResponseCodes.OBEX_HTTP_NOT_ACCEPTABLE;
+        } else if(current_path_tmp == null && !backup ){
+           // current_path_tmp cannot be null if not backup
+           return ResponseCodes.OBEX_HTTP_NOT_FOUND;
         }
-        /* We have already reached the root folder but user tries to press the
-         * back button
-         */
-        if(current_path_tmp.length() == 0){
-              current_path_tmp = ROOT_FOLDER_PATH;
-        }
+
 
         mCurrentPath = current_path_tmp;
         if (V) Log.v(TAG, "after setPath, mCurrentPath ==  " + mCurrentPath);
@@ -654,8 +685,16 @@ public class BluetoothFtpObexServer extends ServerRequestHandler {
              * Else call the routine to send the requested file names contents
              */
              if(type.equals(TYPE_LISTING)){
-                if(!validName){
-                    if (D) Log.d(TAG,"Not having a name");
+                if(!validName || ( mCurrentPath!= null && ( mCurrentPath.equals(rootPrimaryStoragePath) ||
+                    mCurrentPath.equals(rootSecondaryStoragePath)) ) ) {
+                    if (D) Log.d(TAG,"Not having a name ");
+                    if(!validName && mCurrentPath == null) {
+                       //Show  BOTH Primary and Seconday Folders to Choose
+                        List <String> storagePartitions = new ArrayList<String>();
+                        storagePartitions.add(PRIMARY_INTERNAL_FOLDERNAME);
+                        storagePartitions.add(SECONDARY_EXTERNAL_FOLDERNAME);
+                        return folderListingXML(op, storagePartitions);
+                    }
                     File rootfolder = new File(mCurrentPath);
                     File [] files = rootfolder.listFiles();
                     if (files != null) {
@@ -860,8 +899,8 @@ public class BluetoothFtpObexServer extends ServerRequestHandler {
                  }
                  if (mimeType != null) {
                      mimeType = mimeType.toLowerCase();
-                     if (D) Log.d(TAG, "Adding file path"+" /mnt" + dir.getAbsolutePath());
-                     filenames.add("/mnt" + dir.getAbsolutePath());
+                     if (D) Log.d(TAG, "Adding file path "+ dir.getAbsolutePath());
+                     filenames.add( dir.getAbsolutePath());
                      if (D) Log.d(TAG, "Adding type" +mimeType);
                      types.add(mimeType);
                  }
@@ -894,8 +933,8 @@ public class BluetoothFtpObexServer extends ServerRequestHandler {
                     }
                     if (mimeType != null) {
                         mimeType = mimeType.toLowerCase();
-                        if (D) Log.d(TAG, "Adding file path"+" /mnt" + files[i].getAbsolutePath());
-                        filenames.add("/mnt" + files[i].getAbsolutePath());
+                        if (D) Log.d(TAG, "Adding file path "+ files[i].getAbsolutePath());
+                        filenames.add(files[i].getAbsolutePath());
                         if (D) Log.d(TAG, "Adding type" +mimeType);
                         types.add(mimeType);
                     }
@@ -980,6 +1019,23 @@ public class BluetoothFtpObexServer extends ServerRequestHandler {
         if (V) Log.v(TAG, "pushBytes - result = " + pushResult);
         return pushResult;
     }
+
+
+    private final  int folderListingXML( Operation op, List<String> list) {
+        if (V) Log.v(TAG, "FolderListingXml =" + list.size());
+
+        String str = "<?xml version=\"1.0\"?><!DOCTYPE folder-listing SYSTEM \"obex-folder-listing.dtd\"><folder-listing version=\"1.0\">";
+        for (String s : list) {
+            str += "<folder name=\"";
+            str += s;
+            str += "\"/>";
+        }
+
+        str += "</folder-listing>";
+        if (V) Log.v(TAG, "FolderListingXml -");
+        return pushBytes(op, str);
+    }
+
 
     /** Form and Send an XML format String to client for Folder listing */
     private final int sendFolderListingXml(final int type,Operation op,final File[] files) {
