@@ -337,6 +337,7 @@ public class BluetoothMns implements MessageNotificationListener {
                 case RFCOMM_ERROR:
                     if (V) Log.v(TAG, "receive RFCOMM_ERROR msg");
                     deregisterAll();
+                    mWaitingMasId.clear();
                     if (canDisconnect()) {
                         stop();
                     }
