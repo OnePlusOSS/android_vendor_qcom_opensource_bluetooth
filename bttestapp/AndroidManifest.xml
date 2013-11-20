@@ -21,7 +21,8 @@
 
         <uses-library android:name="javax.obex" />
 
-        <activity android:name=".MainActivity" >
+        <activity android:name=".MainActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -31,12 +32,15 @@
         <activity android:name=".VcardFilterActivity" />
         <activity
             android:name=".HfpTestActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"
             android:launchMode="singleTop" />
         <activity
             android:name=".PbapTestActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"
             android:launchMode="singleTop" />
         <activity
             android:name=".MapTestActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"
             android:launchMode="singleTop" />
         <activity android:name=".MessageFilterActivity" />
 
@@ -49,6 +53,7 @@
         </service>
 -->
         <activity android:name=".services.PbapAuthActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"
             android:excludeFromRecents="true"
             android:theme="@*android:style/Theme.Holo.Dialog.Alert">
             <intent-filter>
