@@ -298,14 +298,14 @@ public class MapTestActivity extends MonkeyActivity implements GetTextDialogList
                     new MonkeyEvent("map-getfolderlisting-size", true)
                             .addReplyParam("size", size)
                             .send();
-                    shortToast("GetMessagesListing size OK: size=" + size);
+                    shortToast("GetFolderListing size OK: size=" + size);
                 }
 
                 @Override
                 public void onGetFolderListingSizeError() {
                     goToState(Job.IDLE);
                     new MonkeyEvent("map-getfolderlisting-size", false).send();
-                    shortToast("GetMessagesListing size FAILED");
+                    shortToast("GetFolderListing size FAILED");
                 }
 
                 @Override
