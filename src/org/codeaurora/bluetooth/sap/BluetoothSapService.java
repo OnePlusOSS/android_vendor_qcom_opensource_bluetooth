@@ -274,6 +274,8 @@ public class BluetoothSapService extends Service {
 
     private BluetoothAdapter mAdapter;
 
+    private int mStartId = -1;
+
     /**
      * package and class name to which we send intent to check SAP profile
      * access permission
@@ -305,6 +307,7 @@ public class BluetoothSapService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
 
         mInterrupted = false;
+        mStartId = startId;
 
         if (mAdapter == null) {
             Log.w(TAG, "Stopping BluetoothSapService: "
@@ -321,7 +324,7 @@ public class BluetoothSapService extends Service {
 
     @Override
     public void onDestroy() {
-        if (VERBOSE) Log.v(TAG, "Sap Service onDestroy");
+        if (VERBOSE) Log.v(TAG, "Sap Service onDestroy" + mSapBinder);
 
         super.onDestroy();
 
@@ -332,15 +335,24 @@ public class BluetoothSapService extends Service {
         if(mSapHandler != null) {
             mSapHandler.removeCallbacksAndMessages(null);
         }
+        mSapBinder = null;
     }
 
     @Override
     public IBinder onBind(Intent intent) {
-        if (VERBOSE) Log.v(TAG, "Sap Service onBind");
+        if (VERBOSE) Log.v(TAG, "Sap Service onBind: " + mSapBinder);
         return mSapBinder;
     }
 
+    public boolean onUnbind(Intent intent) {
+        if (VERBOSE) Log.v(TAG, "onUnbind");
+        return super.onUnbind(intent);
+    }
+
+
     private IBinder initBinder() {
+        if (VERBOSE) Log.v(TAG, "initBinder");
+
         return new BluetoothSapBinder(this);
     }
 
@@ -439,6 +451,7 @@ public class BluetoothSapService extends Service {
                     // Release all resources
                     closeSapService();
                     mSapEnable = false;
+                    mConnection = null;
                 }
                 synchronized(mAuthLock) {
                     if (mIsWaitingAuthorization) {
@@ -724,7 +737,9 @@ public class BluetoothSapService extends Service {
             }
         }
 
-        stopSelf();
+        if (stopSelfResult(mStartId)) {
+            if (VERBOSE) Log.v(TAG, "successfully stopped Sap service");
+        }
 
         if (VERBOSE) Log.v(TAG, "Sap Service closeSapService out");
     }
@@ -1343,13 +1358,23 @@ public class BluetoothSapService extends Service {
 
         public BluetoothSapBinder(BluetoothSapService svc) {
             mService = svc;
+            if (VERBOSE) Log.v(TAG, "BluetoothSapBinder: mService: " + mService);
+
         }
 
         private BluetoothSapService getService() {
+            if (VERBOSE) Log.v(TAG, "getService: mService: " + mService);
+
             if (mService != null)
                 return mService;
             return null;
         }
+        public boolean cleanup()  {
+            if (VERBOSE) Log.v(TAG, "cleanup: mService: " + mService);
+            mService = null;
+            return true;
+        }
+
 
         public boolean disconnect(BluetoothDevice device) {
             BluetoothSapService service = getService();
