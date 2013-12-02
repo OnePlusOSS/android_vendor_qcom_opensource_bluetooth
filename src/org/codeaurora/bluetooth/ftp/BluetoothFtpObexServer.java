@@ -583,7 +583,7 @@ public class BluetoothFtpObexServer extends ServerRequestHandler {
             return ResponseCodes.OBEX_HTTP_INTERNAL_ERROR;
         }
         if (D) Log.d(TAG, "backup=" + backup + " create=" + create +
-                   " name=" + tmp_path +"     mCurrentPath = " + mCurrentPath);
+                   " name=" + tmp_path +" mCurrentPath = " + mCurrentPath);
 
         /* If the name is "." or ".." do not allow to create or set the directory */
         if (TextUtils.equals(tmp_path, FOLDER_NAME_DOT) ||
@@ -601,17 +601,20 @@ public class BluetoothFtpObexServer extends ServerRequestHandler {
          * set the current path to ROOT Folder path
          */
         if (backup) {
-            if (D) Log.d(TAG, "current_tmp_path: " + current_path_tmp);
-            if (current_path_tmp.length() != 0 && current_path_tmp.equals(rootPrimaryStoragePath) == false
-                      && current_path_tmp.equals(rootSecondaryStoragePath) == false ) {
-                current_path_tmp = current_path_tmp.substring(0,
-                        current_path_tmp.lastIndexOf("/"));
-            } else if (current_path_tmp.equals(rootPrimaryStoragePath ) ||
-               current_path_tmp.equals(rootSecondaryStoragePath)){
-             /* We have already reached the root folder but user tries to press the
-              * back button
-              */
-               current_path_tmp = null;
+            if (current_path_tmp != null) {
+                if (D) Log.d(TAG, "current_tmp_path: " + current_path_tmp);
+                if (current_path_tmp.length() != 0 &&
+                    current_path_tmp.equals(rootPrimaryStoragePath)
+                    == false && current_path_tmp.equals(rootSecondaryStoragePath) == false ) {
+                    current_path_tmp = current_path_tmp.substring(0,
+                            current_path_tmp.lastIndexOf("/"));
+                } else if (current_path_tmp.equals(rootPrimaryStoragePath ) ||
+                   current_path_tmp.equals(rootSecondaryStoragePath)){
+                 /* We have already reached the root folder but user tries to press the
+                  * back button
+                  */
+                   current_path_tmp = null;
+                }
             }
         } else {
             //SetPath here comes into picture only when tmp_path not null.
@@ -651,9 +654,9 @@ public class BluetoothFtpObexServer extends ServerRequestHandler {
            // new folder requested at PRIMARY and SECONDARY FOlDEERs level,
            // so return  ResponseCodes.OBEX_HTTP_NOT_ACCEPTABLE
            return ResponseCodes.OBEX_HTTP_NOT_ACCEPTABLE;
-        } else if(current_path_tmp == null && !backup ){
-           // current_path_tmp cannot be null if not backup
-           return ResponseCodes.OBEX_HTTP_NOT_FOUND;
+        } else if(current_path_tmp == null && backup ){
+           // current_path_tmp cannot be null if backup
+           return ResponseCodes.OBEX_HTTP_NOT_ACCEPTABLE;
         }
 
 
