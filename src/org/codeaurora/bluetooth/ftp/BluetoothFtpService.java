@@ -451,13 +451,8 @@ public class BluetoothFtpService extends Service {
     private final void closeService() {
         if (VERBOSE) Log.v(TAG, "Ftp Service closeService");
 
-        if (mServerSession != null) {
-            mServerSession.close();
-            mServerSession = null;
-        }
-
         try {
-            closeRfcommSocket(true, true);
+            closeRfcommSocket(true, false);
         } catch (IOException ex) {
             Log.e(TAG, "CloseSocket error: " + ex);
         }
@@ -470,6 +465,17 @@ public class BluetoothFtpService extends Service {
             } catch (InterruptedException ex) {
                 Log.w(TAG, "mAcceptThread close error" + ex);
             }
+        }
+
+        try {
+            closeRfcommSocket(false, true);
+        } catch (IOException ex) {
+            Log.e(TAG, "CloseSocket error: " + ex);
+        }
+
+        if (mServerSession != null) {
+            mServerSession.close();
+            mServerSession = null;
         }
 
         mHasStarted = false;
@@ -589,8 +595,14 @@ public class BluetoothFtpService extends Service {
                 try {
                     Log.v(RTAG,"Run Accept thread");
                     mConnSocket = mRfcommServerSocket.accept();
-                    isL2capSocket = false;
-                    mRemoteDevice = mConnSocket.getRemoteDevice();
+                    synchronized(BluetoothFtpService.this) {
+                        if(mConnSocket == null){
+                            Log.i(RTAG, "mConnSocket = null");
+                            break;
+                        }
+                        isL2capSocket = false;
+                        mRemoteDevice = mConnSocket.getRemoteDevice();
+                    }
                     if (mRemoteDevice == null) {
                         Log.i(RTAG, "getRemoteDevice() = null");
                         break;
