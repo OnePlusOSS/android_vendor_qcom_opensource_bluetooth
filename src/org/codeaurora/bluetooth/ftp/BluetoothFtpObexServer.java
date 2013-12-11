@@ -610,19 +610,24 @@ public class BluetoothFtpObexServer extends ServerRequestHandler {
                             current_path_tmp.lastIndexOf("/"));
                 } else if (current_path_tmp.equals(rootPrimaryStoragePath ) ||
                    current_path_tmp.equals(rootSecondaryStoragePath)){
-                 /* We have already reached the root folder but user tries to press the
-                  * back button
-                  */
                    current_path_tmp = null;
                 }
+            } else {
+                /* We have already reached the root folder but user tries to press the
+                 * back button
+                 */
+                Log.e(TAG, "current_path_tmp = null while backup");
+                return ResponseCodes.OBEX_HTTP_NOT_ACCEPTABLE;
             }
         } else {
             //SetPath here comes into picture only when tmp_path not null.
             if (tmp_path == null ) {
                 current_path_tmp = null;
-            } else if ( tmp_path.equals(PRIMARY_INTERNAL_FOLDERNAME) ) {
+            } else if ( tmp_path.equals(PRIMARY_INTERNAL_FOLDERNAME)
+                && current_path_tmp == null) {
                 current_path_tmp = rootPrimaryStoragePath;
-            } else if ( tmp_path.equals(SECONDARY_EXTERNAL_FOLDERNAME)) {
+            } else if ( tmp_path.equals(SECONDARY_EXTERNAL_FOLDERNAME)
+                && current_path_tmp == null) {
                 current_path_tmp = rootSecondaryStoragePath;
             } else if(current_path_tmp != null){
                 //Allow only PRIMARY and SECONDARY FOLDERs at ROOT
@@ -636,29 +641,38 @@ public class BluetoothFtpObexServer extends ServerRequestHandler {
          * else if the path doesnot exist and the create flag is not set we
          * return ResponseCodes.OBEX_HTTP_NOT_FOUND
          */
-        if ((current_path_tmp != null  && current_path_tmp.length() != 0) &&
-                                  (!FileUtils.doesPathExist(current_path_tmp))) {
-            if (D) Log.d(TAG, "Current path has valid length ");
+        if ((current_path_tmp != null  && current_path_tmp.length() != 0)) {
             if (create) {
-                if (D) Log.d(TAG, "path create is not forbidden!");
-                File filecreate = new File(current_path_tmp);
-                filecreate.mkdir();
-                mCurrentPath = current_path_tmp;
-                return ResponseCodes.OBEX_HTTP_OK;
+                if (FileUtils.doesPathExist(current_path_tmp)) {
+                    if (D) Log.d(TAG, "Folder already exists");
+                    return ResponseCodes.OBEX_HTTP_INTERNAL_ERROR;
+                } else {
+                    File filecreate = new File(current_path_tmp);
+                    if (filecreate != null && !filecreate.mkdir()) {
+                        Log.e(TAG, "Could not create " + tmp_path);
+                        return ResponseCodes.OBEX_HTTP_INTERNAL_ERROR;
+                    }
+                }
             } else {
-                if (D) Log.d(TAG, "path not found error");
+                if (!FileUtils.doesPathExist(current_path_tmp)) {
+                    Log.e(TAG, "path: " +  current_path_tmp + " not found");
+                    return ResponseCodes.OBEX_HTTP_NOT_FOUND;
+                }
+            }
+        } else if (current_path_tmp == null && tmp_path != null) {
+            if (create) {
+               // If path is null and create flag is set, new folder creation at PRIMARY
+               // and SECONDARY FOLDERs, so return OBEX_HTTP_NOT_ACCEPTABLE
+                Log.e(TAG, "creation of new folder not allowed at root folder");
+               return ResponseCodes.OBEX_HTTP_NOT_ACCEPTABLE;
+            } else if (!backup) {
+                // If path is null and create flag is not set, set path to some folder other than
+                // PRIMARY and SECONDARY FOLDERs so return OBEX_HTTP_NOT_FOUND
+                Log.e(TAG, "cannot set path to " + tmp_path + " at root folder" +
+                    " other than PHONE_MEMORY and EXTERNAL_MEMORY");
                 return ResponseCodes.OBEX_HTTP_NOT_FOUND;
             }
-        } else if(current_path_tmp == null && create ){
-           // If path is null and create flag is set ,
-           // new folder requested at PRIMARY and SECONDARY FOlDEERs level,
-           // so return  ResponseCodes.OBEX_HTTP_NOT_ACCEPTABLE
-           return ResponseCodes.OBEX_HTTP_NOT_ACCEPTABLE;
-        } else if(current_path_tmp == null && backup ){
-           // current_path_tmp cannot be null if backup
-           return ResponseCodes.OBEX_HTTP_NOT_ACCEPTABLE;
         }
-
 
         mCurrentPath = current_path_tmp;
         if (V) Log.v(TAG, "after setPath, mCurrentPath ==  " + mCurrentPath);
