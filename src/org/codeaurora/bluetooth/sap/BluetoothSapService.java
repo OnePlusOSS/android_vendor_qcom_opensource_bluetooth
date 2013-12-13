@@ -81,7 +81,7 @@ public class BluetoothSapService extends Service {
     private static final int MESSAGE_START_LISTENER             = 0x01;
     private static final int MESSAGE_SAP_USER_TIMEOUT           = 0x02;
 
-    private static final int USER_CONFIRM_TIMEOUT_VALUE         = 7000; // 7 seconds
+    private static final int USER_CONFIRM_TIMEOUT_VALUE         = 30000; // 30 seconds
 
     /**
      * IPC message types which can be exchanged between
