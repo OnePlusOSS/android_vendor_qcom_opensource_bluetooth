@@ -61,6 +61,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import android.bluetooth.BluetoothLwPwrProximityMonitor;
+import android.bluetooth.BluetoothRssiMonitorCallback;
+
 /**
  * A Proximity Monitor Service. It interacts with the BLE device via the Android
  * BLE API.
@@ -95,6 +98,12 @@ public class PxpMonitorService extends Service {
     private final int DISCOVER_SERVICES = 1;
 
     private final int READ_CHARACTERISTIC = 2;
+
+    public static final int HIGH_ALERT = 2;
+
+    public static final int MILD_ALERT = 1;
+
+    public static final int NO_ALERT = 0;
 
     private BluetoothManager mManager = null;
 
@@ -816,7 +825,7 @@ public class PxpMonitorService extends Service {
             Log.v(TAG, "deviceProp.mPathLossAlertLevel != PxpConsts.ALERT_LEVEL_NO");
 
             // start hardware rssi monitor
-            if (!deviceProp.qcRssiProximityMonitor.start(deviceProp.maxPathLossThreshold - 10,
+            if (!deviceProp.qcRssiProximityMonitor.start(deviceProp.minPathLossThreshold,
                     deviceProp.maxPathLossThreshold)) {
                 // start software method to monitor rssi
                 startPathLossSwMonitor();
@@ -1050,9 +1059,30 @@ public class PxpMonitorService extends Service {
 
         return pxpConnectedDevice;
     }
+    /**
+     * Provides the Alert level value based on vendor specific event type received
+     * from controller.
+     *
+     * @return alert level value.
+     */
+    public int getAlertLevelValue(int evtType) {
+        int alertLevelValue = 0;
+        switch(evtType) {
+            case BluetoothLwPwrProximityMonitor.RSSI_NO_ALERT:
+                alertLevelValue = NO_ALERT;
+                break;
+            case BluetoothLwPwrProximityMonitor.RSSI_MILD_ALERT:
+                alertLevelValue = MILD_ALERT;
+                break;
+            case BluetoothLwPwrProximityMonitor.RSSI_HIGH_ALERT:
+                alertLevelValue = HIGH_ALERT;
+                break;
+        }
+        return alertLevelValue;
+    }
 
     private final class QcBluetoothMonitorRssiCallback extends
-            BluetoothLwPwrProximityMonitor.BluetoothRssiMonitorCallback {
+            BluetoothRssiMonitorCallback {
         private BluetoothDevice mDevice;
 
         QcBluetoothMonitorRssiCallback(BluetoothDevice device) {
@@ -1061,7 +1091,7 @@ public class PxpMonitorService extends Service {
 
         @Override
         public void onStarted() {
-            // Log.d(TAG, )
+            Log.d(TAG, "onStarted in PxpMonitorService");
         }
 
         // Callback for stop()
@@ -1075,10 +1105,12 @@ public class PxpMonitorService extends Service {
 
         @Override
         public void onAlert(int evtType, int rssi) {
+            Log.d(TAG, "onAlert in PxpMonitorService:: evtType::"+evtType+"::rssi::"+rssi);
 
             DeviceProperties deviceProp = mHashMapDevice.get(mDevice);
+            int alertLevelValue = getAlertLevelValue(evtType);
 
-            deviceProp.iasAlertLevelCh.setValue(evtType,
+            deviceProp.iasAlertLevelCh.setValue(alertLevelValue,
                     BluetoothGattCharacteristic.FORMAT_UINT8, 0);
             deviceProp.gatt.writeCharacteristic(deviceProp.iasAlertLevelCh);
 

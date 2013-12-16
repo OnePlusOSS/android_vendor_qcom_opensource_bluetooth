@@ -60,7 +60,7 @@
         </activity>
         <activity android:name=".DeviceActivity" />
         <activity android:name=".ScanDevicesActivity" />
-        <activity android:name=".PariedDevicesActivity" />
+        <activity android:name=".PairedDevicesActivity" />
         <activity android:name=".ConnectedDevicesActivity" />
         <activity android:name=".AlertsHistory" />
 

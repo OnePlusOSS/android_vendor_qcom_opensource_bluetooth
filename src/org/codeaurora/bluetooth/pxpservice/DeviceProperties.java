@@ -31,6 +31,7 @@ package org.codeaurora.bluetooth.pxpservice;
 
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothLwPwrProximityMonitor;
 
 /**
  * A Device Properties class. It contains information about bluetooth device
