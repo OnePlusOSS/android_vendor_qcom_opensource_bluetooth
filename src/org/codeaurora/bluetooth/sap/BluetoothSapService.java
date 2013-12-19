@@ -865,8 +865,8 @@ public class BluetoothSapService extends Service {
         else return -1;
 
         // check msgBuf has the parameter payload
-        // calculate the padding bytes also
-        if (ParamLen > 0) ParamLen = ParamLen + (4 - (ParamLen%4));
+        // calculate the padding bytes only when the parameter length is not a multiple of 4
+        if ((ParamLen > 0) && (ParamLen%4 != 0)) ParamLen = ParamLen + (4 - (ParamLen%4));
 
         if (TotalLeft >= ParamLen) {
             TotalLeft = TotalLeft - SAP_PARAM_HEADER_SIZE;
