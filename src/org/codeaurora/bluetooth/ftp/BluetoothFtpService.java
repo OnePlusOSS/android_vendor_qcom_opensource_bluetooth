@@ -291,7 +291,8 @@ public class BluetoothFtpService extends Service {
         boolean removeTimeoutMsg = true;
         if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
             removeTimeoutMsg = false;
-            if (state == BluetoothAdapter.STATE_TURNING_OFF) {
+            if ((state == BluetoothAdapter.STATE_TURNING_OFF) && (mAdapter != null)
+                && (state == mAdapter.getState())) {
                 /** Terminate file copy operation if it is in progress */
                 FileUtils.interruptFileCopy = true;
                 // Send any pending timeout now, as this service will be destroyed.
