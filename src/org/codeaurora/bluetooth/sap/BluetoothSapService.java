@@ -463,18 +463,22 @@ public class BluetoothSapService extends Service {
             } else {
                 removeTimeoutMsg = false;
             }
-        } else if (action.equals(BluetoothDevice.ACTION_ACL_DISCONNECTED) &&
-                                 mIsWaitingAuthorization) {
+        } else if (action.equals(BluetoothDevice.ACTION_ACL_DISCONNECTED)) {
             if (mRemoteDevice == null) {
-               Log.e(TAG, "Unexpected error!");
-               return;
+                Log.e(TAG, "Unexpected error!");
+                return;
             }
             if (mSapHandler != null) {
-               /* Let the user timeout handle this case as well */
-               mSapHandler.sendMessage(mSapHandler.obtainMessage(MESSAGE_SAP_USER_TIMEOUT));
-               removeTimeoutMsg = false;
+                /* Let the user timeout handle this case as well */
+                if (mIsWaitingAuthorization) {
+                    mSapHandler.sendMessage(mSapHandler.obtainMessage(MESSAGE_SAP_USER_TIMEOUT));
+                    removeTimeoutMsg = false;
+                } else {
+                    mSapHandler.sendMessage(mSapHandler.obtainMessage(SAP_CRTL_MSG_DISCONNECT_REQ));
+                    closeRfcommSocket();
+                    startRfcommListenerThread();
+                }
             }
-
         }  else if (action.equals(SAP_ACCESS_ALLOWED_ACTION)) {
             if (mRemoteDevice == null) {
                Log.e(TAG, "Unexpected error!");
