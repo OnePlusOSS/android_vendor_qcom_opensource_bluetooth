@@ -97,6 +97,8 @@ public class HidWrapperService extends Service {
 
     private SparseArray<ReportData> mInputReportCache = new SparseArray<ReportData>();
 
+    private SparseArray<ReportData> mOutputReportCache = new SparseArray<ReportData>();
+
     public interface HidEventListener {
         public void onApplicationState(boolean registered);
         public void onPluggedDeviceChanged(BluetoothDevice device);
@@ -199,6 +201,29 @@ public class HidWrapperService extends Service {
         public void onGetReport(byte type, byte id, int bufferSize) {
             if (type == BluetoothHidDevice.REPORT_TYPE_INPUT) {
                 mHandler.obtainMessage(MESSAGE_GET_REPORT_RECEIVED, id, bufferSize).sendToTarget();
+            } else if (type == BluetoothHidDevice.REPORT_TYPE_OUTPUT) {
+                if (id != mKeyboardWrapper.getReportId(BluetoothHidDevice.REPORT_TYPE_OUTPUT)) {
+                    Log.v(TAG, "onGetReport(), output report for invalid id = " + id);
+                    mHidDevice.reportError();
+                } else {
+                    ReportData rd = mOutputReportCache.get(id);
+                    if (rd == null) {
+                        /* No output report received with particular report id, report default
+                         * values */
+                        byte[] mBuffer = new byte[8];
+                        Log.v(TAG, "get_report id for keyboard");
+                        for (int i = 0; i < 8; i++) {
+                            mBuffer[i] = 0x00;
+                        }
+                        mHidDevice.replyReport(BluetoothHidDevice.REPORT_TYPE_OUTPUT, id, mBuffer);
+                    } else {
+                        mHidDevice.replyReport(BluetoothHidDevice.REPORT_TYPE_OUTPUT, id, rd.data);
+                    }
+                }
+            } else {
+                Log.v(TAG, "onGetReport(), unsupported report type = " + type);
+                /* Unsupported report type */
+                mHidDevice.reportError();
             }
         }
     };
@@ -226,6 +251,8 @@ public class HidWrapperService extends Service {
                     break;
 
                 case MESSAGE_DEV_CONNECTED:
+                    mInputReportCache.clear();
+                    mOutputReportCache.clear();
                     mBatteryWrapper.update(mBatteryLevel);
                     break;
 
@@ -244,6 +271,33 @@ public class HidWrapperService extends Service {
 
                     if (rd != null) {
                         mHidDevice.replyReport(BluetoothHidDevice.REPORT_TYPE_INPUT, id, rd.data);
+                    } else {
+                        rd = new ReportData();
+                        /* Report id not in cache, send default values if id is valid */
+                        if (id == mKeyboardWrapper.getReportId(
+                            BluetoothHidDevice.REPORT_TYPE_INPUT)) {
+                            byte[] mBuffer = new byte[8];
+                            Log.v(TAG, "get_report id for keyboard");
+                            for (int i = 0; i < 8; i++) {
+                                mBuffer[i] = 0x00;
+                            }
+                            storeReport(id, mBuffer, true);
+                            mHidDevice.replyReport(BluetoothHidDevice.REPORT_TYPE_INPUT,
+                                id, mBuffer);
+                        } else if (id == mMouseWrapper.getReportId()) {
+                            byte[] mBuffer = new byte[4];
+                            Log.v(TAG, "get_report id for mouse");
+                            for (int i = 0; i < 4; i++) {
+                                mBuffer[i] = 0x00;
+                            }
+                            storeReport(id, mBuffer, true);
+                            mHidDevice.replyReport(BluetoothHidDevice.REPORT_TYPE_INPUT,
+                                id, mBuffer);
+                        } else {
+                            /* Invalid Report Id */
+                            Log.v(TAG, "Get Report for Invalid report id = " + id);
+                            mHidDevice.reportError();
+                        }
                     }
                     break;
             }
@@ -295,7 +349,7 @@ public class HidWrapperService extends Service {
             mBuffer[2] = dy;
 
             byte id = getReportId();
-            storeInputReport(id, mBuffer);
+            storeReport(id, mBuffer, true);
             mHidDevice.sendReport(id, mBuffer);
         }
 
@@ -305,7 +359,7 @@ public class HidWrapperService extends Service {
             mBuffer[2] = 0;
 
             byte id = getReportId();
-            storeInputReport(id, mBuffer);
+            storeReport(id, mBuffer, true);
             mHidDevice.sendReport(id, mBuffer);
         }
 
@@ -315,7 +369,7 @@ public class HidWrapperService extends Service {
             mBuffer[2] = 0;
 
             byte id = getReportId();
-            storeInputReport(id, mBuffer);
+            storeReport(id, mBuffer, true);
             mHidDevice.sendReport(id, mBuffer);
         }
 
@@ -323,7 +377,7 @@ public class HidWrapperService extends Service {
             mBuffer[3] = delta;
 
             byte id = getReportId();
-            storeInputReport(id, mBuffer);
+            storeReport(id, mBuffer, true);
             mHidDevice.sendReport(id, mBuffer);
 
             // reset to 0 after sending so it won't self-repeat in subsequent
@@ -366,7 +420,7 @@ public class HidWrapperService extends Service {
             }
 
             byte id = getReportId(BluetoothHidDevice.REPORT_TYPE_INPUT);
-            storeInputReport(id, mBuffer);
+            storeReport(id, mBuffer, true);
             mHidDevice.sendReport(id, mBuffer);
         }
 
@@ -385,7 +439,7 @@ public class HidWrapperService extends Service {
             }
 
             byte id = getReportId(BluetoothHidDevice.REPORT_TYPE_INPUT);
-            storeInputReport(id, mBuffer);
+            storeReport(id, mBuffer, true);
             mHidDevice.sendReport(id, mBuffer);
         }
 
@@ -394,6 +448,7 @@ public class HidWrapperService extends Service {
                 return;
 
             byte leds = data[0];
+            storeReport(reportId, data, false);
 
             callback.onKeyboardLedState(
                     (leds & HidConsts.KEYBOARD_LED_NUM_LOCK) != 0,
@@ -421,7 +476,7 @@ public class HidWrapperService extends Service {
             mBuffer[0] = (byte) (val & 0xff);
 
             if (mHidDevice != null) {
-                storeInputReport(HidConsts.BATTERY_REPORT_ID, mBuffer);
+                storeReport(HidConsts.BATTERY_REPORT_ID, mBuffer, true);
                 mHidDevice.sendReport(HidConsts.BATTERY_REPORT_ID, mBuffer);
             }
         }
@@ -549,12 +604,22 @@ public class HidWrapperService extends Service {
         return mPluggedDevice;
     }
 
-    private void storeInputReport(byte reportId, byte[] data) {
-        ReportData rd = mInputReportCache.get(reportId);
+    private void storeReport(byte reportId, byte[] data, boolean inputReport) {
+        ReportData rd;
+
+        if (inputReport) {
+            rd = mInputReportCache.get(reportId);
+        } else {
+            rd = mOutputReportCache.get(reportId);
+        }
 
         if (rd == null) {
             rd = new ReportData();
-            mInputReportCache.put(reportId, rd);
+            if (inputReport) {
+                mInputReportCache.put(reportId, rd);
+            } else {
+                mOutputReportCache.put(reportId, rd);
+            }
         }
 
         rd.data = data.clone();
