@@ -52,6 +52,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <uses-permission android:name="android.permission.WRITE_MEDIA_STORAGE" />
     <application android:process="com.android.bluetooth">
         <uses-library android:name="javax.obex" />
+        <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
         <service
             android:enabled="@bool/profile_supported_btc"
             android:name = ".btcservice.BTCService">
@@ -175,5 +176,14 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 <action android:name="android.bluetooth.device.action.ACL_DISCONNECTED"/>
             </intent-filter>
         </receiver>
+        <service
+            android:name=".pxpservice.PxpMonitorService"
+            android:process="@string/process"
+            android:enabled="true" >
+            <intent-filter>
+                <action android:name="org.codeaurora.bluetooth.pxpservice.PxpMonitorService" />
+            </intent-filter>
+        </service>
+
     </application>
 </manifest>
