@@ -68,6 +68,7 @@ public class HidWrapperService extends Service {
 
     private final static int MESSAGE_GET_REPORT_RECEIVED = 5;
 
+    private final static int MESSAGE_SET_REPORT_RECEIVED = 6;
 
     private final IBinder mBinder = new LocalBinder();
 
@@ -170,6 +171,8 @@ public class HidWrapperService extends Service {
                     mEventListener.onPluggedDeviceChanged(mPluggedDevice);
                 }
             } else {
+                /* Reset Protocol back to report Protocol Mode */
+                mProtocol = BluetoothHidDevice.PROTOCOL_REPORT_MODE;
                 mEventListener.onConnectionState(device, false);
             }
         }
@@ -204,7 +207,7 @@ public class HidWrapperService extends Service {
             } else if (type == BluetoothHidDevice.REPORT_TYPE_OUTPUT) {
                 if (id != mKeyboardWrapper.getReportId(BluetoothHidDevice.REPORT_TYPE_OUTPUT)) {
                     Log.v(TAG, "onGetReport(), output report for invalid id = " + id);
-                    mHidDevice.reportError();
+                    mHidDevice.reportError(BluetoothHidDevice.ERROR_RSP_INVALID_RPT_ID);
                 } else {
                     ReportData rd = mOutputReportCache.get(id);
                     if (rd == null) {
@@ -223,7 +226,24 @@ public class HidWrapperService extends Service {
             } else {
                 Log.v(TAG, "onGetReport(), unsupported report type = " + type);
                 /* Unsupported report type */
-                mHidDevice.reportError();
+                mHidDevice.reportError(BluetoothHidDevice.ERROR_RSP_UNSUPPORTED_REQ);
+            }
+        }
+
+        @Override
+        public void onSetReport(byte type, byte id, byte[] data) {
+            if (type != BluetoothHidDevice.REPORT_TYPE_OUTPUT) {
+                /* Unsupported report type */
+                Log.v(TAG, "onSetReport(), unsupported report type = " + type);
+                mHidDevice.reportError(BluetoothHidDevice.ERROR_RSP_UNSUPPORTED_REQ);
+            } else {
+                if (id != mKeyboardWrapper.getReportId(BluetoothHidDevice.REPORT_TYPE_OUTPUT)) {
+                    Log.v(TAG, "onSetReport(), output report for invalid id = " + id);
+                    mHidDevice.reportError(BluetoothHidDevice.ERROR_RSP_INVALID_RPT_ID);
+                } else {
+                    mHandler.obtainMessage(MESSAGE_SET_REPORT_RECEIVED, id, 0,
+                        ByteBuffer.wrap(data)).sendToTarget();
+                }
             }
         }
     };
@@ -254,6 +274,8 @@ public class HidWrapperService extends Service {
                     mInputReportCache.clear();
                     mOutputReportCache.clear();
                     mBatteryWrapper.update(mBatteryLevel);
+                    mEventListener.onProtocolModeState(
+                        mProtocol == BluetoothHidDevice.PROTOCOL_BOOT_MODE);
                     break;
 
                 case MESSAGE_INTR_DATA_RECEIVED:
@@ -296,9 +318,31 @@ public class HidWrapperService extends Service {
                         } else {
                             /* Invalid Report Id */
                             Log.v(TAG, "Get Report for Invalid report id = " + id);
-                            mHidDevice.reportError();
+                            mHidDevice.reportError(BluetoothHidDevice.ERROR_RSP_INVALID_RPT_ID);
                         }
                     }
+                    break;
+
+                case MESSAGE_SET_REPORT_RECEIVED:
+                    byte rptId = (byte) msg.arg1;
+                    byte[] setRptData = ((ByteBuffer) msg.obj).array();
+                    Log.v(TAG, "MESSAGE_SET_REPORT_RECEIVED for id = " + rptId);
+
+                    if (rptId != mKeyboardWrapper.getReportId
+                        (BluetoothHidDevice.REPORT_TYPE_OUTPUT)) {
+                        Log.v(TAG, "onSetReport(), set report for invalid id = " + rptId);
+                        mHidDevice.reportError(BluetoothHidDevice.ERROR_RSP_INVALID_RPT_ID);
+                        break;
+                    }
+
+                    if (!mKeyboardWrapper.parseIncomingReport(rptId, setRptData, mEventListener)) {
+                        Log.v(TAG, "onSetReport(), parameters invalid");
+                        mHidDevice.reportError(BluetoothHidDevice.ERROR_RSP_INVALID_PARAM);
+                        break;
+                    }
+
+                    Log.v(TAG, "onSetReport(), sending successful handshake for set report");
+                    mHidDevice.reportError(BluetoothHidDevice.ERROR_RSP_SUCCESS);
                     break;
             }
         }
@@ -443,9 +487,16 @@ public class HidWrapperService extends Service {
             mHidDevice.sendReport(id, mBuffer);
         }
 
-        public void parseIncomingReport(byte reportId, byte[] data, HidEventListener callback) {
+        public boolean parseIncomingReport(byte reportId, byte[] data, HidEventListener callback) {
             if (reportId != getReportId(BluetoothHidDevice.REPORT_TYPE_OUTPUT) || callback == null)
-                return;
+                return false;
+
+            Log.v(TAG, "parseIncomingReport(): data.length = "
+                + data.length + " mProtocol = " + mProtocol);
+
+            /* Output report can only be of 1 byte */
+            if (data.length != 1)
+                return false;
 
             byte leds = data[0];
             storeReport(reportId, data, false);
@@ -454,6 +505,7 @@ public class HidWrapperService extends Service {
                     (leds & HidConsts.KEYBOARD_LED_NUM_LOCK) != 0,
                     (leds & HidConsts.KEYBOARD_LED_CAPS_LOCK) != 0,
                     (leds & HidConsts.KEYBOARD_LED_SCROLL_LOCK) != 0);
+            return true;
         }
     };
 
