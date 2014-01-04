@@ -86,44 +86,41 @@ public class PathLossFragment extends Fragment implements View.OnClickListener {
 
                 CharSequence text = null;
 
-                if (actionId == EditorInfo.IME_ACTION_DONE) {
-                    int threshold = Integer.parseInt(mMinValue.getText().toString());
+                int threshold = Integer.parseInt(mMinValue.getText().toString());
 
-                    if (threshold > THRESHOLD_MAX) {
+                if (threshold > THRESHOLD_MAX) {
 
-                        text = "Threshold is to big. Changing to "
-                                + Integer.toString(THRESHOLD_MAX);
+                    text = "Threshold is too big. Changing to "
+                            + Integer.toString(THRESHOLD_MAX);
 
-                        threshold = THRESHOLD_MAX;
-                        mMinValue.setText(String.valueOf(threshold));
+                    threshold = THRESHOLD_MAX;
+                    mMinValue.setText(String.valueOf(threshold));
 
-                    } else if (threshold < THRESHOLD_MIN) {
+                } else if (threshold < THRESHOLD_MIN) {
 
-                        text = "Threshold is to small. Changing to "
-                                + Integer.toString(THRESHOLD_MIN);
+                    text = "Threshold is too small. Changing to "
+                            + Integer.toString(THRESHOLD_MIN);
 
-                        threshold = THRESHOLD_MIN;
-                        mMinValue.setText(String.valueOf(threshold));
-                    }
-
-                    if (text != null) {
-                        Context context = getActivity();
-
-                        Toast toast = Toast.makeText(context, text, Toast.LENGTH_SHORT);
-                        toast.setGravity(Gravity.CENTER, 0, 0);
-                        toast.show();
-                    }
-
-                    mActivity.mPxpServiceProxy.setMinPathLossThreshold(mActivity.mLeDevice,
-                            threshold);
-
-                    final InputMethodManager imm = (InputMethodManager) getActivity()
-                            .getSystemService(Context.INPUT_METHOD_SERVICE);
-                    imm.hideSoftInputFromWindow(getView().getWindowToken(), 0);
-
-                    return true;
+                    threshold = THRESHOLD_MIN;
+                    mMinValue.setText(String.valueOf(threshold));
                 }
-                return false;
+
+                if (text != null) {
+                    Context context = getActivity();
+
+                    Toast toast = Toast.makeText(context, text, Toast.LENGTH_SHORT);
+                    toast.setGravity(Gravity.CENTER, 0, 0);
+                    toast.show();
+                }
+
+                mActivity.mPxpServiceProxy.setMinPathLossThreshold(mActivity.mLeDevice,
+                        threshold);
+
+                final InputMethodManager imm = (InputMethodManager) getActivity()
+                        .getSystemService(Context.INPUT_METHOD_SERVICE);
+                imm.hideSoftInputFromWindow(getView().getWindowToken(), 0);
+
+                return true;
             }
         });
 
@@ -133,44 +130,41 @@ public class PathLossFragment extends Fragment implements View.OnClickListener {
 
                 CharSequence text = null;
 
-                if (actionId == EditorInfo.IME_ACTION_DONE) {
-                    int threshold = Integer.parseInt(mMaxValue.getText().toString());
+                int threshold = Integer.parseInt(mMaxValue.getText().toString());
 
-                    if (threshold > THRESHOLD_MAX) {
+                if (threshold > THRESHOLD_MAX) {
 
-                        text = "Threshold is to big. Changing to "
-                                + Integer.toString(THRESHOLD_MAX);
+                    text = "Threshold is too big. Changing to "
+                            + Integer.toString(THRESHOLD_MAX);
 
-                        threshold = THRESHOLD_MAX;
-                        mMaxValue.setText(String.valueOf(threshold));
+                    threshold = THRESHOLD_MAX;
+                    mMaxValue.setText(String.valueOf(threshold));
 
-                    } else if (threshold < THRESHOLD_MIN) {
+                } else if (threshold < THRESHOLD_MIN) {
 
-                        text = "Threshold is to small. Changing to "
-                                + Integer.toString(THRESHOLD_MIN);
+                    text = "Threshold is too small. Changing to "
+                            + Integer.toString(THRESHOLD_MIN);
 
-                        threshold = THRESHOLD_MIN;
-                        mMaxValue.setText(String.valueOf(threshold));
-                    }
-
-                    if (text != null) {
-                        Context context = getActivity();
-
-                        Toast toast = Toast.makeText(context, text, Toast.LENGTH_SHORT);
-                        toast.setGravity(Gravity.CENTER, 0, 0);
-                        toast.show();
-                    }
-
-                    mActivity.mPxpServiceProxy.setMaxPathLossThreshold(mActivity.mLeDevice,
-                            threshold);
-
-                    final InputMethodManager imm = (InputMethodManager) getActivity()
-                            .getSystemService(Context.INPUT_METHOD_SERVICE);
-                    imm.hideSoftInputFromWindow(getView().getWindowToken(), 0);
-
-                    return true;
+                    threshold = THRESHOLD_MIN;
+                    mMaxValue.setText(String.valueOf(threshold));
                 }
-                return false;
+
+                if (text != null) {
+                    Context context = getActivity();
+
+                    Toast toast = Toast.makeText(context, text, Toast.LENGTH_SHORT);
+                    toast.setGravity(Gravity.CENTER, 0, 0);
+                    toast.show();
+                }
+
+                mActivity.mPxpServiceProxy.setMaxPathLossThreshold(mActivity.mLeDevice,
+                        threshold);
+
+                final InputMethodManager imm = (InputMethodManager) getActivity()
+                        .getSystemService(Context.INPUT_METHOD_SERVICE);
+                imm.hideSoftInputFromWindow(getView().getWindowToken(), 0);
+
+                return true;
             }
         });
 
