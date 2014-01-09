@@ -166,8 +166,19 @@ public class PxpMonitorService extends Service {
                 deviceProp.hasLlsService = false;
                 deviceProp.hasIasService = false;
                 deviceProp.hasTxpService = false;
+                String address = leDevice.getAddress();
 
-                broadcastUpdate(LINKLOSS_ALERT, leDevice);
+                if (deviceProp.deviceAddress != null && address.equals(deviceProp.deviceAddress)
+                    && deviceProp.gatt != null) {
+
+                   Log.e(TAG, "Trying to use an existing mBluetoothGatt for connection.");
+                   if(deviceProp.AddedToWhitelist == false) {
+                       boolean ret_val = deviceProp.gatt.connect();
+                       deviceProp.connectionState = true;
+                       deviceProp.AddedToWhitelist = true;
+                   }
+                   broadcastUpdate(LINKLOSS_ALERT, leDevice);
+               }
             }
         }
 
@@ -642,22 +653,10 @@ public class PxpMonitorService extends Service {
 
         } else {
 
-            if (deviceProp.deviceAddress != null && address.equals(deviceProp.deviceAddress)
-                    && deviceProp.gatt != null) {
+            if (deviceProp.deviceAddress != null && address.equals(deviceProp.deviceAddress)) {
 
-                Log.e(TAG, "Trying to use an existing mBluetoothGatt for connection.");
-                boolean status = deviceProp.gatt.connect();
 
-                if (status == true) {
-                    Log.d(TAG, "Gatt reconnected.");
-                    deviceProp.connectionState = true;
-                    return true;
-
-                } else {
-                    Log.e(TAG, "Failed to reconnect.");
-                    deviceProp.connectionState = false;
-                    return false;
-                }
+                deviceProp.gatt = leDevice.connectGatt(this, false, mGattCallback);
 
             }
         }
@@ -688,6 +687,11 @@ public class PxpMonitorService extends Service {
         deviceProp.qcRssiProximityMonitor.close();
 
         deviceProp.gatt.disconnect();
+        if (deviceProp.gatt != null) {
+            deviceProp.gatt.close();
+            deviceProp.gatt = null;
+        }
+
     }
 
     /**

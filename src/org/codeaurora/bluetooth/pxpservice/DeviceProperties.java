@@ -65,6 +65,8 @@ public class DeviceProperties {
 
     public boolean connectionState = false;
 
+    public boolean AddedToWhitelist = false;
+
     public boolean hasIasService = false;
 
     public boolean hasLlsService = false;
@@ -91,6 +93,7 @@ public class DeviceProperties {
         isReading = false;
         isAlerting = false;
         connectionState = false;
+        AddedToWhitelist = false;
         hasIasService = false;
         hasLlsService = false;
         hasTxpService = false;
