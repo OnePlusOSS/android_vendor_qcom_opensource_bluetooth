@@ -823,10 +823,12 @@ public class PxpMonitorService extends Service {
 
         if (deviceProp.pathLossAlertLevel != PxpConsts.ALERT_LEVEL_NO) {
             Log.v(TAG, "deviceProp.mPathLossAlertLevel != PxpConsts.ALERT_LEVEL_NO");
-
+            int rssiMin = deviceProp.txPowerLevel - deviceProp.minPathLossThreshold;
+            int rssiMax = deviceProp.txPowerLevel - deviceProp.maxPathLossThreshold;
+            Log.d(TAG, "rssiMin::"+rssiMin);
+            Log.d(TAG, "rssiMax::"+rssiMax);
             // start hardware rssi monitor
-            if (!deviceProp.qcRssiProximityMonitor.start(deviceProp.minPathLossThreshold,
-                    deviceProp.maxPathLossThreshold)) {
+            if (!deviceProp.qcRssiProximityMonitor.start(rssiMin, rssiMax)) {
                 // start software method to monitor rssi
                 startPathLossSwMonitor();
             }
