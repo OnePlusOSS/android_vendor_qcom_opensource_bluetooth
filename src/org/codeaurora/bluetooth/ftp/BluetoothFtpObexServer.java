@@ -642,19 +642,14 @@ public class BluetoothFtpObexServer extends ServerRequestHandler {
          * return ResponseCodes.OBEX_HTTP_NOT_FOUND
          */
         if ((current_path_tmp != null  && current_path_tmp.length() != 0)) {
-            if (create) {
-                if (FileUtils.doesPathExist(current_path_tmp)) {
-                    if (D) Log.d(TAG, "Folder already exists");
-                    return ResponseCodes.OBEX_HTTP_INTERNAL_ERROR;
-                } else {
+            if (!FileUtils.doesPathExist(current_path_tmp)) {
+                if (create) {
                     File filecreate = new File(current_path_tmp);
                     if (filecreate != null && !filecreate.mkdir()) {
                         Log.e(TAG, "Could not create " + tmp_path);
                         return ResponseCodes.OBEX_HTTP_INTERNAL_ERROR;
                     }
-                }
-            } else {
-                if (!FileUtils.doesPathExist(current_path_tmp)) {
+                } else {
                     Log.e(TAG, "path: " +  current_path_tmp + " not found");
                     return ResponseCodes.OBEX_HTTP_NOT_FOUND;
                 }
