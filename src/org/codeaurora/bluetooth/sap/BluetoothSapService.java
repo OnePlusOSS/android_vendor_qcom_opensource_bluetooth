@@ -420,12 +420,29 @@ public class BluetoothSapService extends Service {
                 }
 
                 Log.v(TAG, "Starting SAP server process");
-                SystemProperties.set(BLUETOOTH_SAP_PROFILE_STATUS, "running");
+                try {
+                    SystemProperties.set(BLUETOOTH_SAP_PROFILE_STATUS, "running");
+                    mSapEnable = true;
+                } catch (RuntimeException e) {
+                    Log.v(TAG, "Could not start SAP server process: " + e);
+                }
 
-                mSapHandler.sendMessage(mSapHandler
-                        .obtainMessage(MESSAGE_START_LISTENER));
-
-                mSapEnable = true;
+                if (mSapEnable) {
+                    mSapHandler.sendMessage(mSapHandler
+                            .obtainMessage(MESSAGE_START_LISTENER));
+                } else {
+                    //Sap server process is not started successfully.
+                    //So clean up service connection to avoid service connection leak
+                    if (mAdapterService != null) {
+                        try {
+                            mAdapterService = null;
+                            unbindService(mConnection);
+                        } catch (IllegalArgumentException e) {
+                            Log.e(TAG, "could not unbind the adapter Service", e);
+                        }
+                    }
+                    return;
+                }
             }
             else if (state == BluetoothAdapter.STATE_TURNING_OFF) {
                 // Send any pending timeout now, as this service will be destroyed.
@@ -437,7 +454,12 @@ public class BluetoothSapService extends Service {
 
                 if (mSapEnable) {
                     Log.v(TAG, "Stopping SAP server process");
-                    SystemProperties.set(BLUETOOTH_SAP_PROFILE_STATUS, "stopped");
+
+                    try {
+                        SystemProperties.set(BLUETOOTH_SAP_PROFILE_STATUS, "stopped");
+                    } catch (RuntimeException e) {
+                        Log.v(TAG, "Could not stop SAP server process: " + e);
+                    }
 
                     synchronized(mConnection) {
                         try {
