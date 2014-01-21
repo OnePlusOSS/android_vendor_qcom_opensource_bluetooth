@@ -1111,10 +1111,18 @@ public class PxpMonitorService extends Service {
 
         @Override
         public void onAlert(int evtType, int rssi) {
+            int alertLevelValue = 0;
             Log.d(TAG, "onAlert in PxpMonitorService:: evtType::"+evtType+"::rssi::"+rssi);
 
             DeviceProperties deviceProp = mHashMapDevice.get(mDevice);
-            int alertLevelValue = getAlertLevelValue(evtType);
+            if(deviceProp.minPathLossThreshold == deviceProp.maxPathLossThreshold) {
+                if(evtType == BluetoothLwPwrProximityMonitor.RSSI_HIGH_ALERT) {
+                    alertLevelValue = deviceProp.pathLossAlertLevel;
+                }
+            }
+            else {
+                alertLevelValue = getAlertLevelValue(evtType);
+            }
 
             deviceProp.iasAlertLevelCh.setValue(alertLevelValue,
                     BluetoothGattCharacteristic.FORMAT_UINT8, 0);
