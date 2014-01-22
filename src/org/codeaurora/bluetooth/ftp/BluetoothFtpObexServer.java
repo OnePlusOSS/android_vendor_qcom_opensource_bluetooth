@@ -653,6 +653,22 @@ public class BluetoothFtpObexServer extends ServerRequestHandler {
                     Log.e(TAG, "path: " +  current_path_tmp + " not found");
                     return ResponseCodes.OBEX_HTTP_NOT_FOUND;
                 }
+            } else {
+                /* Check if the folder to be created or set is not having same
+                 * name as existing file in same location. If file with same name is
+                 * present, return error to Client. */
+                File file = new File(current_path_tmp);
+                if (file.isFile()) {
+                    if (create) {
+                        Log.e(TAG, "File already exists with same name, " +
+                            "can't create folder with same name");
+                        return ResponseCodes.OBEX_HTTP_INTERNAL_ERROR;
+                    } else {
+                        Log.e(TAG, "Path is not valid, path being set is " +
+                            "for file not folder");
+                        return ResponseCodes.OBEX_HTTP_NOT_FOUND;
+                    }
+                }
             }
         } else if (current_path_tmp == null && tmp_path != null) {
             if (create) {
