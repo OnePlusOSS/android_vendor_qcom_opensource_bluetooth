@@ -55,6 +55,7 @@ import android.wipower.WipowerManager;
 import android.wipower.WipowerManagerCallback;
 import android.wipower.WipowerManager.WipowerState;
 import android.wipower.WipowerManager.WipowerAlert;
+import android.wipower.WipowerManager.PowerApplyEvent;
 import android.wipower.WipowerManager.PowerLevel;
 import android.wipower.WipowerDynamicParam;
 
@@ -83,25 +84,26 @@ public class A4wpService extends Service
     private static final Object mLock = new Object();
     private int mState = BluetoothProfile.STATE_DISCONNECTED;
 
-    public final static int DEFAULT_ID = 0xFFFF;
-    public final static short DEFAULT_CATEGORY = 3;
-    public final static int DEFAULT_CAPABILITIES = 0x0000;
-    public final static int DEFAULT_HW_VERSION = 0x0700;
-    public final static int DEFAULT_FW_VERSION = 0x05;
-    public final static int DEFAULT_MAX_POWER_DESIRED = 3650;
-    public final static int DEFAULT_VRECT_MIN = 9000;
-    public final static int DEFAULT_VRECT_MAX = 18000;
-    public final static int DEFAULT_VRECT_SET = 11000;
-    public final static int DEFAULT_DELTA_R1 = 1;
-    public final static int DEFAULT_RRX_INT = 0;
-    public final static int DEFAULT_RECT_IMP_TRANSFORM = 0;
-    public final static int DEFAULT_RECT_EFF = 0;
+    public final static short DEFAULT_FIELDS = 0x0000;
+    public final static short DEFAULT_PROTOCOL_REV = 0x0000;
+    public final static short DEFAULT_RFU = 0x0000;
+    public final static byte DEFAULT_CATEGORY = 0x0003;
+    public final static byte DEFAULT_CAPABILITIES = 0x0010;
+    public final static byte DEFAULT_HW_VERSION = 0x0007;
+    public final static byte DEFAULT_FW_VERSION = 0x0006;
+    public final static byte DEFAULT_MAX_POWER_DESIRED = 0x0032;
+    public final static short DEFAULT_VRECT_MIN = 0x003200;
+    public final static short DEFAULT_VRECT_MAX = 0x004650;
+    public final static short DEFAULT_VRECT_SET = 0x002580;
+    public final static short DEFAULT_DELTA_R1 = 0x0001;
+    public final static int DEFAULT_RFU_VAL = 0x0000;
     private static final int MSB_MASK = 0xFF00;
     private static final int LSB_MASK= 0x00FF;
 
     private class PruStaticParam {
         private byte mOptvalidity;
-        private short mId;
+        private byte mProtoRevision;
+        private byte  mRfu;
         private byte mCategory;
         private byte mCapabilities;
         private byte mHwRev;
@@ -111,75 +113,73 @@ public class A4wpService extends Service
         private short mVrectMaxStatic;
         private short mVrectSet;
         private short mDeltaR1;
-        private short mRrxInval;
-        private byte mRectifierImpedXform;
-        private byte mRectifierEffeciency;
+        private int mRfuVal;
 
         public PruStaticParam() {
-            mOptvalidity = 0;
-            mId = (short)DEFAULT_ID;
-            mCategory = DEFAULT_CATEGORY;
-            mCapabilities = DEFAULT_CAPABILITIES;
-            mHwRev = (DEFAULT_HW_VERSION>>8)&0xFF;
-            mFwRev = DEFAULT_FW_VERSION;
-            mMaxPowerDesired = DEFAULT_MAX_POWER_DESIRED/100;
-            mVrectMinStatic = DEFAULT_VRECT_MIN;
-            mVrectMaxStatic = DEFAULT_VRECT_MAX;
-            mVrectSet = DEFAULT_VRECT_SET;
-            mDeltaR1 = DEFAULT_DELTA_R1;
-            mRrxInval = DEFAULT_RRX_INT;
-            mRectifierImpedXform = DEFAULT_RECT_IMP_TRANSFORM;
-            mRectifierEffeciency = DEFAULT_RECT_EFF;
+            mOptvalidity = (byte)DEFAULT_FIELDS;
+            mProtoRevision = (byte)DEFAULT_PROTOCOL_REV;
+            mRfu = (byte)DEFAULT_RFU;
+            mCategory = (byte)DEFAULT_CATEGORY;
+            mCapabilities = (byte)DEFAULT_CAPABILITIES;
+            mHwRev = (byte)DEFAULT_HW_VERSION;
+            mFwRev = (byte)DEFAULT_FW_VERSION;
+            mMaxPowerDesired = (byte)DEFAULT_MAX_POWER_DESIRED;
+            mVrectMinStatic = (short)DEFAULT_VRECT_MIN;
+            mVrectMaxStatic = (short)DEFAULT_VRECT_MAX;
+            mVrectSet = (short)DEFAULT_VRECT_SET;
+            mDeltaR1 = (short)DEFAULT_DELTA_R1;
+            mRfuVal = (int)DEFAULT_RFU_VAL;
             Log.v(LOGTAG, "PruStaticParam initialized");
         }
 
         public byte[] getValue() {
             byte[] res = new byte[20];
             res[0] = mOptvalidity;
-            res[1] = (byte)(LSB_MASK & mId);
-            res[2] = (byte)(MSB_MASK & mId);
+            res[1] = mProtoRevision;
+            res[2] = mRfu;
             res[3] = mCategory;
             res[4] = mCapabilities;
             res[5] = mHwRev;
             res[6] = mFwRev;
             res[7] = mMaxPowerDesired;
             res[8] =  (byte)(LSB_MASK & mVrectMinStatic);
-            res[9] = (byte)(MSB_MASK & mVrectMinStatic);
-            res[10] =  (byte)(LSB_MASK & mVrectMinStatic);
-            res[11] = (byte)(MSB_MASK & mVrectMinStatic);
+            res[9] = (byte)((MSB_MASK & mVrectMinStatic) >> 8);
+            res[10] =  (byte)(LSB_MASK & mVrectMaxStatic);
+            res[11] = (byte)((MSB_MASK & mVrectMaxStatic) >> 8);
             res[12] =  (byte)(LSB_MASK & mVrectSet);
-            res[13] = (byte)(MSB_MASK & mVrectSet);
+            res[13] = (byte)((MSB_MASK & mVrectSet) >> 8);
             res[14] =  (byte)(LSB_MASK & mDeltaR1);
-            res[15] = (byte)(MSB_MASK & mDeltaR1);
-            res[16] =  (byte)(LSB_MASK & mRrxInval);
-            res[17] = (byte)(MSB_MASK & mRrxInval);
-            res[18] =  mRectifierImpedXform;
-            res[19] = mRectifierEffeciency;
+            res[15] = (byte)((MSB_MASK & mDeltaR1) >> 8);
+            res[16] =  (byte)(LSB_MASK & mRfuVal);
+            res[17] = (byte)((MSB_MASK & mRfuVal) >> 8);
+            res[18] =  (byte)((0xFF0000 & mRfuVal) >> 16);
+            res[19] = (byte)((0xFF000000 & mRfuVal) >> 24);
 
             return res;
         }
-        /* This is used to set the charging values */
+
+        /*This is used to set the charging values*/
         public void setValue(byte[] value) {
             mOptvalidity = value[0];
-            mId = value[1];
-            mId |= (short)(8<<value[2]);
+            mProtoRevision = value[1];
+            mRfu = value[2];
             mCategory = value[3] ;
             mCapabilities = value[4];
             mHwRev = value[5];
             mFwRev = value[6];
             mMaxPowerDesired = value[7];
             mVrectMinStatic = value[8];
-            mVrectMinStatic |= (short)(8<<value[9]);
+            mVrectMinStatic |= (short)(value[9] << 8);
             mVrectMinStatic = value[10];
-            mVrectMinStatic |= (short)(8<<value[11]);
+            mVrectMinStatic |= (short)(value[11] << 8);
             mVrectSet = value[12];
-            mVrectSet |= (short)(8<<value[13]);
+            mVrectSet |= (short)(value[13] << 8);
             mDeltaR1 = value[14];
-            mDeltaR1 |= (short)(8<<value[15]);
-            mRrxInval = value[16];
-            mRrxInval |= (short)(8<<value[17]);
-            mRectifierImpedXform = value[18];
-            mRectifierEffeciency = value[19];
+            mDeltaR1 |= (short)(value[15] << 8);
+            mRfuVal = value[16];
+            mRfuVal |= (int)(value[17] << 8);
+            mRfuVal |= (int)(value[18] << 16);
+            mRfuVal |= (int)(value[19] << 24);
 
             return;
         }
@@ -223,13 +223,19 @@ public class A4wpService extends Service
             mPower = value[1];
             mMaxSrcImpedence = value[2];
             mMaxLoadResistance = value[3];
-            mId = value[4];
+            mId = (short)(value[4] & 0xff);
+            mId |= (short)((value[5] & 0xff) << 8);
             mClass = value[6];
             mHwRev = value[7];
             mFwRev = value[8];
-            mMaxDevicesSupported = value[9];
-            mReserved1 = value[10];
-            mReserved2 = value[14];
+            mProtocolRev = value[9];
+            mMaxDevicesSupported = value[10];
+            mReserved1 = (int)(value[11] & 0xff);
+            mReserved1 |= (int)((value[12] & 0xff) << 8);
+            mReserved1 |= (int)((value[13] & 0xff) << 16);
+            mReserved1 |= (int)((value[14] & 0xff) << 16);
+            mReserved2 = (short)(value[15] & 0xff);
+            mReserved2 |= (short)((value[16] & 0xff) << 8);
         }
 
         public void print() {
@@ -300,10 +306,11 @@ public class A4wpService extends Service
          public byte mTimeSet;
          public short mReserved;
          public PruControl (byte[] value) {
-             mEnable = value[0];
-             mPermission = value[1];
-             mTimeSet = value[2];
-             mReserved = value[3];
+             mEnable = (byte)value[0];
+             mPermission = (byte)value[1];
+             mTimeSet = (byte)value[2];
+             mReserved = (short)(value[3] & 0xFF);
+             mReserved = (short)((value[4] & 0xFF) << 8);
          }
 
          public void print() {
@@ -363,7 +370,7 @@ public class A4wpService extends Service
     private PruAlert mPruAlert;
     private PruStaticParam mPruStaticParam; //20 bytes
     private PtuStaticParam mPtuStaticParam; //20 bytes
-    private WipowerDynamicParam mPruDynamicParam; //20 bytes
+    private static WipowerDynamicParam mPruDynamicParam; //20 bytes
     private WipowerManager mWipowerManager;
 
     public A4wpService() {
@@ -388,8 +395,7 @@ public class A4wpService extends Service
             stopAdvertising();
         } else {
             Log.v(LOGTAG, "do Disable PruOutPut");
-            mWipowerManager.enableDataNotification(false);
-            mWipowerManager.stopCharging();
+            return status;
         }
 
         if (control.getEnableCharger()) {
@@ -444,6 +450,20 @@ public class A4wpService extends Service
             Log.v(LOGTAG, "onWipowerStateChange" + state);
         }
 
+        @Override
+        public void onPowerApply(PowerApplyEvent state) {
+            Log.v(LOGTAG, "onPowerApply" + state);
+            if (state == PowerApplyEvent.ON) {
+                startAdvertising();
+            } else {
+                Log.v(LOGTAG, "Cancel connection as part of -" + state);
+                if (mBluetoothGattServer != null) {
+                    if (mDevice != null) {
+                        mBluetoothGattServer.cancelConnection(mDevice);
+                    }
+                }
+            }
+        }
 
         @Override
         public void onWipowerAlert(WipowerAlert alert) {
@@ -486,7 +506,7 @@ public class A4wpService extends Service
             byte[] value = data.getValue();
 
             Log.v(LOGTAG, "calling SetValue");
-            mPruDynamicParam.setValue(value);
+            mPruDynamicParam.setAppValue(value);
         }
 
     };
@@ -500,10 +520,16 @@ public class A4wpService extends Service
         public void onConnectionStateChange(BluetoothDevice device, int status, int newState) {
             mState = newState;
             if (mState == BluetoothProfile.STATE_DISCONNECTED) {
-                Log.v(LOGTAG, "onConnectionStateChange:");
-                mWipowerManager.enableDataNotification(false);
-                mWipowerManager.stopCharging();
-                //startAdvertising();
+                Log.v(LOGTAG, "onConnectionStateChange:DISCONNECTED " + device);
+                if (mDevice != null) {
+                    //Uncomment this later
+                    //mWipowerManager.enableDataNotification(false);
+                    //mWipowerManager.stopCharging();
+                    mDevice = null;
+                }
+            } else {
+                Log.v(LOGTAG, "onConnectionStateChange:CONNECTED");
+                mDevice = device;
             }
         }
 
@@ -688,6 +714,8 @@ public class A4wpService extends Service
         mPruDynamicParam = new WipowerDynamicParam();
 
         mWipowerManager = WipowerManager.getWipowerManger(this, mWipowerCallback);
+        if (mWipowerManager != null)
+             mWipowerManager.registerCallback(mWipowerCallback);
     }
 
     @Override
