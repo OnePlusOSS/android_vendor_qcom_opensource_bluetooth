@@ -399,12 +399,29 @@ public class BluetoothDunService extends Service {
                 }
 
                 Log.v(TAG, "Starting DUN server process");
-                SystemProperties.set(BLUETOOTH_DUN_PROFILE_STATUS, "running");
+                try {
+                    SystemProperties.set(BLUETOOTH_DUN_PROFILE_STATUS, "running");
+                    mDunEnable = true;
+                } catch (RuntimeException e) {
+                    Log.v(TAG, "Could not start DUN server process: " + e);
+                }
 
-                mDunHandler.sendMessage(mDunHandler
-                        .obtainMessage(MESSAGE_START_LISTENER));
-
-                mDunEnable = true;
+                if (mDunEnable) {
+                    mDunHandler.sendMessage(mDunHandler
+                            .obtainMessage(MESSAGE_START_LISTENER));
+                } else {
+                    //DUN server process is not started successfully.
+                    //So clean up service connection to avoid service connection leak
+                    if (mAdapterService != null) {
+                        try {
+                            mAdapterService = null;
+                            unbindService(mConnection);
+                        } catch (IllegalArgumentException e) {
+                            Log.e(TAG, "could not unbind the adapter Service", e);
+                        }
+                    }
+                    return;
+                }
             }
             else if (state == BluetoothAdapter.STATE_TURNING_OFF) {
                 // Send any pending timeout now, as this service will be destroyed.
@@ -416,7 +433,11 @@ public class BluetoothDunService extends Service {
 
                 if (mDunEnable) {
                     Log.v(TAG, "Stopping DUN server process");
-                    SystemProperties.set(BLUETOOTH_DUN_PROFILE_STATUS, "stopped");
+                    try {
+                        SystemProperties.set(BLUETOOTH_DUN_PROFILE_STATUS, "stopped");
+                    } catch (RuntimeException e) {
+                        Log.v(TAG, "Could not stop DUN server process: " + e);
+                    }
 
                     synchronized(mConnection) {
                         try {
