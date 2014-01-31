@@ -410,8 +410,8 @@ public class BluetoothFtpService extends Service {
             if (!initSocketOK) {
                 synchronized (this) {
                     try {
-                        if (VERBOSE) Log.v(TAG, "wait 3 seconds");
-                        Thread.sleep(3000);
+                        if (VERBOSE) Log.v(TAG, "wait 300 ms");
+                        Thread.sleep(300);
                     } catch (InterruptedException e) {
                         Log.e(TAG, "socketAcceptThread thread was interrupted (3)");
                         mInterrupted = true;
