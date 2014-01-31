@@ -1,3 +1,7 @@
+ifneq (, $(filter aarch64 arm64, $(TARGET_ARCH)))
+    $(info TODOAArch64: $(LOCAL_PATH)/Android.mk: Enable build support for 64 bit)
+else
+
 LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
@@ -31,3 +35,4 @@ include $(BUILD_PACKAGE)
 
 
 include $(call all-makefiles-under,$(LOCAL_PATH))
+endif
