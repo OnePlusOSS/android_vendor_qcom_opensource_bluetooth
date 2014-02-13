@@ -58,6 +58,7 @@
     <string name="title_hfp_test">HFP Test</string>
     <string name="title_pbap_test">PBAP Test</string>
     <string name="title_map_test">MAP Test</string>
+    <string name="title_avrcp_test">AVRCP Test</string>
     <string name="title_vcard_filter">Filter Attributes</string>
     <string name="title_message_filter">Select Message Parameters</string>
 
@@ -327,4 +328,11 @@
     <string name="hfptest_result_delayed_text">Error: delayed</string>
     <string name="hfptest_result_blacklisted_text">Error: blacklisted</string>
     <string name="hfptest_result_cme_text">Error: CME</string>
+
+       <!-- AVRCP -->
+    <string name="passthru_play">PLAY</string>
+    <string name="passthru_pause">PAUSE</string>
+    <string name="passthru_stop">STOP</string>
+    <string name="passthru_vol_up">VOLUP</string>
+    <string name="passthru_vol_down">VOLDOWN</string>
 </resources>
