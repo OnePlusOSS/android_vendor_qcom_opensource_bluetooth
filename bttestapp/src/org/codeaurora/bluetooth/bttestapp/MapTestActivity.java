@@ -708,7 +708,7 @@ public class MapTestActivity extends MonkeyActivity implements GetTextDialogList
         bmsg.setFolder(mProfileService.getMapClient(mMasInstanceId).getCurrentPath());
 
         for (String rcpt : mEditOriginators) {
-            bmsg.addRecipient(createVcard(bmsg.getType(), rcpt));
+            bmsg.addOriginator(createVcard(bmsg.getType(), rcpt));
         }
 
         for (String orig : mEditRecipients) {
