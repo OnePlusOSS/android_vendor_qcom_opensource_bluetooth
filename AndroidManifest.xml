@@ -54,12 +54,10 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <uses-library android:name="javax.obex" />
         <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
         <service
-            android:enabled="@bool/profile_supported_btc"
             android:name = ".btcservice.BTCService">
         </service>
         <receiver
             android:exported="true"
-            android:enabled="@bool/profile_supported_btc"
             android:name=".btcservice.BTCEventProvider">
             <intent-filter>
                 <action android:name="android.bluetooth.adapter.action.STATE_CHANGED" />
