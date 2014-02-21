@@ -6,15 +6,13 @@ LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE_TAGS := optional
-src_dirs:= src/org/codeaurora/bluetooth/ftp \
+src_dirs:= src/org/codeaurora/bluetooth/btcservice \
+           src/org/codeaurora/bluetooth/map \
+           src/org/codeaurora/bluetooth/ftp \
            src/org/codeaurora/bluetooth/sap \
            src/org/codeaurora/bluetooth/dun \
            src/org/codeaurora/bluetooth/pxpservice \
            src/org/codeaurora/bluetooth/a4wp
-
-ifeq ($(BOARD_HAS_QCA_BT_AR3002),true)
-src_dirs += src/org/codeaurora/bluetooth/btcservice
-endif
 
 LOCAL_SRC_FILES := \
         $(call all-java-files-under, $(src_dirs)) \
