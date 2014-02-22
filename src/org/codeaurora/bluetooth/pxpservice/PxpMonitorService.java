@@ -171,11 +171,19 @@ public class PxpMonitorService extends Service {
                 if (deviceProp.deviceAddress != null && address.equals(deviceProp.deviceAddress)
                     && deviceProp.gatt != null) {
 
+
                    Log.e(TAG, "Trying to use an existing mBluetoothGatt for connection.");
                    if(deviceProp.AddedToWhitelist == false) {
-                       boolean ret_val = deviceProp.gatt.connect();
-                       deviceProp.connectionState = true;
-                       deviceProp.AddedToWhitelist = true;
+                       Log.v(TAG, "PairingFail = " + deviceProp.PairingFail);
+                       if((deviceProp.isPairing && !deviceProp.PairingFail) || !deviceProp.isPairing ) {
+                           boolean ret_val = deviceProp.gatt.connect();
+                           deviceProp.connectionState = true;
+                           deviceProp.AddedToWhitelist = true;
+                       }
+                       else {
+                           deviceProp.PairingFail = false;
+                           deviceProp.isPairing = false;
+                       }
                    }
                    broadcastUpdate(LINKLOSS_ALERT, leDevice);
                }
@@ -403,13 +411,18 @@ public class PxpMonitorService extends Service {
 
                 Log.d(TAG, "Device address " + device.getAddress() + " Previous bond state = "
                         + prevBondState + " bond state = " + bondState);
+                DeviceProperties deviceProp = mHashMapDevice.get(device);
 
+                if (deviceProp == null) {
+                    return;
+                }
+                if(bondState == BluetoothDevice.BOND_BONDING) {
+                   deviceProp.isPairing = true;
+                }
+                if ((bondState == BluetoothDevice.BOND_NONE) && (prevBondState == BluetoothDevice.BOND_BONDING)) {
+                    deviceProp.PairingFail = true;
+                }
                 if (bondState == BluetoothDevice.BOND_BONDED) {
-                    DeviceProperties deviceProp = mHashMapDevice.get(device);
-
-                    if (deviceProp == null) {
-                        return;
-                    }
 
                     if (!deviceProp.startDiscoverServices) {
                         Log.v(TAG, "bondState = BluetoothDevice.BOND_BONDED");
