@@ -63,6 +63,10 @@ public class DeviceProperties {
 
     public boolean isAlerting = false;
 
+    public boolean isPairing = false;
+
+    public boolean PairingFail = false;
+
     public boolean connectionState = false;
 
     public boolean AddedToWhitelist = false;
@@ -92,6 +96,8 @@ public class DeviceProperties {
         txPowerLevel = 0;
         isReading = false;
         isAlerting = false;
+        isPairing = false;
+        PairingFail = false;
         connectionState = false;
         AddedToWhitelist = false;
         hasIasService = false;
