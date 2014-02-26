@@ -566,6 +566,19 @@ public class ProfileService extends Service {
 
                     checkAndStop(false, true);
                 }
+            } else if (BluetoothAdapter.ACTION_STATE_CHANGED.equals(action)) {
+                int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
+                if (state == BluetoothAdapter.STATE_TURNING_OFF) {
+                    if (mPbapClient != null) {
+                        mPbapClient.disconnect();
+                    }
+
+                    for (BluetoothMasClient cli : mMapClients.values()) {
+                        cli.disconnect();
+                    }
+
+                    checkAndStop(false, true);
+                }
             }
         }
     };
@@ -688,6 +701,7 @@ public class ProfileService extends Service {
         filter.addAction(PBAP_AUTH_ACTION_CANCEL);
         filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
         filter.addAction(BluetoothHandsfreeClient.ACTION_CONNECTION_STATE_CHANGED);
+        filter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
         registerReceiver(mReceiver, filter);
 
         mAdapter.getProfileProxy(getApplicationContext(), mHfpServiceListener,
