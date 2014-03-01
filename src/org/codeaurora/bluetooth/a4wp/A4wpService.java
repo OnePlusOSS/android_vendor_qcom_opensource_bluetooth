@@ -84,21 +84,29 @@ public class A4wpService extends Service
     private static final Object mLock = new Object();
     private int mState = BluetoothProfile.STATE_DISCONNECTED;
 
-    public final static short DEFAULT_FIELDS = 0x0000;
-    public final static short DEFAULT_PROTOCOL_REV = 0x0000;
-    public final static short DEFAULT_RFU = 0x0000;
-    public final static byte DEFAULT_CATEGORY = 0x0003;
-    public final static byte DEFAULT_CAPABILITIES = 0x0010;
-    public final static byte DEFAULT_HW_VERSION = 0x0007;
-    public final static byte DEFAULT_FW_VERSION = 0x0006;
-    public final static byte DEFAULT_MAX_POWER_DESIRED = 0x0032;
-    public final static short DEFAULT_VRECT_MIN = 0x003200;
-    public final static short DEFAULT_VRECT_MAX = 0x004650;
-    public final static short DEFAULT_VRECT_SET = 0x002580;
-    public final static short DEFAULT_DELTA_R1 = 0x0001;
-    public final static int DEFAULT_RFU_VAL = 0x0000;
+    private final static short DEFAULT_FIELDS = 0x0000;
+    private final static short DEFAULT_PROTOCOL_REV = 0x0000;
+    private final static short DEFAULT_RFU = 0x0000;
+    private final static byte DEFAULT_CATEGORY = 0x0003;
+    private final static byte DEFAULT_CAPABILITIES = 0x0010;
+    private final static byte DEFAULT_HW_VERSION = 0x0007;
+    private final static byte DEFAULT_FW_VERSION = 0x0006;
+    private final static byte DEFAULT_MAX_POWER_DESIRED = 0x0032;
+    private final static short DEFAULT_VRECT_MIN = 0x003200;
+    private final static short DEFAULT_VRECT_MAX = 0x004650;
+    private final static short DEFAULT_VRECT_SET = 0x002580;
+    private final static short DEFAULT_DELTA_R1 = 0x0001;
+    private final static int DEFAULT_RFU_VAL = 0x0000;
     private static final int MSB_MASK = 0xFF00;
     private static final int LSB_MASK= 0x00FF;
+
+    //PRU Write param length for validation
+    private static final byte A4WP_PTU_STATIC_LENGTH = 0x11;
+    private static final byte A4WP_PRU_CTRL_LENGTH = 0x05;
+
+    //Advertisement interval values.
+    private static final byte A4WP_ADV_MIN_INTERVAL = 0x20;
+    private static final byte A4WP_ADV_MAX_INTERVAL = 0x20;
 
     private class PruStaticParam {
         private byte mOptvalidity;
@@ -543,11 +551,11 @@ public class A4wpService extends Service
                 int status =0;
 
                 Log.v(LOGTAG, "onCharacteristicWriteRequest:" + id);
-                if (id == A4WP_PRU_CTRL_UUID)
+                if (id == A4WP_PRU_CTRL_UUID && value.length == A4WP_PRU_CTRL_LENGTH)
                 {
                      status = processPruControl(value);
                 }
-                else if(id == A4WP_PTU_STATIC_UUID)
+                else if(id == A4WP_PTU_STATIC_UUID && value.length == A4WP_PTU_STATIC_LENGTH)
                 {
                      status = processPtuStaticParam(value);
                 }
@@ -617,7 +625,9 @@ public class A4wpService extends Service
 
            mQAdapter.setLEServiceData(wipowerData);
            mQAdapter.setLEAdvMask(false, false, false, false, true);
+           mQAdapter.setLEAdvParams(A4WP_ADV_MIN_INTERVAL,A4WP_ADV_MAX_INTERVAL);
            boolean retval=mQAdapter.setLEAdvMode(QBluetoothAdapter.ADV_IND_LIMITED_CONNECTABLE);
+           mQAdapter.setLEAdvParams(A4WP_ADV_MIN_INTERVAL, A4WP_ADV_MAX_INTERVAL);
            Log.d(LOGTAG,"Return value of set adv enable is:"+retval);
         } else {
            boolean retval=mQAdapter.setLEAdvMode(QBluetoothAdapter.ADV_MODE_NONE);
