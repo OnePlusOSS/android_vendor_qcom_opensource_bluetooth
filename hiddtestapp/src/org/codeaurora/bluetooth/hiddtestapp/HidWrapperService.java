@@ -86,6 +86,8 @@ public class HidWrapperService extends Service {
 
     private float mBatteryLevel = 0;
 
+    private float mCurrentBatteryLevel = 0;
+
     private int mConnectionState = BluetoothHidDevice.STATE_DISCONNECTED;
 
     private MouseWrapper mMouseWrapper = new MouseWrapper();
@@ -274,6 +276,7 @@ public class HidWrapperService extends Service {
                     mInputReportCache.clear();
                     mOutputReportCache.clear();
                     mBatteryWrapper.update(mBatteryLevel);
+                    mCurrentBatteryLevel = mBatteryLevel;
                     mEventListener.onProtocolModeState(
                         mProtocol == BluetoothHidDevice.PROTOCOL_BOOT_MODE);
                     break;
@@ -368,8 +371,11 @@ public class HidWrapperService extends Service {
                 int scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, 100);
 
                 mBatteryLevel = (float) level / (float) scale;
-
-                mBatteryWrapper.update(mBatteryLevel);
+                if (mCurrentBatteryLevel != mBatteryLevel) {
+                    Log.v(TAG, "ACTION_BATTERY_CHANGED, mBatteryLevel = " + mBatteryLevel);
+                    mBatteryWrapper.update(mBatteryLevel);
+                    mCurrentBatteryLevel = mBatteryLevel;
+                }
             }
         }
 
@@ -514,6 +520,7 @@ public class HidWrapperService extends Service {
         private byte[] mBuffer = new byte[1];
 
         public synchronized void update(float level) {
+            Log.v(TAG, "BatteryWrapper: update: level = " + level);
             if (mConnectionState != BluetoothHidDevice.STATE_CONNECTED) {
                 // battery update will not trigger reconnection
                 return;
@@ -524,8 +531,10 @@ public class HidWrapperService extends Service {
                 return;
 
             int val = (int) (level * 255);
+            Log.v(TAG, "BatteryWrapper: update: val = " + val);
 
             mBuffer[0] = (byte) (val & 0xff);
+            Log.v(TAG, "BatteryWrapper: update: mBuffer[0] = " + mBuffer[0]);
 
             if (mHidDevice != null) {
                 storeReport(HidConsts.BATTERY_REPORT_ID, mBuffer, true);
