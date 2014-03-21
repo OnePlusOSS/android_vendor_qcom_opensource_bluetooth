@@ -240,16 +240,16 @@ public class BluetoothFtpService extends Service {
     public void onCreate() {
         super.onCreate();
         if (VERBOSE) Log.v(TAG, "Ftp Service onCreate");
-        Log.i(TAG, "FFFFFtp Service onCreate");
 
         mAdapter = BluetoothAdapter.getDefaultAdapter();
 
         if (!mHasStarted) {
-            mHasStarted = true;
-            if (VERBOSE) Log.v(TAG, "Starting FTP service");
 
             int state = mAdapter.getState();
+            if (VERBOSE) Log.v(TAG, "FTP service not started Adapter STATE: "+state);
             if (state == BluetoothAdapter.STATE_ON) {
+                if (VERBOSE) Log.v(TAG, "FTP service start listener");
+                mHasStarted = true;
                 mSessionStatusHandler.sendMessage(mSessionStatusHandler
                         .obtainMessage(MSG_INTERNAL_START_LISTENER));
             }
@@ -285,7 +285,7 @@ public class BluetoothFtpService extends Service {
             Log.e(TAG, "Unexpected error! action is null");
             return;
         }
-        if (VERBOSE) Log.v(TAG, "action: " + action);
+        if (VERBOSE) Log.v(TAG, "PARSE INTENT action: " + action);
 
         int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
         boolean removeTimeoutMsg = true;
@@ -303,7 +303,13 @@ public class BluetoothFtpService extends Service {
                 }
                 // Release all resources
                 closeService();
-            }
+            } else if (state == BluetoothAdapter.STATE_ON && !mHasStarted ) {
+
+                if (VERBOSE) Log.v(TAG, "FTP service start listener");
+                mHasStarted = true;
+                mSessionStatusHandler.sendMessage(mSessionStatusHandler
+                        .obtainMessage(MSG_INTERNAL_START_LISTENER));
+           }
         } else if (action.equals(ACCESS_ALLOWED_ACTION)) {
             if (!isWaitingAuthorization) {
                 // this reply is not for us
