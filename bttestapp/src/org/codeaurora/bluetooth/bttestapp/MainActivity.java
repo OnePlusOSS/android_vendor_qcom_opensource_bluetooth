@@ -112,6 +112,11 @@ public class MainActivity extends MonkeyActivity {
                             mServicesFragment.addService(ServicesFragment.Service.Type.PBAP, null);
                         } else if (BluetoothUuid.Handsfree_AG.equals(uuid)) {
                             mServicesFragment.addService(ServicesFragment.Service.Type.HFP, null);
+                        } else if (BluetoothUuid.AvrcpTarget.equals(uuid) ||
+                                    BluetoothUuid.AudioSource.equals(uuid) ||
+                                    BluetoothUuid.AudioSink.equals(uuid)) {
+                            Log.v(TAG, "Adding AVRCP");
+                            mServicesFragment.addService(ServicesFragment.Service.Type.AVRCP, null);
                         }
                     }
                 }

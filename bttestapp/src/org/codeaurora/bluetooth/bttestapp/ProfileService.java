@@ -35,6 +35,7 @@ import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothHandsfreeClient;
+import android.bluetooth.BluetoothA2dp;
 import android.bluetooth.BluetoothMasInstance;
 import android.bluetooth.BluetoothProfile;
 import android.bluetooth.BluetoothProfile.ServiceListener;
@@ -71,6 +72,8 @@ public class ProfileService extends Service {
 
     public static final String ACTION_HFP_CONNECTION_STATE = "org.codeaurora.bluetooth.action.HFP_CONNECTION_STATE";
 
+    public static final String ACTION_AVRCP_CONNECTION_STATE = "org.codeaurora.bluetooth.action.AVRCP_CONNECTION_STATE";
+
     public static final String ACTION_PBAP_CONNECTION_STATE = "org.codeaurora.bluetooth.action.PBAP_CONNECTION_STATE";
 
     public static final String ACTION_MAP_CONNECTION_STATE = "org.codeaurora.bluetooth.action.MAP_CONNECTION_STATE";
@@ -102,6 +105,8 @@ public class ProfileService extends Service {
     private final BluetoothAdapter mAdapter = BluetoothAdapter.getDefaultAdapter();
 
     private BluetoothHandsfreeClient mHfpClient = null;
+
+    private BluetoothA2dp mA2dp = null;
 
     private BluetoothPbapClient mPbapClient = null;
 
@@ -547,6 +552,27 @@ public class ProfileService extends Service {
                 }
 
                 ProfileService.this.sendBroadcast(new_intent);
+            } else if(BluetoothA2dp.ACTION_AVRCP_CONNECTION_STATE_CHANGED.equals(action)) {
+                int state = intent.getIntExtra(BluetoothProfile.EXTRA_STATE, -1);
+                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                if (mDevice == null || device == null) {
+                    Log.e(TAG, "Unexpected error!");
+                    return;
+                }
+                Log.d(TAG,"AVRCP connection state changed for: "+ device);
+                Log.d(TAG, "mDevice: " + mDevice.getAddress());
+                if (mDevice.equals(device)) {
+                    Intent new_intent = new Intent(ACTION_AVRCP_CONNECTION_STATE);
+                    Log.d(TAG, "state: " + state);
+                    if (state == 1) {
+                        new_intent.putExtra(EXTRA_CONNECTED, true);
+                    } else {
+                        new_intent.putExtra(EXTRA_CONNECTED, false);
+                    }
+                    ProfileService.this.sendBroadcast(new_intent);
+                } else {
+                    Log.d(TAG,"AVRCP connection state change not updated");
+                }
             } else if (PBAP_AUTH_ACTION_RESPONSE.equals(action)) {
                 String key = intent.getStringExtra(PBAP_AUTH_EXTRA_KEY);
                 mPbapClient.setAuthResponse(key);
@@ -595,6 +621,22 @@ public class ProfileService extends Service {
         public void onServiceDisconnected(int profile) {
             if (profile == BluetoothProfile.HANDSFREE_CLIENT) {
                 mHfpClient = null;
+            }
+        }
+    };
+
+    private final ServiceListener mA2dpServiceListener = new ServiceListener() {
+        @Override
+        public void onServiceConnected(int profile, BluetoothProfile proxy) {
+            if (profile == BluetoothProfile.A2DP) {
+                mA2dp = (BluetoothA2dp) proxy;
+            }
+        }
+
+        @Override
+        public void onServiceDisconnected(int profile) {
+            if (profile == BluetoothProfile.A2DP) {
+                mA2dp = null;
             }
         }
     };
@@ -702,10 +744,14 @@ public class ProfileService extends Service {
         filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
         filter.addAction(BluetoothHandsfreeClient.ACTION_CONNECTION_STATE_CHANGED);
         filter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
+        filter.addAction(BluetoothA2dp.ACTION_AVRCP_CONNECTION_STATE_CHANGED);
         registerReceiver(mReceiver, filter);
 
         mAdapter.getProfileProxy(getApplicationContext(), mHfpServiceListener,
                 BluetoothProfile.HANDSFREE_CLIENT);
+        mAdapter.getProfileProxy(getApplicationContext(), mA2dpServiceListener,
+                BluetoothProfile.A2DP);
+
     }
 
     @Override
@@ -721,6 +767,9 @@ public class ProfileService extends Service {
 
         mAdapter.closeProfileProxy(BluetoothProfile.HANDSFREE_CLIENT,
                 mHfpClient);
+
+        mAdapter.closeProfileProxy(BluetoothProfile.A2DP,
+                mA2dp);
 
         unregisterReceiver(mReceiver);
 
@@ -767,6 +816,10 @@ public class ProfileService extends Service {
 
     public BluetoothHandsfreeClient getHfpClient() {
         return mHfpClient;
+    }
+
+    public BluetoothA2dp getA2dp() {
+        return mA2dp;
     }
 
     public BluetoothPbapClient getPbapClient() {
