@@ -63,7 +63,10 @@ public class BluetoothPbapCard {
          * format is as for vCard N field, so we have up to 5 tokens: LastName;
          * FirstName; MiddleName; Prefix; Suffix
          */
-        String[] parsedName = name.split(";", 5);
+        String[] parsedName = new String[0];
+
+        if ((name != null) && (!(name.isEmpty())))
+            parsedName = name.split(";", 5);
 
         lastName = parsedName.length < 1 ? null : parsedName[0];
         firstName = parsedName.length < 2 ? null : parsedName[1];
