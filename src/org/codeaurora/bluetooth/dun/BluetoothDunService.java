@@ -504,6 +504,9 @@ public class BluetoothDunService extends Service {
 
         } else if (action.equals(DUN_ACCESS_DISALLOWED_ACTION)) {
             /* close the rfcomm socket and restart the listener thread */
+            Log.d(TAG,"DUN_ACCESS_DISALLOWED_ACTION:" + mIsWaitingAuthorization);
+
+            mIsWaitingAuthorization = false;
             closeRfcommSocket();
             startRfcommListenerThread();
         } else if ( BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
@@ -925,6 +928,8 @@ public class BluetoothDunService extends Service {
         public void run() {
             if (mDundSocket == null) {
                 if (!initDundClientSocket()) {
+                    /* close the rfcomm socket to avoid resource leakage */
+                    closeRfcommSocket();
                     /*restart the listener thread */
                     mDunHandler.sendMessage(mDunHandler.obtainMessage(MESSAGE_START_LISTENER));
                     return;
