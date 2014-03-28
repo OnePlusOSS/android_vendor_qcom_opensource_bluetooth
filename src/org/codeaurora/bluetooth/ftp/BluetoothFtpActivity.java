@@ -64,7 +64,7 @@ public class BluetoothFtpActivity extends AlertActivity implements
         DialogInterface.OnClickListener, Preference.OnPreferenceChangeListener, TextWatcher {
     private static final String TAG = "BluetoothFtpActivity";
 
-    private static final boolean V = BluetoothFtpService.VERBOSE;
+    private static final boolean V = Log.isLoggable(BluetoothFtpService.LOG_TAG, Log.VERBOSE) ? true : false;
 
     private static final int BLUETOOTH_OBEX_AUTHKEY_MAX_LENGTH = 16;
 

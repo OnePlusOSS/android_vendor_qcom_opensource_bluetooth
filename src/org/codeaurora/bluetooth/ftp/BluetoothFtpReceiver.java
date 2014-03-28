@@ -38,7 +38,7 @@ public class BluetoothFtpReceiver extends BroadcastReceiver {
 
         private static final String TAG = "BluetoothFtpReceiver";
 
-        private static final boolean V = BluetoothFtpService.VERBOSE;
+        private static final boolean V = Log.isLoggable(BluetoothFtpService.LOG_TAG, Log.VERBOSE) ? true : false;
 
         @Override
         public void  onReceive  (Context context, Intent intent) {
