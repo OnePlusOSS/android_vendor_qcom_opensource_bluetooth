@@ -39,16 +39,16 @@
     tools:context=".MainActivity" >
 
     <RelativeLayout
-        android:orientation="horizontal"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:orientation="horizontal"
         android:padding="16dp" >
 
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_alignParentLeft="true" >
+            android:layout_alignParentLeft="true"
+            android:orientation="vertical" >
 
             <TextView
                 android:id="@+id/device_name"
@@ -66,29 +66,39 @@
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/linearLayout1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
+            android:layout_alignParentRight="true"
             android:gravity="center"
-            android:layout_alignParentRight="true" >
+            android:orientation="horizontal" >
 
             <Button
                 android:id="@+id/discover_services"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="@string/discover_services"
-                android:onClick="onButtonClick" />
+                android:onClick="onButtonClick"
+                android:text="@string/discover_services" />
 
             <Button
                 android:id="@+id/select_device"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="@string/select_device"
-                android:onClick="onButtonClick" />
+                android:onClick="onButtonClick"
+                android:text="@string/select_device" />
 
         </LinearLayout>
+
+        <ToggleButton
+            android:id="@+id/toggleButton1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignRight="@+id/linearLayout1"
+            android:layout_below="@+id/linearLayout1"
+            android:layout_marginRight="36dp"
+            android:onClick="onToggleClicked" />
 
     </RelativeLayout>
 
