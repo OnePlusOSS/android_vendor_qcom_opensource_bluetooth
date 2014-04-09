@@ -83,26 +83,28 @@ public class MainActivity extends Activity implements ConnectToDeviceDialogListe
             Toast.makeText(this, "BLE not supported", Toast.LENGTH_SHORT).show();
             finish();
         }
-
-        final BluetoothManager bluetoothManager =
-                (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
-        mBluetoothAdapter = bluetoothManager.getAdapter();
-
-        Log.d(TAG, "On create: new intent BluetoothService");
-        Intent gattServiceIntent = new Intent(this, PxpServiceProxy.class);
-
-        if (bindService(gattServiceIntent, mConnection, BIND_AUTO_CREATE) == false) {
-            Log.e(TAG, "Unable to bind");
-        }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
 
+        final BluetoothManager bluetoothManager =
+              (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+        mBluetoothAdapter = bluetoothManager.getAdapter();
+
         if (!mBluetoothAdapter.isEnabled()) {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+        }
+        else
+        {
+            Log.d(TAG, "On create: new intent BluetoothService");
+            Intent gattServiceIntent = new Intent(this, PxpServiceProxy.class);
+
+            if (bindService(gattServiceIntent, mConnection, BIND_AUTO_CREATE) == false) {
+                Log.e(TAG, "Unable to bind");
+            }
         }
     }
 
@@ -112,6 +114,15 @@ public class MainActivity extends Activity implements ConnectToDeviceDialogListe
         if (requestCode == REQUEST_ENABLE_BT && resultCode == Activity.RESULT_CANCELED) {
             finish();
             return;
+        }
+        else if(requestCode == REQUEST_ENABLE_BT && resultCode == Activity.RESULT_OK)
+        {
+            Intent gattServiceIntent = new Intent(this, PxpServiceProxy.class);
+            Log.d(TAG, "On create: new intent BluetoothService");
+
+            if (bindService(gattServiceIntent, mConnection, BIND_AUTO_CREATE) == false) {
+                Log.e(TAG, "Unable to bind");
+            }
         }
     }
 
