@@ -758,10 +758,12 @@ public class PxpMonitorService extends Service {
     public int getLinkLossAlertLevel(BluetoothDevice leDevice) {
         DeviceProperties deviceProp = mHashMapDevice.get(leDevice);
 
+        if(deviceProp.isReading) {
+            return -1;
+        }
         if (deviceProp.failedReadAlertLevel) {
             return -2;
         }
-
         if (deviceProp.llsAlertLevelCh == null
                 || deviceProp.llsAlertLevelCh.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8,
                         0) == null) {

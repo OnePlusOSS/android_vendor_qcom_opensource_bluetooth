@@ -95,8 +95,7 @@ public class LinkLossFragment extends Fragment implements View.OnClickListener {
             int linkLossLevel = 0;
 
             if (mActivity.mPxpServiceProxy.getLinkLossAlertLevel(mActivity.mLeDevice) < 0) {
-                mActivity.mPxpServiceProxy.setLinkLossAlertLevel(mActivity.mLeDevice,
-                        linkLossLevel);
+                Log.w(TAG, "LLS Alert level not yet read");
 
             } else {
                 linkLossLevel = mActivity.mPxpServiceProxy.
