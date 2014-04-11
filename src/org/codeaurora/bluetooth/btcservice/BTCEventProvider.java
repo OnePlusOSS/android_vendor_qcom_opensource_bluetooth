@@ -39,6 +39,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
+import android.os.SystemProperties;
 
 import java.lang.Object;
 /**
@@ -56,11 +57,21 @@ public class BTCEventProvider extends BroadcastReceiver {
     private static final boolean D = /*Constants.DEBUG*/false;
     private static final boolean V = false/*Constants.VERBOSE*/;
     private int state;
+    private static String btsoc = "invalid";
     BTCService.BTCEvent event = BTCService.BTCEvent.BLUETOOTH_NONE;
 
     @Override
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
+
+        if(btsoc.equals("invalid"))
+        {
+            btsoc = SystemProperties.get("qcom.bluetooth.soc");
+        }
+        /* ignore the events for non atheroes BT SOCs */
+        if (!btsoc.equals("ath3k")) {
+            return;
+        }
 
         if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
             state = intent.getIntExtra
