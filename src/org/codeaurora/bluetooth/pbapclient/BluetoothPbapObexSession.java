@@ -83,6 +83,7 @@ final class BluetoothPbapObexSession {
 
         if (mObexClientThread != null) {
             try {
+                abort();
                 mObexClientThread.interrupt();
                 mObexClientThread.join();
                 mObexClientThread = null;
@@ -99,6 +100,7 @@ final class BluetoothPbapObexSession {
              * since abort may block until complete GET is processed inside OBEX
              * session, let's run it in separate thread so it won't block UI
              */
+            Log.d(TAG, "aborting the ongoing request");
             (new Thread() {
                 @Override
                 public void run() {
@@ -161,15 +163,18 @@ final class BluetoothPbapObexSession {
                 synchronized (this) {
                     try {
                         if (mRequest == null) {
+                            Log.d(TAG, "waiting for request");
                             this.wait();
                         }
                     } catch (InterruptedException e) {
+                        Log.d(TAG, "Interrupted");
                         mRunning = false;
                         break;
                     }
                 }
 
                 if (mRunning && mRequest != null) {
+                    Log.d(TAG, "before executing the request mRunning:" + mRunning);
                     try {
                         mRequest.execute(mClientSession);
                     } catch (IOException e) {
@@ -184,6 +189,7 @@ final class BluetoothPbapObexSession {
                         mSessionHandler.obtainMessage(OBEX_SESSION_REQUEST_FAILED, mRequest)
                                 .sendToTarget();
                     }
+                    Log.d(TAG, "after executing the request mRunning:" + mRunning);
                 }
 
                 mRequest = null;
