@@ -527,6 +527,9 @@ public class BluetoothSapService extends Service {
 
         } else if (action.equals(SAP_ACCESS_DISALLOWED_ACTION)) {
             /* close the rfcomm socket and restart the listener thread */
+            Log.d(TAG,"SAP_ACCESS_DISALLOWED_ACTION:" + mIsWaitingAuthorization);
+
+            mIsWaitingAuthorization = false;
             sendErrorConnResp();
             closeRfcommSocket();
             startRfcommListenerThread();
@@ -967,6 +970,8 @@ public class BluetoothSapService extends Service {
         public void run() {
             if (mSapdSocket == null) {
                 if (!initSapdClientSocket()) {
+                    /* close the rfcomm socket to avoid resource leakage */
+                    closeRfcommSocket();
                     /*restart the listener thread */
                     mSapHandler.sendMessage(mSapHandler.obtainMessage(MESSAGE_START_LISTENER));
                     return;
