@@ -40,7 +40,6 @@ public class ActivityHelper {
         // Do all sorts of common task for your activities here including:
         activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
         activity.setContentView(layout);
-        activity.getWindow().addFlags(LayoutParams.FLAG_KEEP_SCREEN_ON);
         activity.getActionBar().setDisplayOptions(ActionBar.DISPLAY_SHOW_HOME
                 | ActionBar.DISPLAY_SHOW_TITLE | ActionBar.DISPLAY_SHOW_CUSTOM);
         activity.getWindow().setSoftInputMode(
