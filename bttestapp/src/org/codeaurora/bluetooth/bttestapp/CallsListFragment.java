@@ -50,6 +50,8 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.List;
+
 import org.codeaurora.bluetooth.bttestapp.R;
 
 public class CallsListFragment extends Fragment implements OnClickListener, OnItemClickListener {
@@ -301,6 +303,19 @@ public class CallsListFragment extends Fragment implements OnClickListener, OnIt
         CallsAdapter adapter = (CallsAdapter) mCallsList.getAdapter();
         BluetoothHandsfreeClientCall selectedCall = adapter.getSelected();
         boolean result = true;
+        if (device == null) {
+            Log.d(TAG,"Device is NULL");
+            List<BluetoothDevice> deviceList = cli.getConnectedDevices();
+            if (deviceList.size() > 0) {
+                for (int i = 0; i < deviceList.size(); i++) {
+                     device = deviceList.get(i);
+                     Log.d(TAG,"conncted to device " + device +
+                             " state " + cli.getConnectionState(device));
+                }
+            } else {
+                Log.e(TAG,"Connected devices for HFP Client is NULL");
+            }
+        }
 
         switch (v.getId()) {
             case R.id.call_action_accept:
