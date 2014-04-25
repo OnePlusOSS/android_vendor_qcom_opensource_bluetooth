@@ -73,8 +73,8 @@ import org.codeaurora.bluetooth.R;
 public class BluetoothSapService extends Service {
 
     private static final String TAG                             = "BluetoothSapService";
-    private static final boolean DBG                            = false;
-    public  static final boolean VERBOSE                        = false;
+    private static final boolean DBG                            = true;
+    public  static final boolean VERBOSE                        = true;
 
     private final static String SAP_SERVER                      = "qcom.sap.server";
 
@@ -1054,8 +1054,6 @@ public class BluetoothSapService extends Service {
             closeSapdSocket();
             /* close the rfcomm socket */
             closeRfcommSocket();
-            // Intimate the Settings APP about the disconnection
-            handleSapDeviceStateChange(mRemoteDevice, BluetoothProfile.STATE_DISCONNECTED);
 
             /* wait for sap downlink thread to close */
             synchronized (mDownlinkLock) {
@@ -1069,6 +1067,10 @@ public class BluetoothSapService extends Service {
                     }
                 }
             }
+
+            // Intimate the Settings APP about the disconnection
+            handleSapDeviceStateChange(mRemoteDevice, BluetoothProfile.STATE_DISCONNECTED);
+
             if (IntExit && !stopped) {
                 if (VERBOSE) Log.v(TAG, "starting the listener thread ");
                 /* start the listener thread */
@@ -1319,14 +1321,15 @@ public class BluetoothSapService extends Service {
             prevState = sapDevice.mState;
         }
         Log.d(TAG, "handleSapDeviceStateChange preState: " + prevState + " state: " + state);
-        if (prevState == state) return;
 
-        if (sapDevice == null) {
-            sapDevice = new BluetoothSapDevice(state);
-            mSapDevices.put(device, sapDevice);
-        } else {
+        if (prevState != state) {
+            if (sapDevice == null) {
+                sapDevice = new BluetoothSapDevice(state);
+                mSapDevices.put(device, sapDevice);
+            } else {
             sapDevice.mState = state;
-        }
+            }
+       }
 
         /* Notifying the connection state change of the profile before sending
            the intent for connection state change, as it was causing a race
