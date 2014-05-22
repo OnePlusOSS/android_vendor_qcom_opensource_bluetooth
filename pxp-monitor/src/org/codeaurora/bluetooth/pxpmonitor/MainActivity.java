@@ -102,9 +102,11 @@ public class MainActivity extends Activity implements ConnectToDeviceDialogListe
             Log.d(TAG, "On create: new intent BluetoothService");
             Intent gattServiceIntent = new Intent(this, PxpServiceProxy.class);
 
-            if (bindService(gattServiceIntent, mConnection, BIND_AUTO_CREATE) == false) {
+            if (bindService(gattServiceIntent, mConnection, 0) == false) {
                 Log.e(TAG, "Unable to bind");
             }
+            else
+                startService(gattServiceIntent);
         }
     }
 
@@ -120,9 +122,11 @@ public class MainActivity extends Activity implements ConnectToDeviceDialogListe
             Intent gattServiceIntent = new Intent(this, PxpServiceProxy.class);
             Log.d(TAG, "On create: new intent BluetoothService");
 
-            if (bindService(gattServiceIntent, mConnection, BIND_AUTO_CREATE) == false) {
+            if (bindService(gattServiceIntent, mConnection,0) == false) {
                 Log.e(TAG, "Unable to bind");
             }
+            else
+                startService(gattServiceIntent);
         }
     }
 
@@ -134,9 +138,7 @@ public class MainActivity extends Activity implements ConnectToDeviceDialogListe
     @Override
     protected void onDestroy() {
 
-        if (mPxpServiceProxy != null) {
-            mPxpServiceProxy.disconnectDevices();
-        }
+        Log.v(TAG, "onDestroy ");
 
         unbindService(mConnection);
         mPxpServiceProxy = null;

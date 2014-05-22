@@ -572,9 +572,10 @@ public class PxpMonitorService extends Service {
             Log.e(TAG, "Unable to obtain a BluetoothAdapter.");
         }
 
-        mHashMapDevice = new HashMap<BluetoothDevice, DeviceProperties>();
-        Log.v(TAG, "mHashMapDevice created");
-
+        if(mHashMapDevice == null) {
+            mHashMapDevice = new HashMap<BluetoothDevice, DeviceProperties>();
+            Log.v(TAG, "mHashMapDevice created");
+        }
         final IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
         intentFilter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
@@ -719,11 +720,9 @@ public class PxpMonitorService extends Service {
 
         for (BluetoothDevice device : mHashMapDevice.keySet()) {
             DeviceProperties deviceProp = mHashMapDevice.get(device);
+            Log.d(TAG, "close qcproximty");
+            deviceProp.qcRssiProximityMonitor.close();
 
-            if (deviceProp.gatt != null) {
-                deviceProp.gatt.close();
-                deviceProp.gatt = null;
-            }
         }
     }
 
@@ -1052,32 +1051,15 @@ public class PxpMonitorService extends Service {
         Iterator<BluetoothDevice> iterator = connectedDevices.iterator();
         List<BluetoothDevice> pxpConnectedDevice = new ArrayList<BluetoothDevice>();
 
-        while (iterator.hasNext()) {
-            BluetoothDevice leDevice = iterator.next();
-            ParcelUuid[] deviceUuids = leDevice.getUuids();
 
-            if (deviceUuids == null) {
-                Log.d(TAG, "deviceUuid == null");
-                break;
-            }
+        for (BluetoothDevice device : mHashMapDevice.keySet()) {
+            DeviceProperties deviceProp = mHashMapDevice.get(device);
 
-            Log.d(TAG, "len" + deviceUuids.length);
-
-            for (ParcelUuid uuid : deviceUuids) {
-                Log.d(TAG, " uuid " + uuid.getUuid().toString());
-
-                if (PxpConsts.LLS_UUID.equals(uuid.getUuid())) {
-                    pxpConnectedDevice.add(leDevice);
-                    break;
-                }
+            if ((deviceProp.gatt != null) && (deviceProp.connectionState == true)) {
+                  Log.v(TAG, "pxpConnectedDevice add");
+                  pxpConnectedDevice.add(device);
             }
         }
-
-        if (pxpConnectedDevice.isEmpty()) {
-            Log.d(TAG, "pxpConnectedDevice is empty");
-            return connectedDevices;
-        }
-
         return pxpConnectedDevice;
     }
     /**

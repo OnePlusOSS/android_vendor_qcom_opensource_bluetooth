@@ -136,7 +136,8 @@ public class PxpServiceProxy extends Service {
         Log.d(TAG, "On create: new intent BluetoothService");
         Intent gattServiceIntent = new Intent();
         gattServiceIntent.setAction("org.codeaurora.bluetooth.pxpservice.PxpMonitorService");
-        bindService(gattServiceIntent, mConnection, BIND_AUTO_CREATE);
+        bindService(gattServiceIntent, mConnection,0);
+        startService(gattServiceIntent);
 
         mAlertHistory = new ArrayList<AlertInformation>();
 
@@ -156,12 +157,7 @@ public class PxpServiceProxy extends Service {
     public void onDestroy() {
         Log.d(TAG, "onDestroy");
         super.onDestroy();
-
         unregisterReceiver(mDataReceiver);
-
-        Log.d(TAG, "UnbindService()");
-        unbindService(mConnection);
-        mPxpMonitorService = null;
     }
 
     @Override
