@@ -503,12 +503,20 @@ public class BluetoothFtpService extends Service {
             mAuth.setCancelled(false);
         }
         BluetoothFtpTransport transport;
+        if(mConnSocket == null){
+           Log.i(TAG, "mConnSocket = null");
+           throw new IOException("no Connection Socket available");
+        }
         if(isL2capSocket == false) {
             transport = new BluetoothFtpTransport(mConnSocket,BluetoothFtpTransport.TYPE_RFCOMM);
         } else {
             transport = new BluetoothFtpTransport(mConnSocket,BluetoothFtpTransport.TYPE_L2CAP);
         }
 
+        if(transport == null){
+           Log.i(TAG, "transport channel = null");
+           throw new IOException("no transport channel  available");
+        }
         mServerSession = new ServerSession(transport, mFtpServer, mAuth);
 
         if (VERBOSE) {
