@@ -122,6 +122,8 @@ class BluetoothMapBmessageBuilder {
                 {
                     mBmsg.append(MSG_BEGIN).append(CRLF);
 
+                    mBmsg.append(CRLF);
+
                     mBmsg.append(bmsg.mMessage).append(CRLF);
 
                     mBmsg.append(MSG_END).append(CRLF);
