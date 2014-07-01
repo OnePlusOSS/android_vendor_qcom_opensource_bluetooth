@@ -139,10 +139,11 @@ public class MainActivity extends Activity implements ConnectToDeviceDialogListe
     protected void onDestroy() {
 
         Log.v(TAG, "onDestroy ");
-
-        unbindService(mConnection);
-        mPxpServiceProxy = null;
-        super.onDestroy();
+        if(mConnection != null ) {
+            unbindService(mConnection);
+            mPxpServiceProxy = null;
+            super.onDestroy();
+       }
     }
 
     @Override

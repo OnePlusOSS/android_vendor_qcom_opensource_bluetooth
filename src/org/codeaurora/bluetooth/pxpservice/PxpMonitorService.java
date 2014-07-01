@@ -30,6 +30,7 @@ package org.codeaurora.bluetooth.pxpservice;
 
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.QBluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
@@ -37,6 +38,7 @@ import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
+import android.bluetooth.BluetoothRssiMonitorCallback;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -61,8 +63,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import android.bluetooth.BluetoothLwPwrProximityMonitor;
-import android.bluetooth.BluetoothRssiMonitorCallback;
 
 /**
  * A Proximity Monitor Service. It interacts with the BLE device via the Android
@@ -72,6 +72,7 @@ import android.bluetooth.BluetoothRssiMonitorCallback;
 public class PxpMonitorService extends Service {
 
     private static final String TAG = PxpMonitorService.class.getSimpleName();
+    private static final     boolean DBG = true;
 
     public static final String DEVICE_CONNECTED = "android.bluetooth.action.DEVICE_CONNECTED";
 
@@ -117,6 +118,30 @@ public class PxpMonitorService extends Service {
     private Map<BluetoothDevice, DeviceProperties> mHashMapDevice = null;
 
     private Queue<BluetoothGattCharacteristic> mReadQueue = new ArrayDeque<BluetoothGattCharacteristic>();
+    private boolean   mAutoConnect = false;
+    public boolean isWriteThresholdNeedToBeCalled = false;
+    /* Monitor state constants */
+    private static final int MONITOR_STATE_IDLE     = 0;
+    private static final int MONITOR_STATE_STARTING = 1;
+    private static final int MONITOR_STATE_STOPPING = 2;
+    private static final int MONITOR_STATE_STARTED  = 3;
+    private static final int MONITOR_STATE_CLOSED   = 4;
+   /* constants for rssi threshold event */
+    /** @hide */
+    public static final int RSSI_MONITOR_DISABLED = 0x00;
+    /** @hide */
+    public static final int RSSI_HIGH_ALERT       = 0x01;
+    /** @hide */
+    public static final int RSSI_MILD_ALERT       = 0x02;
+    /** @hide */
+    public static final int RSSI_NO_ALERT         = 0x03;
+
+    /* command status */
+    /** @hide */
+    public static final int COMMAND_STATUS_SUCCESS = 0x00;
+    /** @hide */
+    public static final int COMMAND_STATUS_FAILED  = 0x01;
+
 
     /**
      * Implements callback methods for GATT events defined by the Bluetooth Low
@@ -658,8 +683,8 @@ public class PxpMonitorService extends Service {
 
             deviceProp.deviceAddress = address;
 
-            deviceProp.qcRssiProximityMonitor = new BluetoothLwPwrProximityMonitor(this, address,
-                    new QcBluetoothMonitorRssiCallback(leDevice));
+            deviceProp.BluetoothLwPwrProximityMonitor(this, leDevice, new QcBluetoothMonitorRssiCallback(leDevice));
+            deviceProp.mState = MONITOR_STATE_IDLE;
 
             mHashMapDevice.put(leDevice, deviceProp);
             Log.d(TAG, "device added");
@@ -697,15 +722,14 @@ public class PxpMonitorService extends Service {
 
         deviceProp.reset();
         deviceProp.disconnect = true;
-        // close hardware rssi monitor
-        deviceProp.qcRssiProximityMonitor.close();
+        deviceProp.mQAdapter.registerLppClient(deviceProp.mLPProxymityMonitorCallback, leDevice.getAddress(), false);
+        deviceProp.mState = MONITOR_STATE_CLOSED;
 
         deviceProp.gatt.disconnect();
         if (deviceProp.gatt != null) {
             deviceProp.gatt.close();
             deviceProp.gatt = null;
         }
-
     }
 
     /**
@@ -721,8 +745,17 @@ public class PxpMonitorService extends Service {
         for (BluetoothDevice device : mHashMapDevice.keySet()) {
             DeviceProperties deviceProp = mHashMapDevice.get(device);
             Log.d(TAG, "close qcproximty");
-            deviceProp.qcRssiProximityMonitor.close();
+             if (DBG) Log.d(TAG, "close()");
+            if(MONITOR_STATE_CLOSED == deviceProp.mState)
+               return;
 
+            if(deviceProp.mState == MONITOR_STATE_STARTING ||
+                deviceProp.mState == MONITOR_STATE_STARTED) {
+                    deviceProp.mQAdapter.enableRssiMonitor(deviceProp.mLPProxymityMonitorCallback, false);
+            }
+            deviceProp.mQAdapter.registerLppClient(deviceProp.mLPProxymityMonitorCallback, device.getAddress(), false);
+            if (DBG) Log.d(TAG, "Monitor is closed");
+             deviceProp.mState = MONITOR_STATE_CLOSED;
         }
     }
 
@@ -839,25 +872,34 @@ public class PxpMonitorService extends Service {
             }
         }
 
-        if (deviceProp.pathLossAlertLevel != PxpConsts.ALERT_LEVEL_NO) {
+        if (deviceProp.pathLossAlertLevel != PxpConsts.ALERT_LEVEL_NO)
+        {
             Log.v(TAG, "deviceProp.mPathLossAlertLevel != PxpConsts.ALERT_LEVEL_NO");
             int rssiMin = deviceProp.txPowerLevel - deviceProp.minPathLossThreshold;
             int rssiMax = deviceProp.txPowerLevel - deviceProp.maxPathLossThreshold;
             Log.d(TAG, "rssiMin::"+rssiMin);
             Log.d(TAG, "rssiMax::"+rssiMax);
             // start hardware rssi monitor
-            if (!deviceProp.qcRssiProximityMonitor.start(rssiMin, rssiMax)) {
+            if (!deviceProp.mQAdapter.writeRssiThreshold(deviceProp.mLPProxymityMonitorCallback, rssiMin, rssiMax)) {
                 // start software method to monitor rssi
                 startPathLossSwMonitor();
             }
+            deviceProp.mState = MONITOR_STATE_STARTING;
 
-        } else {
+        }
+        else {
             // stop hardware rssi monitor
-            deviceProp.qcRssiProximityMonitor.stop();
+               if(deviceProp.mState == MONITOR_STATE_STARTING ||
+                   deviceProp.mState == MONITOR_STATE_STARTED) {
+                    deviceProp.mQAdapter.enableRssiMonitor(deviceProp.mLPProxymityMonitorCallback, false);
+                   deviceProp.mState = MONITOR_STATE_STOPPING;
+                   deviceProp.mQAdapter.registerLppClient(deviceProp.mLPProxymityMonitorCallback, leDevice.getAddress(), false);
+                   if (DBG) Log.d(TAG, "Monitor is stopping");
+                }
 
             // stop software method to monitor rssi
             stopPathLossSwMonitor();
-        }
+         }
         return true;
     }
 
@@ -1071,13 +1113,13 @@ public class PxpMonitorService extends Service {
     public int getAlertLevelValue(int evtType) {
         int alertLevelValue = 0;
         switch(evtType) {
-            case BluetoothLwPwrProximityMonitor.RSSI_NO_ALERT:
+            case RSSI_NO_ALERT:
                 alertLevelValue = NO_ALERT;
                 break;
-            case BluetoothLwPwrProximityMonitor.RSSI_MILD_ALERT:
+            case RSSI_MILD_ALERT:
                 alertLevelValue = MILD_ALERT;
                 break;
-            case BluetoothLwPwrProximityMonitor.RSSI_HIGH_ALERT:
+            case RSSI_HIGH_ALERT:
                 alertLevelValue = HIGH_ALERT;
                 break;
         }
@@ -1113,7 +1155,7 @@ public class PxpMonitorService extends Service {
 
             DeviceProperties deviceProp = mHashMapDevice.get(mDevice);
             if(deviceProp.minPathLossThreshold == deviceProp.maxPathLossThreshold) {
-                if(evtType == BluetoothLwPwrProximityMonitor.RSSI_HIGH_ALERT) {
+                if(evtType == RSSI_HIGH_ALERT) {
                     alertLevelValue = deviceProp.pathLossAlertLevel;
                 }
             }
@@ -1125,8 +1167,8 @@ public class PxpMonitorService extends Service {
                     BluetoothGattCharacteristic.FORMAT_UINT8, 0);
             deviceProp.gatt.writeCharacteristic(deviceProp.iasAlertLevelCh);
 
-            if (evtType == BluetoothLwPwrProximityMonitor.RSSI_NO_ALERT
-                    || evtType == BluetoothLwPwrProximityMonitor.RSSI_MONITOR_DISABLED) {
+            if (evtType == RSSI_NO_ALERT
+                    || evtType == RSSI_MONITOR_DISABLED) {
                 deviceProp.isAlerting = false;
 
             } else {

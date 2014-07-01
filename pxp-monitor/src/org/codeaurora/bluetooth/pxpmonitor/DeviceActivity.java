@@ -281,18 +281,11 @@ public class DeviceActivity extends Activity {
             mLinkRingtone.stop();
         }
 
-        mLinkRingtone = null;
-        mLinkNotification = null;
-
         if (mPathRingtone.isPlaying()) {
             mPathRingtone.stop();
         }
 
-        mPathRingtone = null;
-        mPathNotification = null;
-
         unbindService(mConnection);
-        mPxpServiceProxy = null;
     }
 
     @Override
