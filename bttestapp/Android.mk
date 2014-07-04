@@ -15,7 +15,7 @@ LOCAL_STATIC_JAVA_LIBRARIES := com.android.vcard org.codeaurora.bluetooth.mapcli
 
 LOCAL_PROGUARD_ENABLED := disabled
 
-include $(BUILD_PACKAGE)
+#include $(BUILD_PACKAGE)
 
 include $(CLEAR_VARS)
 
