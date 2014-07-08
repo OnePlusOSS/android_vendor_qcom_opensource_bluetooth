@@ -157,6 +157,7 @@ public class PxpServiceProxy extends Service {
     public void onDestroy() {
         Log.d(TAG, "onDestroy");
         super.onDestroy();
+        mHandler = null;
         unregisterReceiver(mDataReceiver);
     }
 
@@ -169,6 +170,7 @@ public class PxpServiceProxy extends Service {
     @Override
     public boolean onUnbind(Intent intent) {
         Log.v(TAG, "onUnbind()");
+        mHandler = null;
         return super.onUnbind(intent);
     }
 
