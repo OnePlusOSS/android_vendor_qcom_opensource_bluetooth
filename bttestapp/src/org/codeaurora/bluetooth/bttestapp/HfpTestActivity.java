@@ -43,6 +43,7 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.media.AudioManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -106,6 +107,24 @@ public class HfpTestActivity extends MonkeyActivity implements IBluetoothConnect
                 mCallsListFragment.onConnStateChanged(state, prevState);
                 mIndicatorsFragment.onConnStateChanged(state, prevState);
 
+                if (state == BluetoothProfile.STATE_CONNECTED) {
+                    Handler handler = new Handler();
+                    handler.postDelayed(new Runnable(){
+                        @Override
+                        public void run(){
+                                if (mBluetoothHeadsetClient == null || mDevice == null) {
+                                    Logger.v(TAG, "Profile is disconnected");
+                                    return;
+                                }
+                                for (BluetoothHeadsetClientCall call :
+                                        mBluetoothHeadsetClient.getCurrentCalls(mDevice)) {
+                                    Logger.v(TAG, "Updating call controls");
+                                    mCallsListFragment.onCallChanged(call);
+                                }
+                            }
+                    }, 500);
+                }
+
                 // Send MonkeyEvent
                 new MonkeyEvent("hfp-connection-state-changed", true)
                         .addReplyParam("state", state)
@@ -132,6 +151,23 @@ public class HfpTestActivity extends MonkeyActivity implements IBluetoothConnect
                 int state = intent.getIntExtra(BluetoothProfile.EXTRA_STATE, 0);
                 onReceiveAudioStateChange(device, prevState, state);
                 mIndicatorsFragment.onAudioStateChanged(state, prevState);
+                if (state == BluetoothHeadsetClient.STATE_AUDIO_CONNECTED) {
+                    Handler handler = new Handler();
+                    handler.postDelayed(new Runnable(){
+                        @Override
+                        public void run(){
+                                if (mBluetoothHeadsetClient == null || mDevice == null) {
+                                    Logger.v(TAG, "Profile is disconnected");
+                                    return;
+                                }
+                                for (BluetoothHeadsetClientCall call :
+                                        mBluetoothHeadsetClient.getCurrentCalls(mDevice)) {
+                                    Logger.v(TAG, "Updating call controls");
+                                    mCallsListFragment.onCallChanged(call);
+                                }
+                            }
+                    }, 500);
+                }
 
                 // Send MonkeyEvent
                 new MonkeyEvent("hfp-audio-state-changed", true)
