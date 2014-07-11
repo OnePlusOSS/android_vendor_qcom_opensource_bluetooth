@@ -60,8 +60,8 @@ import android.widget.Toast;
 import android.widget.ViewFlipper;
 
 import com.android.vcard.VCardEntry;
-import org.codeaurora.bluetooth.pbapclient.BluetoothPbapCard;
-import org.codeaurora.bluetooth.pbapclient.BluetoothPbapClient;
+import android.bluetooth.client.pbap.BluetoothPbapCard;
+import android.bluetooth.client.pbap.BluetoothPbapClient;
 import org.codeaurora.bluetooth.bttestapp.R;
 import org.codeaurora.bluetooth.bttestapp.services.IPbapServiceCallback;
 import org.codeaurora.bluetooth.bttestapp.util.Logger;
