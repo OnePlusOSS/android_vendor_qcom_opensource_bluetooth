@@ -30,7 +30,7 @@ package org.codeaurora.bluetooth.bttestapp;
 
 import android.app.Activity;
 import android.app.Fragment;
-import android.bluetooth.BluetoothHandsfreeClient;
+import android.bluetooth.BluetoothHeadsetClient;
 import android.bluetooth.BluetoothProfile;
 import android.os.Bundle;
 import android.text.SpannableString;
@@ -147,17 +147,17 @@ public class IndicatorsFragment extends Fragment implements OnClickListener {
 
     public void onAudioStateChanged(int state, int prevState) {
         switch (state) {
-            case BluetoothHandsfreeClient.STATE_AUDIO_DISCONNECTED:
+            case BluetoothHeadsetClient.STATE_AUDIO_DISCONNECTED:
                 mIndAudioState.setChecked(false);
                 mIndAudioState.setEnabled(true);
                 break;
 
-            case BluetoothHandsfreeClient.STATE_AUDIO_CONNECTING:
+            case BluetoothHeadsetClient.STATE_AUDIO_CONNECTING:
                 mIndAudioState.setChecked(true);
                 mIndAudioState.setEnabled(false);
                 break;
 
-            case BluetoothHandsfreeClient.STATE_AUDIO_CONNECTED:
+            case BluetoothHeadsetClient.STATE_AUDIO_CONNECTED:
                 mIndAudioState.setChecked(true);
                 mIndAudioState.setEnabled(true);
                 break;
@@ -177,37 +177,37 @@ public class IndicatorsFragment extends Fragment implements OnClickListener {
             // TextView valueInd = null;
             TextView barInd = null;
 
-            if (param.equals(BluetoothHandsfreeClient.EXTRA_VOICE_RECOGNITION)) {
+            if (param.equals(BluetoothHeadsetClient.EXTRA_VOICE_RECOGNITION)) {
 
                 boolean enabled = (params.getInt(param) != 0);
                 mIndVrState.setChecked(enabled);
                 mIndVrState.setEnabled(mActivity.mFeatVoiceRecognition);
 
-            } else if (param.equals(BluetoothHandsfreeClient.EXTRA_IN_BAND_RING)) {
+            } else if (param.equals(BluetoothHeadsetClient.EXTRA_IN_BAND_RING)) {
 
                 colorInd = mIndInbandState;
 
-            } else if (param.equals(BluetoothHandsfreeClient.EXTRA_OPERATOR_NAME)) {
+            } else if (param.equals(BluetoothHeadsetClient.EXTRA_OPERATOR_NAME)) {
 
                 setOperator(params.getString(param));
 
-            } else if (param.equals(BluetoothHandsfreeClient.EXTRA_NETWORK_STATUS)) {
+            } else if (param.equals(BluetoothHeadsetClient.EXTRA_NETWORK_STATUS)) {
 
                 colorInd = mIndNetworkState;
 
-            } else if (param.equals(BluetoothHandsfreeClient.EXTRA_NETWORK_ROAMING)) {
+            } else if (param.equals(BluetoothHeadsetClient.EXTRA_NETWORK_ROAMING)) {
 
                 colorInd = mIndRoamingState;
 
-            } else if (param.equals(BluetoothHandsfreeClient.EXTRA_NETWORK_SIGNAL_STRENGTH)) {
+            } else if (param.equals(BluetoothHeadsetClient.EXTRA_NETWORK_SIGNAL_STRENGTH)) {
 
                 barInd = mIndSignalLevel;
 
-            } else if (param.equals(BluetoothHandsfreeClient.EXTRA_BATTERY_LEVEL)) {
+            } else if (param.equals(BluetoothHeadsetClient.EXTRA_BATTERY_LEVEL)) {
 
                 barInd = mIndBatteryLevel;
 
-            } else if (param.equals(BluetoothHandsfreeClient.EXTRA_SUBSCRIBER_INFO)) {
+            } else if (param.equals(BluetoothHeadsetClient.EXTRA_SUBSCRIBER_INFO)) {
 
                 setSubscriber(params.getString(param));
 
@@ -329,25 +329,25 @@ public class IndicatorsFragment extends Fragment implements OnClickListener {
 
     public void onClickConnState(boolean state) {
         if (state) {
-            mActivity.mBluetoothHandsfreeClient.disconnect(mActivity.mDevice);
+            mActivity.mBluetoothHeadsetClient.disconnect(mActivity.mDevice);
         } else {
-            mActivity.mBluetoothHandsfreeClient.connect(mActivity.mDevice);
+            mActivity.mBluetoothHeadsetClient.connect(mActivity.mDevice);
         }
     }
 
     public void onClickAudioState(boolean state) {
         if (state) {
-            mActivity.mBluetoothHandsfreeClient.disconnectAudio();
+            mActivity.mBluetoothHeadsetClient.disconnectAudio();
         } else {
-            mActivity.mBluetoothHandsfreeClient.connectAudio();
+            mActivity.mBluetoothHeadsetClient.connectAudio();
         }
     }
 
     public void onClickVrState(boolean state) {
         if (state) {
-            mActivity.mBluetoothHandsfreeClient.stopVoiceRecognition(mActivity.mDevice);
+            mActivity.mBluetoothHeadsetClient.stopVoiceRecognition(mActivity.mDevice);
         } else {
-            mActivity.mBluetoothHandsfreeClient.startVoiceRecognition(mActivity.mDevice);
+            mActivity.mBluetoothHeadsetClient.startVoiceRecognition(mActivity.mDevice);
         }
         mIndVrState.setEnabled(false);
     }

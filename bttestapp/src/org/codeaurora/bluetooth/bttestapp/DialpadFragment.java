@@ -239,7 +239,7 @@ public class DialpadFragment extends Fragment implements OnClickListener, OnLong
         Pair<String, String> bval = (Pair<String, String>) mButtonsGrid.getItemAtPosition(position);
 
         if (mDtmfButton.isChecked()) {
-            mActivity.mBluetoothHandsfreeClient.sendDTMF(mActivity.mDevice,
+            mActivity.mBluetoothHeadsetClient.sendDTMF(mActivity.mDevice,
                     bval.first.getBytes()[0]);
         } else {
             if (shift) {
@@ -263,16 +263,16 @@ public class DialpadFragment extends Fragment implements OnClickListener, OnLong
         String number = mNumberEdit.getText().toString().trim();
 
         if (number.isEmpty()) {
-            mActivity.mBluetoothHandsfreeClient.redial(mActivity.mDevice);
+            mActivity.mBluetoothHeadsetClient.redial(mActivity.mDevice);
         } else {
-            mActivity.mBluetoothHandsfreeClient.dial(mActivity.mDevice, mNumberEdit.getText()
+            mActivity.mBluetoothHeadsetClient.dial(mActivity.mDevice, mNumberEdit.getText()
                     .toString());
         }
     }
 
     private void onClickMemDial() {
         try {
-            mActivity.mBluetoothHandsfreeClient.dialMemory(mActivity.mDevice,
+            mActivity.mBluetoothHeadsetClient.dialMemory(mActivity.mDevice,
                     Integer.valueOf(mNumberEdit.getText().toString()));
         } catch (NumberFormatException e) {
             // just ignore

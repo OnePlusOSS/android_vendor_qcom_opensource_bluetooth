@@ -32,7 +32,7 @@ import android.app.Activity;
 import android.app.ListFragment;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothHandsfreeClient;
+import android.bluetooth.BluetoothHeadsetClient;
 import android.bluetooth.BluetoothMasInstance;
 import android.bluetooth.BluetoothProfile;
 import android.content.BroadcastReceiver;
@@ -286,7 +286,7 @@ public class ServicesFragment extends ListFragment {
             if (mActivity.mProfileService != null) {
                 switch (srv.mType) {
                     case HFP: {
-                        BluetoothHandsfreeClient cli = mActivity.mProfileService.getHfpClient();
+                        BluetoothHeadsetClient cli = mActivity.mProfileService.getHfpClient();
 
                         if (cli == null || bluetoothOn == false) {
                             swSrv.setChecked(false);
