@@ -29,7 +29,7 @@
 package org.codeaurora.bluetooth.bttestapp;
 
 import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothA2dp;
+import android.bluetooth.BluetoothA2dpSink;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothMasInstance;
 import android.bluetooth.BluetoothProfile;
@@ -65,7 +65,7 @@ public class MainActivity extends MonkeyActivity {
     public static final String PICKER_ACTION = "android.bluetooth.devicepicker.action.LAUNCH";
     public static final String PICKER_SELECTED = "android.bluetooth.devicepicker.action.DEVICE_SELECTED";
 
-    private BluetoothA2dp mA2dp = null;
+    private BluetoothA2dpSink ma2dpSink = null;
 
     BluetoothDevice mDevice;
 
@@ -191,7 +191,7 @@ public class MainActivity extends MonkeyActivity {
             mIsBound = true;
         }
         BluetoothAdapter.getDefaultAdapter().getProfileProxy(getApplicationContext(),
-                                            mA2dpServiceListener, BluetoothProfile.A2DP);
+                                            ma2dpSinkServiceListener, BluetoothProfile.A2DP_SINK);
     }
 
     @Override
@@ -279,23 +279,23 @@ public class MainActivity extends MonkeyActivity {
         }
     }
 
-    private BluetoothProfile.ServiceListener mA2dpServiceListener =
+    private BluetoothProfile.ServiceListener ma2dpSinkServiceListener =
                               new BluetoothProfile.ServiceListener() {
 
         @Override
         public void onServiceDisconnected(int profile) {
-            if (profile == BluetoothProfile.A2DP) {
+            if (profile == BluetoothA2dpSink.A2DP_SINK) {
                 Log.v(TAG, "onServiceDisconnected ");
-                mA2dp = null;
+                ma2dpSink = null;
             }
 
         }
 
         @Override
         public void onServiceConnected(int profile, BluetoothProfile proxy) {
-            if (profile == BluetoothProfile.A2DP) {
+            if (profile == BluetoothProfile.A2DP_SINK) {
                 Log.v(TAG, "onServiceConnected ");
-                mA2dp = (BluetoothA2dp) proxy;
+                ma2dpSink = (BluetoothA2dpSink) proxy;
             }
 
         }
@@ -305,17 +305,6 @@ public class MainActivity extends MonkeyActivity {
         // Is the toggle on?
         boolean on = ((ToggleButton) view).isChecked();
         Log.v(TAG, "onToggleClicked is_on: " + on);
-        if (on) {
-            Toast.makeText(getApplicationContext(), "Turning Sink  ON",Toast.LENGTH_LONG);
-            if (mA2dp != null) {
-                mA2dp.activateSink(true);
-            }
-        } else {
-            Toast.makeText(getApplicationContext(), "Turning Sink  OFF",Toast.LENGTH_LONG);
-            if (mA2dp != null) {
-                mA2dp.activateSink(false);
-            }
-        }
     }
 
     private void updateDevice(BluetoothDevice device) {
