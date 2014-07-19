@@ -51,6 +51,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_MEDIA_STORAGE" />
     <application android:process="com.android.bluetooth">
+        <uses-library android:name="com.quicinc.wbc"
+            android:required="false" />
         <uses-library android:name="javax.obex" />
         <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
         <service

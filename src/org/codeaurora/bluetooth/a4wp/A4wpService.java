@@ -58,6 +58,8 @@ import android.wipower.WipowerManager.WipowerAlert;
 import android.wipower.WipowerManager.PowerApplyEvent;
 import android.wipower.WipowerManager.PowerLevel;
 import android.wipower.WipowerDynamicParam;
+import com.quicinc.wbc.WbcManager;
+import com.quicinc.wbc.WbcTypes;
 
 /**
  * Class which executes A4WP service
@@ -94,7 +96,7 @@ public class A4wpService extends Service
     private final static byte DEFAULT_MAX_POWER_DESIRED = 0x0032;
     private final static short DEFAULT_VRECT_MIN = 0x003200;
     private final static short DEFAULT_VRECT_MAX = 0x004650;
-    private final static short DEFAULT_VRECT_SET = 0x002580;
+    private final static short DEFAULT_VRECT_SET = 0x003580;
     private final static short DEFAULT_DELTA_R1 = 0x0001;
     private final static int DEFAULT_RFU_VAL = 0x0000;
     private static final int MSB_MASK = 0xFF00;
@@ -107,6 +109,30 @@ public class A4wpService extends Service
     //Advertisement interval values.
     private static final byte A4WP_ADV_MIN_INTERVAL = 0x20;
     private static final byte A4WP_ADV_MAX_INTERVAL = 0x20;
+
+    private static boolean mWipowerBoot = false;
+    static boolean mChargeComplete = true;
+
+    private WbcManager.WbcEventListener mWbcCallback = new WbcManager.WbcEventListener() {
+
+        @Override
+        public void onWbcEventUpdate(int what, int arg1, int arg2) {
+            Log.v(LOGTAG, "onWbcEventUpdate rcvd: " + what + ", " + arg1 + ", " + arg2);
+            if ((what == WbcTypes.WBC_EVENT_TYPE_CHARGING_REQUIRED_STATUS)){
+                if ((arg1 == WbcTypes.WBC_BATTERY_STATUS_CHARGING_NOT_REQUIRED)){
+                    // this will set charge complete bit in pru alert
+                    // eventally leading to a possible disconnect from ptu
+                    mChargeComplete = true;
+                } else {
+                    // We could be in 600mS scan state here and since charging needs to be resumed
+                    // send enable power apply command to scan for short beacons */
+                    mChargeComplete = false;
+                    mWipowerManager.enablePowerApply(true, true, false);
+                }
+            }
+            Log.v(LOGTAG, "onWbcEventUpdate: charge complete " +  mChargeComplete);
+        }
+    };
 
     private class PruStaticParam {
         private byte mOptvalidity;
@@ -380,6 +406,7 @@ public class A4wpService extends Service
     private PtuStaticParam mPtuStaticParam; //20 bytes
     private static WipowerDynamicParam mPruDynamicParam; //20 bytes
     private WipowerManager mWipowerManager;
+    private WbcManager mWbcManager;
 
     public A4wpService() {
         Log.v(LOGTAG, "A4wpService");
@@ -451,6 +478,12 @@ public class A4wpService extends Service
         @Override
         public void onWipowerReady() {
             Log.v(LOGTAG, "onWipowerReady");
+            if (mChargeComplete == true) {
+                mWipowerManager.enablePowerApply(true, true, true);
+            } else {
+                mWipowerManager.enablePowerApply(true, true, false);
+            }
+            mWipowerBoot = true;
         }
 
         @Override
@@ -514,7 +547,7 @@ public class A4wpService extends Service
             byte[] value = data.getValue();
 
             Log.v(LOGTAG, "calling SetValue");
-            mPruDynamicParam.setAppValue(value);
+            mPruDynamicParam.setValue(value);
         }
 
     };
@@ -528,11 +561,15 @@ public class A4wpService extends Service
         public void onConnectionStateChange(BluetoothDevice device, int status, int newState) {
             mState = newState;
             if (mState == BluetoothProfile.STATE_DISCONNECTED) {
-                Log.v(LOGTAG, "onConnectionStateChange:DISCONNECTED " + device);
-                if (mDevice != null) {
-                    //Uncomment this later
-                    //mWipowerManager.enableDataNotification(false);
-                    //mWipowerManager.stopCharging();
+                Log.v(LOGTAG, "onConnectionStateChange:DISCONNECTED " + device + "charge complete " + mChargeComplete);
+                if (mDevice != null && mWipowerManager != null) {
+                    mWipowerManager.enableDataNotification(false);
+                    mWipowerManager.stopCharging();
+                    if (mChargeComplete == true) {
+                        mWipowerManager.enablePowerApply(true, true, true);
+                    } else {
+                        mWipowerManager.enablePowerApply(true, true, false);
+                    }
                     mDevice = null;
                 }
             } else {
@@ -588,10 +625,15 @@ public class A4wpService extends Service
                          return;
                     }
                     value = mPruDynamicParam.getValue();
+                    if (mChargeComplete == true) {
+                        value[16] = (byte)(value[16] | CHARGE_COMPLETE_BIT);
+                    } else {
+                        value[16] = (byte)(value[16] & (~CHARGE_COMPLETE_BIT));
+                    }
                 }
                 if (value != null)
                 {
-                     Log.v(LOGTAG, "device:" + id + "requestId:" + requestId + "status:" + status + "offset:" + offset + "value" + value);
+                     Log.v(LOGTAG, "device=" + id + "requestId=" + requestId + "status=" + status + "offset=" + offset + "value=" + value[16]);
                      mBluetoothGattServer.sendResponse(device, requestId, status, offset, value);
                 }
         }
@@ -698,7 +740,6 @@ public class A4wpService extends Service
 
 
         mBluetoothGattServer.addService(a4wpService);
-        Log.d(LOGTAG,"time to start advertising....:");
 
         //startAdvertising();
 
@@ -726,6 +767,12 @@ public class A4wpService extends Service
         mWipowerManager = WipowerManager.getWipowerManger(this, mWipowerCallback);
         if (mWipowerManager != null)
              mWipowerManager.registerCallback(mWipowerCallback);
+        mWbcManager = WbcManager.getInstance();
+        if (mWbcManager != null) {
+            mChargeComplete = (mWbcManager.getChargingRequired() == 0);
+            Log.v(LOGTAG, "onCreate: charge complete " + mChargeComplete);
+            mWbcManager.register(mWbcCallback);
+        }
     }
 
     @Override
@@ -733,6 +780,8 @@ public class A4wpService extends Service
         Log.v(LOGTAG, "onDestroy");
         if (mWipowerManager != null)
              mWipowerManager.unregisterCallback(mWipowerCallback);
+        if (mWbcManager != null)
+             mWbcManager.unregister(mWbcCallback);
     }
 
     @Override
@@ -744,8 +793,15 @@ public class A4wpService extends Service
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d(LOGTAG, "onStart Command called!!");
-        //Make this restarable service by
-        //Android app manager
+
+        //mWipowerBoot is used to hold power enable command till the service is been registered completely
+        if (mWipowerBoot == true) {
+            if (mChargeComplete == true) {
+                mWipowerManager.enablePowerApply(true, true, true);
+            } else {
+                mWipowerManager.enablePowerApply(true, true, false);
+            }
+        }
         return START_STICKY;
    }
 }
