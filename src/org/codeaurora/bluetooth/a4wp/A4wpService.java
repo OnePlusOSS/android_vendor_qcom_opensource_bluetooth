@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014, The Linux Foundation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -31,7 +31,6 @@ package org.codeaurora.bluetooth.a4wp;
 import java.util.UUID;
 
 import android.bluetooth.BluetoothManager;
-import android.bluetooth.QBluetoothAdapter;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
@@ -60,6 +59,12 @@ import android.wipower.WipowerManager.PowerLevel;
 import android.wipower.WipowerDynamicParam;
 import com.quicinc.wbc.WbcManager;
 import com.quicinc.wbc.WbcTypes;
+
+import android.bluetooth.le.AdvertiseCallback;
+import android.bluetooth.le.AdvertiseSettings;
+import android.bluetooth.le.AdvertiseData;
+import android.bluetooth.le.BluetoothLeAdvertiser;
+import android.os.ParcelUuid;
 
 /**
  * Class which executes A4WP service
@@ -112,6 +117,12 @@ public class A4wpService extends Service
 
     private static boolean mWipowerBoot = false;
     static boolean mChargeComplete = true;
+
+    private AdvertiseSettings mAdvertiseSettings;
+    private AdvertiseData mAdvertisementData;
+    private BluetoothLeAdvertiser mAdvertiser;
+    private AdvertiseCallback mAdvertiseCallback = new myAdvertiseCallback(1);
+    ParcelUuid uuid1 = ParcelUuid.fromString("6455e670-a146-11e2-9e96-0800200cfffe");
 
     private WbcManager.WbcEventListener mWbcCallback = new WbcManager.WbcEventListener() {
 
@@ -495,7 +506,8 @@ public class A4wpService extends Service
         public void onPowerApply(PowerApplyEvent state) {
             Log.v(LOGTAG, "onPowerApply" + state);
             if (state == PowerApplyEvent.ON) {
-                startAdvertising();
+                Log.v(LOGTAG, "StartAdvertising");
+                StartAdvertising();
             } else {
                 Log.v(LOGTAG, "Cancel connection as part of -" + state);
                 if (mBluetoothGattServer != null) {
@@ -651,39 +663,48 @@ public class A4wpService extends Service
         }
     }
 
-    private void startAdvertising()
-    {
-        byte[] wipowerData=new byte[6];
-        wipowerData[0]=(byte)0xFE;
-        wipowerData[1]=(byte)0xFF;
-        wipowerData[2]=(byte)0x28;
-        wipowerData[3]=(byte)0x00;
-        wipowerData[4]=(byte)0xFF;
-        wipowerData[5]=(byte)0x60;
-        QBluetoothAdapter mQAdapter=QBluetoothAdapter.getDefaultAdapter();
-        if ((mQAdapter != null)) {
-           int modeAd=mQAdapter.getLEAdvMode();
-           Log.d(LOGTAG,"Adv mode is:"+ modeAd);
+    private final class myAdvertiseCallback extends AdvertiseCallback {
+        private int mIndex;
 
-           mQAdapter.setLEServiceData(wipowerData);
-           mQAdapter.setLEAdvMask(false, false, false, false, true);
-           mQAdapter.setLEAdvParams(A4WP_ADV_MIN_INTERVAL,A4WP_ADV_MAX_INTERVAL);
-           boolean retval=mQAdapter.setLEAdvMode(QBluetoothAdapter.ADV_IND_LIMITED_CONNECTABLE);
-           mQAdapter.setLEAdvParams(A4WP_ADV_MIN_INTERVAL, A4WP_ADV_MAX_INTERVAL);
-           Log.d(LOGTAG,"Return value of set adv enable is:"+retval);
-        } else {
-           boolean retval=mQAdapter.setLEAdvMode(QBluetoothAdapter.ADV_MODE_NONE);
-           Log.d(LOGTAG,"Return value of set adv enable is:"+retval);
+        myAdvertiseCallback(int index) {
+            mIndex = index;
         }
+
+        //@Override
+        public void onSuccess(AdvertiseSettings settingsInEffect) {
+            Log.d(LOGTAG, "advertise success " + mIndex);
+        }
+
+        //@Override
+        public void onFailure(int errorCode) {
+            Log.d(LOGTAG, "advetise failure " + mIndex);
+        }
+    }
+
+
+    private void StartAdvertising()
+    {
+        byte[] serviceData = new byte[] {
+                (byte)0xfe, (byte)0xff, 0x28, 0x00, (byte)0xff, 0x60 };
+
+        mAdvertiser = mBluetoothAdapter.getBluetoothLeAdvertiser();
+        mAdvertisementData = new AdvertiseData.Builder()
+            .setServiceData(uuid1, serviceData).build();
+
+        mAdvertiseSettings = new AdvertiseSettings.Builder()
+            .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_WIPOWER_LATENCY)
+            .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_ULTRA_LOW)
+            .setIsConnectable(true).build();
+            //.setType(AdvertiseSettings.ADVERTISE_TYPE_CONNECTABLE).build();
+
+        Log.d(LOGTAG, " Calling mAdvertiser.startAdvertising");
+        mAdvertiser.startAdvertising(mAdvertiseSettings, mAdvertisementData, mAdvertiseCallback);
     }
 
     private void stopAdvertising()
     {
-        QBluetoothAdapter mQAdapter=QBluetoothAdapter.getDefaultAdapter();
-        if ((mQAdapter != null)) {
-           boolean retval=mQAdapter.setLEAdvMode(QBluetoothAdapter.ADV_MODE_NONE);
-           Log.d(LOGTAG,"Return value of set adv enable is:"+retval);
-        }
+       /* to be completed */
+       mAdvertiser.stopAdvertising(mAdvertiseCallback);
     }
 
     private boolean startServer() {
@@ -692,7 +713,10 @@ public class A4wpService extends Service
 
         mBluetoothGattServer = bluetoothManager.openGattServer(this, mGattCallbacks);
         Log.d(LOGTAG,"calling start server......");
-        if (mBluetoothGattServer == null) return false;
+        if (mBluetoothGattServer == null) {
+            Log.e(LOGTAG,"mBluetoothGattServer is NULL");
+            return false;
+        }
 
         BluetoothGattCharacteristic pruControl = new BluetoothGattCharacteristic(
                 A4WP_PRU_CTRL_UUID,
@@ -741,7 +765,8 @@ public class A4wpService extends Service
 
         mBluetoothGattServer.addService(a4wpService);
 
-        //startAdvertising();
+        //Log.d(LOGTAG, "calling StartAdvertising");
+        //StartAdvertising();
 
         return true;
     }
