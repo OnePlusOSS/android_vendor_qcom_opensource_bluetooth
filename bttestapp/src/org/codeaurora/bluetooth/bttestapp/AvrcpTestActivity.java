@@ -32,7 +32,7 @@ package org.codeaurora.bluetooth.bttestapp;
 import android.app.ActionBar;
 import android.app.DialogFragment;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothA2dp;
+import android.bluetooth.BluetoothAvrcpController;
 import android.bluetooth.BluetoothProfile;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -58,7 +58,7 @@ public class AvrcpTestActivity extends MonkeyActivity implements IBluetoothConne
 
     private ActionBar mActionBar = null;
 
-    BluetoothA2dp mBluetoothA2dp;
+    BluetoothAvrcpController mAvrcpController;
     ProfileService mProfileService = null;
     BluetoothDevice mDevice;
     public static final int KEY_STATE_PRESSED = 0;
@@ -69,14 +69,14 @@ public class AvrcpTestActivity extends MonkeyActivity implements IBluetoothConne
     public static final int AVRC_ID_VOL_DOWN = 0x42;
     public static final int AVRC_ID_STOP = 0x45;
 
-    private final BroadcastReceiver mA2dpReceiver = new BroadcastReceiver() {
+    private final BroadcastReceiver mAvrcpControllerReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
             BluetoothDevice device = (BluetoothDevice)
                     intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
 
-            if (action.equals(BluetoothA2dp.ACTION_AVRCP_CONNECTION_STATE_CHANGED)) {
+            if (action.equals(BluetoothAvrcpController.ACTION_CONNECTION_STATE_CHANGED)) {
                 int prevState = intent.getIntExtra(BluetoothProfile.EXTRA_PREVIOUS_STATE, 0);
                 int state = intent.getIntExtra(BluetoothProfile.EXTRA_STATE, 0);
                 onReceiveActionConnectionStateChanged(device, prevState, state, intent.getExtras());
@@ -92,19 +92,19 @@ public class AvrcpTestActivity extends MonkeyActivity implements IBluetoothConne
         }
     };
 
-    private final ServiceConnection mA2dpServiceConnection = new ServiceConnection() {
+    private final ServiceConnection mAvrcpControllerServiceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             Logger.v(TAG, "onServiceConnected()");
             mProfileService = ((ProfileService.LocalBinder) service).getService();
-            mBluetoothA2dp = mProfileService.getA2dp();
+            mAvrcpController = mProfileService.getAvrcpController();
         }
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
             Logger.v(TAG, "onServiceDisconnected()");
             mProfileService = null;
-            mBluetoothA2dp = null;
+            mAvrcpController = null;
         }
     };
 
@@ -118,14 +118,14 @@ public class AvrcpTestActivity extends MonkeyActivity implements IBluetoothConne
         ActivityHelper.setActionBarTitle(this, R.string.title_avrcp_test);
         // bind to app service
         Intent intent = new Intent(this, ProfileService.class);
-        bindService(intent, mA2dpServiceConnection, BIND_AUTO_CREATE);
+        bindService(intent, mAvrcpControllerServiceConnection, BIND_AUTO_CREATE);
     }
 
     @Override
     protected void onDestroy() {
         Logger.v(TAG, "onDestroy");
         super.onDestroy();
-        unbindService(mA2dpServiceConnection);
+        unbindService(mAvrcpControllerServiceConnection);
         BluetoothConnectionReceiver.removeObserver(this);
     }
 
@@ -133,15 +133,15 @@ public class AvrcpTestActivity extends MonkeyActivity implements IBluetoothConne
     protected void onResume() {
         Logger.v(TAG, "onResume");
         IntentFilter filter = new IntentFilter();
-        filter.addAction(BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED);
-        registerReceiver(mA2dpReceiver, filter);
+        filter.addAction(BluetoothAvrcpController.ACTION_CONNECTION_STATE_CHANGED);
+        registerReceiver(mAvrcpControllerReceiver, filter);
         super.onResume();
     }
 
     @Override
     protected void onPause() {
         Logger.v(TAG, "onPause");
-        unregisterReceiver(mA2dpReceiver);
+        unregisterReceiver(mAvrcpControllerReceiver);
         super.onPause();
     }
 
@@ -174,9 +174,10 @@ public class AvrcpTestActivity extends MonkeyActivity implements IBluetoothConne
 
     public void onClickPassthruPlay(View v) {
         Logger.v(TAG, "onClickPassthruPlay()");
-        if ((mBluetoothA2dp != null) && (mBluetoothA2dp.isAvrcpConnected(mDevice))){
-            mBluetoothA2dp.sendPassThroughCmd(AVRC_ID_PLAY, KEY_STATE_PRESSED);
-            mBluetoothA2dp.sendPassThroughCmd(AVRC_ID_PLAY, KEY_STATE_RELEASED);
+        if ((mAvrcpController != null) && mDevice != null &&
+            BluetoothProfile.STATE_DISCONNECTED != (mAvrcpController.getConnectionState(mDevice))){
+            mAvrcpController.sendPassThroughCmd(mDevice, AVRC_ID_PLAY, KEY_STATE_PRESSED);
+            mAvrcpController.sendPassThroughCmd(mDevice, AVRC_ID_PLAY, KEY_STATE_RELEASED);
         } else {
             Logger.e(TAG, "passthru command not sent, connection unavailable");
         }
@@ -184,9 +185,10 @@ public class AvrcpTestActivity extends MonkeyActivity implements IBluetoothConne
 
     public void onClickPassthruPause(View v) {
         Logger.v(TAG, "onClickPassthruPause()");
-        if ((mBluetoothA2dp != null) && (mBluetoothA2dp.isAvrcpConnected(mDevice))){
-            mBluetoothA2dp.sendPassThroughCmd(AVRC_ID_PAUSE, KEY_STATE_PRESSED);
-            mBluetoothA2dp.sendPassThroughCmd(AVRC_ID_PAUSE, KEY_STATE_RELEASED);
+        if ((mAvrcpController != null) && mDevice != null &&
+            BluetoothProfile.STATE_DISCONNECTED != (mAvrcpController.getConnectionState(mDevice))){
+            mAvrcpController.sendPassThroughCmd(mDevice, AVRC_ID_PAUSE, KEY_STATE_PRESSED);
+            mAvrcpController.sendPassThroughCmd(mDevice, AVRC_ID_PAUSE, KEY_STATE_RELEASED);
         } else {
             Logger.e(TAG, "passthru command not sent, connection unavailable");
         }
@@ -194,9 +196,10 @@ public class AvrcpTestActivity extends MonkeyActivity implements IBluetoothConne
 
     public void onClickPassthruStop(View v) {
         Logger.v(TAG, "onClickPassthruStop()");
-        if ((mBluetoothA2dp != null) && (mBluetoothA2dp.isAvrcpConnected(mDevice))){
-            mBluetoothA2dp.sendPassThroughCmd(AVRC_ID_STOP, KEY_STATE_PRESSED);
-            mBluetoothA2dp.sendPassThroughCmd(AVRC_ID_STOP, KEY_STATE_RELEASED);
+        if ((mAvrcpController != null) && mDevice != null &&
+            BluetoothProfile.STATE_DISCONNECTED != (mAvrcpController.getConnectionState(mDevice))){
+            mAvrcpController.sendPassThroughCmd(mDevice, AVRC_ID_STOP, KEY_STATE_PRESSED);
+            mAvrcpController.sendPassThroughCmd(mDevice, AVRC_ID_STOP, KEY_STATE_RELEASED);
         } else {
             Logger.e(TAG, "passthru command not sent, connection unavailable");
         }
@@ -205,9 +208,10 @@ public class AvrcpTestActivity extends MonkeyActivity implements IBluetoothConne
 
     public void onClickPassthruVolUp(View v) {
         Logger.v(TAG, "onClickPassthruVolUp()");
-        if ((mBluetoothA2dp != null) && (mBluetoothA2dp.isAvrcpConnected(mDevice))){
-            mBluetoothA2dp.sendPassThroughCmd(AVRC_ID_VOL_UP, KEY_STATE_PRESSED);
-            mBluetoothA2dp.sendPassThroughCmd(AVRC_ID_VOL_UP, KEY_STATE_RELEASED);
+        if ((mAvrcpController != null) && mDevice != null &&
+            BluetoothProfile.STATE_DISCONNECTED != (mAvrcpController.getConnectionState(mDevice))){
+            mAvrcpController.sendPassThroughCmd(mDevice, AVRC_ID_VOL_UP, KEY_STATE_PRESSED);
+            mAvrcpController.sendPassThroughCmd(mDevice, AVRC_ID_VOL_UP, KEY_STATE_RELEASED);
         } else {
             Logger.e(TAG, "passthru command not sent, connection unavailable");
         }
@@ -216,9 +220,10 @@ public class AvrcpTestActivity extends MonkeyActivity implements IBluetoothConne
 
     public void onClickPassthruVolDown(View v) {
         Logger.v(TAG, "onClickPassthruVolDown()");
-        if ((mBluetoothA2dp != null) && (mBluetoothA2dp.isAvrcpConnected(mDevice))){
-            mBluetoothA2dp.sendPassThroughCmd(AVRC_ID_VOL_DOWN, KEY_STATE_PRESSED);
-            mBluetoothA2dp.sendPassThroughCmd(AVRC_ID_VOL_DOWN, KEY_STATE_RELEASED);
+        if ((mAvrcpController != null) && mDevice != null &&
+            BluetoothProfile.STATE_DISCONNECTED != (mAvrcpController.getConnectionState(mDevice))){
+            mAvrcpController.sendPassThroughCmd(mDevice, AVRC_ID_VOL_DOWN, KEY_STATE_PRESSED);
+            mAvrcpController.sendPassThroughCmd(mDevice, AVRC_ID_VOL_DOWN, KEY_STATE_RELEASED);
         } else {
             Logger.e(TAG, "passthru command not sent, connection unavailable");
         }

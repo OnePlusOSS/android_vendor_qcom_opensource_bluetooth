@@ -35,7 +35,7 @@ import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothHeadsetClient;
-import android.bluetooth.BluetoothA2dp;
+import android.bluetooth.BluetoothAvrcpController;
 import android.bluetooth.BluetoothMasInstance;
 import android.bluetooth.BluetoothProfile;
 import android.bluetooth.BluetoothProfile.ServiceListener;
@@ -106,7 +106,7 @@ public class ProfileService extends Service {
 
     private BluetoothHeadsetClient mHfpClient = null;
 
-    private BluetoothA2dp mA2dp = null;
+    private BluetoothAvrcpController mAvrcpController = null;
 
     private BluetoothPbapClient mPbapClient = null;
 
@@ -552,7 +552,7 @@ public class ProfileService extends Service {
                 }
 
                 ProfileService.this.sendBroadcast(new_intent);
-            } else if(BluetoothA2dp.ACTION_AVRCP_CONNECTION_STATE_CHANGED.equals(action)) {
+            } else if(BluetoothAvrcpController.ACTION_CONNECTION_STATE_CHANGED.equals(action)) {
                 int state = intent.getIntExtra(BluetoothProfile.EXTRA_STATE, -1);
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                 if (mDevice == null || device == null) {
@@ -625,18 +625,18 @@ public class ProfileService extends Service {
         }
     };
 
-    private final ServiceListener mA2dpServiceListener = new ServiceListener() {
+    private final ServiceListener mAvrcpControllerServiceListener = new ServiceListener() {
         @Override
         public void onServiceConnected(int profile, BluetoothProfile proxy) {
-            if (profile == BluetoothProfile.A2DP) {
-                mA2dp = (BluetoothA2dp) proxy;
+            if (profile == BluetoothProfile.AVRCP_CONTROLLER) {
+                mAvrcpController = (BluetoothAvrcpController) proxy;
             }
         }
 
         @Override
         public void onServiceDisconnected(int profile) {
-            if (profile == BluetoothProfile.A2DP) {
-                mA2dp = null;
+            if (profile == BluetoothProfile.AVRCP_CONTROLLER) {
+                mAvrcpController = null;
             }
         }
     };
@@ -744,13 +744,13 @@ public class ProfileService extends Service {
         filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
         filter.addAction(BluetoothHeadsetClient.ACTION_CONNECTION_STATE_CHANGED);
         filter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
-        filter.addAction(BluetoothA2dp.ACTION_AVRCP_CONNECTION_STATE_CHANGED);
+        filter.addAction(BluetoothAvrcpController.ACTION_CONNECTION_STATE_CHANGED);
         registerReceiver(mReceiver, filter);
 
         mAdapter.getProfileProxy(getApplicationContext(), mHfpServiceListener,
                 BluetoothProfile.HEADSET_CLIENT);
-        mAdapter.getProfileProxy(getApplicationContext(), mA2dpServiceListener,
-                BluetoothProfile.A2DP);
+        mAdapter.getProfileProxy(getApplicationContext(), mAvrcpControllerServiceListener,
+                BluetoothProfile.AVRCP_CONTROLLER);
 
     }
 
@@ -768,8 +768,8 @@ public class ProfileService extends Service {
         mAdapter.closeProfileProxy(BluetoothProfile.HEADSET_CLIENT,
                 mHfpClient);
 
-        mAdapter.closeProfileProxy(BluetoothProfile.A2DP,
-                mA2dp);
+        mAdapter.closeProfileProxy(BluetoothProfile.AVRCP_CONTROLLER,
+                mAvrcpController);
 
         unregisterReceiver(mReceiver);
 
@@ -818,8 +818,8 @@ public class ProfileService extends Service {
         return mHfpClient;
     }
 
-    public BluetoothA2dp getA2dp() {
-        return mA2dp;
+    public BluetoothAvrcpController getAvrcpController() {
+        return mAvrcpController;
     }
 
     public BluetoothPbapClient getPbapClient() {

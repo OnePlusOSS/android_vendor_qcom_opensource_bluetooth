@@ -53,7 +53,8 @@ import android.widget.ListView;
 import android.widget.Switch;
 import android.widget.TextView;
 
-import android.bluetooth.BluetoothA2dp;
+import android.bluetooth.BluetoothA2dpSink;
+import android.bluetooth.BluetoothAvrcpController;
 import android.bluetooth.client.map.BluetoothMasClient;
 import android.bluetooth.client.pbap.BluetoothPbapClient;
 import org.codeaurora.bluetooth.bttestapp.R;
@@ -386,7 +387,7 @@ public class ServicesFragment extends ListFragment {
 
                     case AVRCP: {
                         Log.v(TAG, "getView: AVRCP");
-                        BluetoothA2dp cli = mActivity.mProfileService.getA2dp();
+                        BluetoothAvrcpController cli = mActivity.mProfileService.getAvrcpController();
 
                         if (cli == null || bluetoothOn == false) {
                             swSrv.setChecked(false);
@@ -394,7 +395,7 @@ public class ServicesFragment extends ListFragment {
                             break;
                         }
 
-                        if (cli.isAvrcpConnected(mActivity.mDevice)) {
+                        if (cli.getConnectionState(mActivity.mDevice) != BluetoothProfile.STATE_DISCONNECTED) {
                             Log.v(TAG, "AVRCP Connected: setChecked to True");
                             swSrv.setChecked(true);
                             swSrv.setEnabled(false);
@@ -563,8 +564,7 @@ public class ServicesFragment extends ListFragment {
                 break;
 
             case AVRCP:
-                if (mActivity.mProfileService.getA2dp().
-                    isAvrcpConnected(mActivity.mDevice) != false)
+                if (mActivity.mProfileService.getAvrcpController() != null)
                     intent = new Intent(getActivity(), AvrcpTestActivity.class);
                 else {
                     Log.e(TAG, "AVRCP is not connected");
