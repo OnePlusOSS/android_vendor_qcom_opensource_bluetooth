@@ -34,7 +34,7 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothHandsfreeClient;
+import android.bluetooth.BluetoothHeadsetClient;
 import android.bluetooth.BluetoothA2dp;
 import android.bluetooth.BluetoothMasInstance;
 import android.bluetooth.BluetoothProfile;
@@ -104,7 +104,7 @@ public class ProfileService extends Service {
 
     private final BluetoothAdapter mAdapter = BluetoothAdapter.getDefaultAdapter();
 
-    private BluetoothHandsfreeClient mHfpClient = null;
+    private BluetoothHeadsetClient mHfpClient = null;
 
     private BluetoothA2dp mA2dp = null;
 
@@ -539,7 +539,7 @@ public class ProfileService extends Service {
             String action = intent.getAction();
             Log.d(TAG, "received " + action);
 
-            if (BluetoothHandsfreeClient.ACTION_CONNECTION_STATE_CHANGED.equals(action)) {
+            if (BluetoothHeadsetClient.ACTION_CONNECTION_STATE_CHANGED.equals(action)) {
                 int state = intent.getIntExtra(BluetoothProfile.EXTRA_STATE, -1);
                 Intent new_intent = new Intent(ACTION_HFP_CONNECTION_STATE);
 
@@ -612,14 +612,14 @@ public class ProfileService extends Service {
     private final ServiceListener mHfpServiceListener = new ServiceListener() {
         @Override
         public void onServiceConnected(int profile, BluetoothProfile proxy) {
-            if (profile == BluetoothProfile.HANDSFREE_CLIENT) {
-                mHfpClient = (BluetoothHandsfreeClient) proxy;
+            if (profile == BluetoothProfile.HEADSET_CLIENT) {
+                mHfpClient = (BluetoothHeadsetClient) proxy;
             }
         }
 
         @Override
         public void onServiceDisconnected(int profile) {
-            if (profile == BluetoothProfile.HANDSFREE_CLIENT) {
+            if (profile == BluetoothProfile.HEADSET_CLIENT) {
                 mHfpClient = null;
             }
         }
@@ -742,13 +742,13 @@ public class ProfileService extends Service {
         filter.addAction(PBAP_AUTH_ACTION_RESPONSE);
         filter.addAction(PBAP_AUTH_ACTION_CANCEL);
         filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
-        filter.addAction(BluetoothHandsfreeClient.ACTION_CONNECTION_STATE_CHANGED);
+        filter.addAction(BluetoothHeadsetClient.ACTION_CONNECTION_STATE_CHANGED);
         filter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
         filter.addAction(BluetoothA2dp.ACTION_AVRCP_CONNECTION_STATE_CHANGED);
         registerReceiver(mReceiver, filter);
 
         mAdapter.getProfileProxy(getApplicationContext(), mHfpServiceListener,
-                BluetoothProfile.HANDSFREE_CLIENT);
+                BluetoothProfile.HEADSET_CLIENT);
         mAdapter.getProfileProxy(getApplicationContext(), mA2dpServiceListener,
                 BluetoothProfile.A2DP);
 
@@ -765,7 +765,7 @@ public class ProfileService extends Service {
     public void onDestroy() {
         Log.v(TAG, "onDestroy");
 
-        mAdapter.closeProfileProxy(BluetoothProfile.HANDSFREE_CLIENT,
+        mAdapter.closeProfileProxy(BluetoothProfile.HEADSET_CLIENT,
                 mHfpClient);
 
         mAdapter.closeProfileProxy(BluetoothProfile.A2DP,
@@ -814,7 +814,7 @@ public class ProfileService extends Service {
         mMapSessionData = new HashMap<Integer, MapSessionData>();
     }
 
-    public BluetoothHandsfreeClient getHfpClient() {
+    public BluetoothHeadsetClient getHfpClient() {
         return mHfpClient;
     }
 

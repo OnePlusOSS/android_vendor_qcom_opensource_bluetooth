@@ -31,8 +31,8 @@ package org.codeaurora.bluetooth.bttestapp;
 import android.app.Activity;
 import android.app.Fragment;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothHandsfreeClient;
-import android.bluetooth.BluetoothHandsfreeClientCall;
+import android.bluetooth.BluetoothHeadsetClient;
+import android.bluetooth.BluetoothHeadsetClientCall;
 import android.bluetooth.BluetoothProfile;
 import android.os.Bundle;
 import android.util.Log;
@@ -82,12 +82,12 @@ public class CallsListFragment extends Fragment implements OnClickListener, OnIt
 
     private class CallsAdapter extends BaseAdapter {
 
-        private final SparseArray<BluetoothHandsfreeClientCall> mCalls;
+        private final SparseArray<BluetoothHeadsetClientCall> mCalls;
 
         private int mSelectedId = 0;
 
         CallsAdapter() {
-            mCalls = new SparseArray<BluetoothHandsfreeClientCall>();
+            mCalls = new SparseArray<BluetoothHeadsetClientCall>();
         }
 
         @Override
@@ -109,7 +109,7 @@ public class CallsListFragment extends Fragment implements OnClickListener, OnIt
         public View getView(int position, View convertView, ViewGroup parent) {
             View view = convertView;
 
-            BluetoothHandsfreeClientCall call = (BluetoothHandsfreeClientCall) getItem(position);
+            BluetoothHeadsetClientCall call = (BluetoothHeadsetClientCall) getItem(position);
 
             if (view == null) {
                 view = getActivity().getLayoutInflater().inflate(R.layout.call_view, parent, false);
@@ -131,19 +131,19 @@ public class CallsListFragment extends Fragment implements OnClickListener, OnIt
             ((TextView) view.findViewById(R.id.call_number)).setText(call.getNumber());
 
             switch (call.getState()) {
-                case BluetoothHandsfreeClientCall.CALL_STATE_ACTIVE:
+                case BluetoothHeadsetClientCall.CALL_STATE_ACTIVE:
                     callId.setBackgroundColor(getColor(R.color.call_active));
                     break;
 
-                case BluetoothHandsfreeClientCall.CALL_STATE_HELD:
-                case BluetoothHandsfreeClientCall.CALL_STATE_HELD_BY_RESPONSE_AND_HOLD:
+                case BluetoothHeadsetClientCall.CALL_STATE_HELD:
+                case BluetoothHeadsetClientCall.CALL_STATE_HELD_BY_RESPONSE_AND_HOLD:
                     callId.setBackgroundColor(getColor(R.color.call_held));
                     break;
 
-                case BluetoothHandsfreeClientCall.CALL_STATE_DIALING:
-                case BluetoothHandsfreeClientCall.CALL_STATE_ALERTING:
-                case BluetoothHandsfreeClientCall.CALL_STATE_INCOMING:
-                case BluetoothHandsfreeClientCall.CALL_STATE_WAITING:
+                case BluetoothHeadsetClientCall.CALL_STATE_DIALING:
+                case BluetoothHeadsetClientCall.CALL_STATE_ALERTING:
+                case BluetoothHeadsetClientCall.CALL_STATE_INCOMING:
+                case BluetoothHeadsetClientCall.CALL_STATE_WAITING:
                     callId.setBackgroundColor(getColor(R.color.call_new));
                     break;
 
@@ -153,33 +153,33 @@ public class CallsListFragment extends Fragment implements OnClickListener, OnIt
             }
 
             setIndicator(view, R.id.call_state_active,
-                    call.getState() == BluetoothHandsfreeClientCall.CALL_STATE_ACTIVE);
+                    call.getState() == BluetoothHeadsetClientCall.CALL_STATE_ACTIVE);
             setIndicator(view, R.id.call_state_held,
-                    call.getState() == BluetoothHandsfreeClientCall.CALL_STATE_HELD);
+                    call.getState() == BluetoothHeadsetClientCall.CALL_STATE_HELD);
             setIndicator(view, R.id.call_state_dialing,
-                    call.getState() == BluetoothHandsfreeClientCall.CALL_STATE_DIALING);
+                    call.getState() == BluetoothHeadsetClientCall.CALL_STATE_DIALING);
             setIndicator(view, R.id.call_state_alerting,
-                    call.getState() == BluetoothHandsfreeClientCall.CALL_STATE_ALERTING);
+                    call.getState() == BluetoothHeadsetClientCall.CALL_STATE_ALERTING);
             setIndicator(view, R.id.call_state_incoming,
-                    call.getState() == BluetoothHandsfreeClientCall.CALL_STATE_INCOMING);
+                    call.getState() == BluetoothHeadsetClientCall.CALL_STATE_INCOMING);
             setIndicator(view, R.id.call_state_waiting,
-                    call.getState() == BluetoothHandsfreeClientCall.CALL_STATE_WAITING);
+                    call.getState() == BluetoothHeadsetClientCall.CALL_STATE_WAITING);
             setIndicator(
                     view,
                     R.id.call_state_held_by_rnh,
-                    call.getState() == BluetoothHandsfreeClientCall.CALL_STATE_HELD_BY_RESPONSE_AND_HOLD);
+                    call.getState() == BluetoothHeadsetClientCall.CALL_STATE_HELD_BY_RESPONSE_AND_HOLD);
 
             setIndicator(view, R.id.call_multiparty, call.isMultiParty());
 
             return view;
         }
 
-        public void add(BluetoothHandsfreeClientCall call) {
+        public void add(BluetoothHeadsetClientCall call) {
             mCalls.put(call.getId(), call);
             notifyDataSetChanged();
         }
 
-        public void remove(BluetoothHandsfreeClientCall call) {
+        public void remove(BluetoothHeadsetClientCall call) {
             if (call.getId() == mSelectedId) {
                 mSelectedId = 0;
             }
@@ -201,13 +201,13 @@ public class CallsListFragment extends Fragment implements OnClickListener, OnIt
             notifyDataSetChanged();
         }
 
-        public BluetoothHandsfreeClientCall getSelected() {
+        public BluetoothHeadsetClientCall getSelected() {
             return mCalls.get(mSelectedId);
         }
 
         public boolean hasCallsInState(int... state) {
             for (int idx = 0; idx < mCalls.size(); idx++) {
-                BluetoothHandsfreeClientCall call = mCalls.valueAt(idx);
+                BluetoothHeadsetClientCall call = mCalls.valueAt(idx);
                 for (int s : state) {
                     if (call.getState() == s) {
                         return true;
@@ -281,12 +281,12 @@ public class CallsListFragment extends Fragment implements OnClickListener, OnIt
         }
     }
 
-    public void onCallChanged(BluetoothHandsfreeClientCall call) {
+    public void onCallChanged(BluetoothHeadsetClientCall call) {
         Log.v(TAG, "onCallChanged(): call=" + HfpTestActivity.callToJson(call));
 
         CallsAdapter adapter = (CallsAdapter) mCallsList.getAdapter();
 
-        if (call.getState() == BluetoothHandsfreeClientCall.CALL_STATE_TERMINATED) {
+        if (call.getState() == BluetoothHeadsetClientCall.CALL_STATE_TERMINATED) {
             adapter.remove(call);
         } else {
             // add will also update existing call with the same id
@@ -298,10 +298,10 @@ public class CallsListFragment extends Fragment implements OnClickListener, OnIt
 
     @Override
     public void onClick(View v) {
-        BluetoothHandsfreeClient cli = mActivity.mBluetoothHandsfreeClient;
+        BluetoothHeadsetClient cli = mActivity.mBluetoothHeadsetClient;
         BluetoothDevice device = mActivity.mDevice;
         CallsAdapter adapter = (CallsAdapter) mCallsList.getAdapter();
-        BluetoothHandsfreeClientCall selectedCall = adapter.getSelected();
+        BluetoothHeadsetClientCall selectedCall = adapter.getSelected();
         boolean result = true;
         if (device == null) {
             Log.d(TAG,"Device is NULL");
@@ -319,15 +319,15 @@ public class CallsListFragment extends Fragment implements OnClickListener, OnIt
 
         switch (v.getId()) {
             case R.id.call_action_accept:
-                result = cli.acceptCall(device, BluetoothHandsfreeClient.CALL_ACCEPT_NONE);
+                result = cli.acceptCall(device, BluetoothHeadsetClient.CALL_ACCEPT_NONE);
                 break;
 
             case R.id.call_action_hold_and_accept:
-                result = cli.acceptCall(device, BluetoothHandsfreeClient.CALL_ACCEPT_HOLD);
+                result = cli.acceptCall(device, BluetoothHeadsetClient.CALL_ACCEPT_HOLD);
                 break;
 
             case R.id.call_action_release_and_accept:
-                result = cli.acceptCall(device, BluetoothHandsfreeClient.CALL_ACCEPT_TERMINATE);
+                result = cli.acceptCall(device, BluetoothHeadsetClient.CALL_ACCEPT_TERMINATE);
                 break;
 
             case R.id.call_action_reject:
@@ -378,7 +378,7 @@ public class CallsListFragment extends Fragment implements OnClickListener, OnIt
 
     private void updateActionsState() {
         CallsAdapter adapter = (CallsAdapter) mCallsList.getAdapter();
-        BluetoothHandsfreeClientCall selectedCall = adapter.getSelected();
+        BluetoothHeadsetClientCall selectedCall = adapter.getSelected();
 
         boolean canAccept = false;
         boolean canHoldAndAccept = false;
@@ -388,11 +388,11 @@ public class CallsListFragment extends Fragment implements OnClickListener, OnIt
         boolean canRespondAndHold = false;
         boolean canHold = false;
 
-        boolean hasIncoming = adapter.hasCallsInState(BluetoothHandsfreeClientCall.CALL_STATE_INCOMING);
-        boolean hasActive = adapter.hasCallsInState(BluetoothHandsfreeClientCall.CALL_STATE_ACTIVE);
-        boolean hasWaiting = adapter.hasCallsInState(BluetoothHandsfreeClientCall.CALL_STATE_WAITING);
-        boolean hasHeld = adapter.hasCallsInState(BluetoothHandsfreeClientCall.CALL_STATE_HELD,
-                BluetoothHandsfreeClientCall.CALL_STATE_HELD_BY_RESPONSE_AND_HOLD);
+        boolean hasIncoming = adapter.hasCallsInState(BluetoothHeadsetClientCall.CALL_STATE_INCOMING);
+        boolean hasActive = adapter.hasCallsInState(BluetoothHeadsetClientCall.CALL_STATE_ACTIVE);
+        boolean hasWaiting = adapter.hasCallsInState(BluetoothHeadsetClientCall.CALL_STATE_WAITING);
+        boolean hasHeld = adapter.hasCallsInState(BluetoothHeadsetClientCall.CALL_STATE_HELD,
+                BluetoothHeadsetClientCall.CALL_STATE_HELD_BY_RESPONSE_AND_HOLD);
 
         if (hasIncoming) {
             canAccept = true;
@@ -403,8 +403,8 @@ public class CallsListFragment extends Fragment implements OnClickListener, OnIt
             mActionReject.setText(R.string.call_action_reject);
         }
 
-        if (hasActive || adapter.hasCallsInState(BluetoothHandsfreeClientCall.CALL_STATE_ALERTING,
-                                                BluetoothHandsfreeClientCall.CALL_STATE_DIALING)) {
+        if (hasActive || adapter.hasCallsInState(BluetoothHeadsetClientCall.CALL_STATE_ALERTING,
+                                                BluetoothHeadsetClientCall.CALL_STATE_DIALING)) {
             canTerminate = true;
         }
 
@@ -431,13 +431,13 @@ public class CallsListFragment extends Fragment implements OnClickListener, OnIt
             }
         }
 
-        if (adapter.hasCallsInState(BluetoothHandsfreeClientCall.CALL_STATE_ACTIVE) &&
-                !adapter.hasCallsInState(BluetoothHandsfreeClientCall.CALL_STATE_HELD,
-                        BluetoothHandsfreeClientCall.CALL_STATE_DIALING,
-                        BluetoothHandsfreeClientCall.CALL_STATE_ALERTING,
-                        BluetoothHandsfreeClientCall.CALL_STATE_INCOMING,
-                        BluetoothHandsfreeClientCall.CALL_STATE_WAITING,
-                        BluetoothHandsfreeClientCall.CALL_STATE_HELD_BY_RESPONSE_AND_HOLD)) {
+        if (adapter.hasCallsInState(BluetoothHeadsetClientCall.CALL_STATE_ACTIVE) &&
+                !adapter.hasCallsInState(BluetoothHeadsetClientCall.CALL_STATE_HELD,
+                        BluetoothHeadsetClientCall.CALL_STATE_DIALING,
+                        BluetoothHeadsetClientCall.CALL_STATE_ALERTING,
+                        BluetoothHeadsetClientCall.CALL_STATE_INCOMING,
+                        BluetoothHeadsetClientCall.CALL_STATE_WAITING,
+                        BluetoothHeadsetClientCall.CALL_STATE_HELD_BY_RESPONSE_AND_HOLD)) {
             canHold = true;
         }
 

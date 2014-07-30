@@ -32,8 +32,8 @@ package org.codeaurora.bluetooth.bttestapp;
 import android.app.ActionBar;
 import android.app.DialogFragment;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothHandsfreeClient;
-import android.bluetooth.BluetoothHandsfreeClientCall;
+import android.bluetooth.BluetoothHeadsetClient;
+import android.bluetooth.BluetoothHeadsetClientCall;
 import android.bluetooth.BluetoothProfile;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -74,7 +74,7 @@ public class HfpTestActivity extends MonkeyActivity implements IBluetoothConnect
     private ActionBar mActionBar = null;
 
    // this should be visible for fragments
-    BluetoothHandsfreeClient mBluetoothHandsfreeClient;
+    BluetoothHeadsetClient mBluetoothHeadsetClient;
     ProfileService mProfileService = null;
     BluetoothDevice mDevice;
 
@@ -98,7 +98,7 @@ public class HfpTestActivity extends MonkeyActivity implements IBluetoothConnect
             BluetoothDevice device = (BluetoothDevice)
                     intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
 
-            if (action.equals(BluetoothHandsfreeClient.ACTION_CONNECTION_STATE_CHANGED)) {
+            if (action.equals(BluetoothHeadsetClient.ACTION_CONNECTION_STATE_CHANGED)) {
 
                 int prevState = intent.getIntExtra(BluetoothProfile.EXTRA_PREVIOUS_STATE, 0);
                 int state = intent.getIntExtra(BluetoothProfile.EXTRA_STATE, 0);
@@ -111,14 +111,14 @@ public class HfpTestActivity extends MonkeyActivity implements IBluetoothConnect
                         .addReplyParam("state", state)
                         .addReplyParam("prevState", prevState)
                         .send();
-            } else if (action.equals(BluetoothHandsfreeClient.ACTION_AG_EVENT)) {
+            } else if (action.equals(BluetoothHeadsetClient.ACTION_AG_EVENT)) {
 
                 mIndicatorsFragment.onAgEvent(intent.getExtras());
 
-            } else if (action.equals(BluetoothHandsfreeClient.ACTION_CALL_CHANGED)) {
+            } else if (action.equals(BluetoothHeadsetClient.ACTION_CALL_CHANGED)) {
 
-                BluetoothHandsfreeClientCall call = (BluetoothHandsfreeClientCall) intent.
-                        getParcelableExtra(BluetoothHandsfreeClient.EXTRA_CALL);
+                BluetoothHeadsetClientCall call = (BluetoothHeadsetClientCall) intent.
+                        getParcelableExtra(BluetoothHeadsetClient.EXTRA_CALL);
                 onCallChanged(call);
                 mCallsListFragment.onCallChanged(call);
 
@@ -126,7 +126,7 @@ public class HfpTestActivity extends MonkeyActivity implements IBluetoothConnect
                 new MonkeyEvent("hfp-call-changed", true)
                         .addExtReply(callToJson(call))
                         .send();
-            } else if (action.equals(BluetoothHandsfreeClient.ACTION_AUDIO_STATE_CHANGED)) {
+            } else if (action.equals(BluetoothHeadsetClient.ACTION_AUDIO_STATE_CHANGED)) {
 
                 int prevState = intent.getIntExtra(BluetoothProfile.EXTRA_PREVIOUS_STATE, 0);
                 int state = intent.getIntExtra(BluetoothProfile.EXTRA_STATE, 0);
@@ -138,11 +138,11 @@ public class HfpTestActivity extends MonkeyActivity implements IBluetoothConnect
                         .addReplyParam("state", state)
                         .addReplyParam("prevState", prevState)
                         .send();
-            } else if(action.equals(BluetoothHandsfreeClient.ACTION_RESULT)) {
+            } else if(action.equals(BluetoothHeadsetClient.ACTION_RESULT)) {
                 int result = intent.getIntExtra(
-                        BluetoothHandsfreeClient.EXTRA_RESULT_CODE, -1);
+                        BluetoothHeadsetClient.EXTRA_RESULT_CODE, -1);
                 int cme = intent.getIntExtra(
-                        BluetoothHandsfreeClient.EXTRA_CME_CODE, -1);
+                        BluetoothHeadsetClient.EXTRA_CME_CODE, -1);
 
                 onReceiveResult(result, cme);
 
@@ -151,9 +151,9 @@ public class HfpTestActivity extends MonkeyActivity implements IBluetoothConnect
                         .addReplyParam("result", result)
                         .addReplyParam("cme", cme)
                         .send();
-            } else if (action.equals(BluetoothHandsfreeClient.ACTION_LAST_VTAG)) {
+            } else if (action.equals(BluetoothHeadsetClient.ACTION_LAST_VTAG)) {
 
-                String number = intent.getStringExtra(BluetoothHandsfreeClient.EXTRA_NUMBER);
+                String number = intent.getStringExtra(BluetoothHeadsetClient.EXTRA_NUMBER);
                 Toast.makeText(HfpTestActivity.this, "Phone number received: " + number,
                         Toast.LENGTH_LONG).show();
                 // Send MonkeyEvent
@@ -163,7 +163,7 @@ public class HfpTestActivity extends MonkeyActivity implements IBluetoothConnect
             }
         }
 
-        private void onCallChanged(BluetoothHandsfreeClientCall call) {
+        private void onCallChanged(BluetoothHeadsetClientCall call) {
             int state = call.getState();
             String number = call.getNumber().trim();
 
@@ -174,10 +174,10 @@ public class HfpTestActivity extends MonkeyActivity implements IBluetoothConnect
             }
 
             // we add any "new" call to list and put in at the beginning
-            if (state == BluetoothHandsfreeClientCall.CALL_STATE_ALERTING ||
-                    state == BluetoothHandsfreeClientCall.CALL_STATE_DIALING ||
-                    state == BluetoothHandsfreeClientCall.CALL_STATE_INCOMING ||
-                    state == BluetoothHandsfreeClientCall.CALL_STATE_WAITING) {
+            if (state == BluetoothHeadsetClientCall.CALL_STATE_ALERTING ||
+                    state == BluetoothHeadsetClientCall.CALL_STATE_DIALING ||
+                    state == BluetoothHeadsetClientCall.CALL_STATE_INCOMING ||
+                    state == BluetoothHeadsetClientCall.CALL_STATE_WAITING) {
                 mCallHistory.remove(number);
                 mCallHistory.add(0, number);
 
@@ -239,26 +239,26 @@ public class HfpTestActivity extends MonkeyActivity implements IBluetoothConnect
         public void onServiceConnected(ComponentName name, IBinder service) {
             Logger.v(TAG, "onServiceConnected()");
             mProfileService = ((ProfileService.LocalBinder) service).getService();
-            mBluetoothHandsfreeClient = mProfileService.getHfpClient();
+            mBluetoothHeadsetClient = mProfileService.getHfpClient();
 
-            int connState = mBluetoothHandsfreeClient.getConnectionState(mDevice);
+            int connState = mBluetoothHeadsetClient.getConnectionState(mDevice);
 
             if (connState == BluetoothProfile.STATE_CONNECTED) {
                 // trigger refresh of calls list
-                for (BluetoothHandsfreeClientCall call : mBluetoothHandsfreeClient
+                for (BluetoothHeadsetClientCall call : mBluetoothHeadsetClient
                         .getCurrentCalls(mDevice)) {
                     mCallsListFragment.onCallChanged(call);
                 }
 
                 // get supported AG features
-                updateAgFeatures(mBluetoothHandsfreeClient.getCurrentAgFeatures(mDevice));
+                updateAgFeatures(mBluetoothHeadsetClient.getCurrentAgFeatures(mDevice));
             }
 
             // trigger refresh of indicators
             mIndicatorsFragment.onAudioStateChanged(
-                    mBluetoothHandsfreeClient.getAudioState(mDevice), 0);
+                    mBluetoothHeadsetClient.getAudioState(mDevice), 0);
             mIndicatorsFragment.onConnStateChanged(connState, 0);
-            mIndicatorsFragment.onAgEvent(mBluetoothHandsfreeClient.getCurrentAgEvents(mDevice));
+            mIndicatorsFragment.onAgEvent(mBluetoothHeadsetClient.getCurrentAgEvents(mDevice));
 
             invalidateOptionsMenu();
         }
@@ -267,7 +267,7 @@ public class HfpTestActivity extends MonkeyActivity implements IBluetoothConnect
         public void onServiceDisconnected(ComponentName name) {
             Logger.v(TAG, "onServiceDisconnected()");
             mProfileService = null;
-            mBluetoothHandsfreeClient = null;
+            mBluetoothHeadsetClient = null;
 
             invalidateOptionsMenu();
         }
@@ -312,12 +312,12 @@ public class HfpTestActivity extends MonkeyActivity implements IBluetoothConnect
         Logger.v(TAG, "onResume");
 
         IntentFilter filter = new IntentFilter();
-        filter.addAction(BluetoothHandsfreeClient.ACTION_CONNECTION_STATE_CHANGED);
-        filter.addAction(BluetoothHandsfreeClient.ACTION_AG_EVENT);
-        filter.addAction(BluetoothHandsfreeClient.ACTION_CALL_CHANGED);
-        filter.addAction(BluetoothHandsfreeClient.ACTION_AUDIO_STATE_CHANGED);
-        filter.addAction(BluetoothHandsfreeClient.ACTION_RESULT);
-        filter.addAction(BluetoothHandsfreeClient.ACTION_LAST_VTAG);
+        filter.addAction(BluetoothHeadsetClient.ACTION_CONNECTION_STATE_CHANGED);
+        filter.addAction(BluetoothHeadsetClient.ACTION_AG_EVENT);
+        filter.addAction(BluetoothHeadsetClient.ACTION_CALL_CHANGED);
+        filter.addAction(BluetoothHeadsetClient.ACTION_AUDIO_STATE_CHANGED);
+        filter.addAction(BluetoothHeadsetClient.ACTION_RESULT);
+        filter.addAction(BluetoothHeadsetClient.ACTION_LAST_VTAG);
         registerReceiver(mHfpClientReceiver, filter);
         super.onResume();
     }
@@ -351,7 +351,7 @@ public class HfpTestActivity extends MonkeyActivity implements IBluetoothConnect
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menu_request_phone_num:
-                mBluetoothHandsfreeClient.getLastVoiceTagNumber(mDevice);
+                mBluetoothHeadsetClient.getLastVoiceTagNumber(mDevice);
                 return true;
 
             case R.id.menu_call_history:
@@ -389,21 +389,21 @@ public class HfpTestActivity extends MonkeyActivity implements IBluetoothConnect
         Logger.v(TAG, "resultCodeToString()");
 
         switch (result) {
-            case BluetoothHandsfreeClient.ACTION_RESULT_OK:
+            case BluetoothHeadsetClient.ACTION_RESULT_OK:
                 return getString(R.string.hfptest_result_ok_text);
-            case BluetoothHandsfreeClient.ACTION_RESULT_ERROR:
+            case BluetoothHeadsetClient.ACTION_RESULT_ERROR:
                 return getString(R.string.hfptest_result_error_text);
-            case BluetoothHandsfreeClient.ACTION_RESULT_ERROR_NO_CARRIER:
+            case BluetoothHeadsetClient.ACTION_RESULT_ERROR_NO_CARRIER:
                 return getString(R.string.hfptest_result_no_carrier_text);
-            case BluetoothHandsfreeClient.ACTION_RESULT_ERROR_BUSY:
+            case BluetoothHeadsetClient.ACTION_RESULT_ERROR_BUSY:
                 return getString(R.string.hfptest_result_busy_text);
-            case BluetoothHandsfreeClient.ACTION_RESULT_ERROR_NO_ANSWER:
+            case BluetoothHeadsetClient.ACTION_RESULT_ERROR_NO_ANSWER:
                 return getString(R.string.hfptest_result_no_answer_text);
-            case BluetoothHandsfreeClient.ACTION_RESULT_ERROR_DELAYED:
+            case BluetoothHeadsetClient.ACTION_RESULT_ERROR_DELAYED:
                 return getString(R.string.hfptest_result_delayed_text);
-            case BluetoothHandsfreeClient.ACTION_RESULT_ERROR_BLACKLISTED:
+            case BluetoothHeadsetClient.ACTION_RESULT_ERROR_BLACKLISTED:
                 return getString(R.string.hfptest_result_blacklisted_text);
-            case BluetoothHandsfreeClient.ACTION_RESULT_ERROR_CME:
+            case BluetoothHeadsetClient.ACTION_RESULT_ERROR_CME:
                 return getString(R.string.hfptest_result_cme_text) + " (" + cme + ")";
         }
 
@@ -413,53 +413,53 @@ public class HfpTestActivity extends MonkeyActivity implements IBluetoothConnect
     @Override
     protected void onMonkeyQuery(String op, Bundle params) {
         if ("getIndicators".equals(op)) {
-            Bundle bundle = mBluetoothHandsfreeClient.getCurrentAgEvents(mDevice);
+            Bundle bundle = mBluetoothHeadsetClient.getCurrentAgEvents(mDevice);
 
             MonkeyEvent me = new MonkeyEvent("hfp-ag-event", true);
 
-            if (bundle.containsKey(BluetoothHandsfreeClient.EXTRA_VOICE_RECOGNITION)) {
-                me.addReplyParam("vr", bundle.getInt(BluetoothHandsfreeClient.EXTRA_VOICE_RECOGNITION));
+            if (bundle.containsKey(BluetoothHeadsetClient.EXTRA_VOICE_RECOGNITION)) {
+                me.addReplyParam("vr", bundle.getInt(BluetoothHeadsetClient.EXTRA_VOICE_RECOGNITION));
             }
 
-            if (bundle.containsKey(BluetoothHandsfreeClient.EXTRA_IN_BAND_RING)) {
-                me.addReplyParam("in-band", bundle.getInt(BluetoothHandsfreeClient.EXTRA_IN_BAND_RING));
+            if (bundle.containsKey(BluetoothHeadsetClient.EXTRA_IN_BAND_RING)) {
+                me.addReplyParam("in-band", bundle.getInt(BluetoothHeadsetClient.EXTRA_IN_BAND_RING));
             }
 
-            if (bundle.containsKey(BluetoothHandsfreeClient.EXTRA_NETWORK_STATUS)) {
+            if (bundle.containsKey(BluetoothHeadsetClient.EXTRA_NETWORK_STATUS)) {
                 me.addReplyParam("network-status",
-                        bundle.getInt(BluetoothHandsfreeClient.EXTRA_NETWORK_STATUS));
+                        bundle.getInt(BluetoothHeadsetClient.EXTRA_NETWORK_STATUS));
             }
 
-            if (bundle.containsKey(BluetoothHandsfreeClient.EXTRA_NETWORK_ROAMING)) {
+            if (bundle.containsKey(BluetoothHeadsetClient.EXTRA_NETWORK_ROAMING)) {
                 me.addReplyParam("network-roaming",
-                        bundle.getInt(BluetoothHandsfreeClient.EXTRA_NETWORK_ROAMING));
+                        bundle.getInt(BluetoothHeadsetClient.EXTRA_NETWORK_ROAMING));
             }
 
-            if (bundle.containsKey(BluetoothHandsfreeClient.EXTRA_NETWORK_SIGNAL_STRENGTH)) {
+            if (bundle.containsKey(BluetoothHeadsetClient.EXTRA_NETWORK_SIGNAL_STRENGTH)) {
                 me.addReplyParam("signal-strength",
-                        bundle.getInt(BluetoothHandsfreeClient.EXTRA_NETWORK_SIGNAL_STRENGTH));
+                        bundle.getInt(BluetoothHeadsetClient.EXTRA_NETWORK_SIGNAL_STRENGTH));
             }
 
-            if (bundle.containsKey(BluetoothHandsfreeClient.EXTRA_BATTERY_LEVEL)) {
+            if (bundle.containsKey(BluetoothHeadsetClient.EXTRA_BATTERY_LEVEL)) {
                 me.addReplyParam("battery-level",
-                        bundle.getInt(BluetoothHandsfreeClient.EXTRA_BATTERY_LEVEL));
+                        bundle.getInt(BluetoothHeadsetClient.EXTRA_BATTERY_LEVEL));
             }
 
-            if (bundle.containsKey(BluetoothHandsfreeClient.EXTRA_OPERATOR_NAME)) {
+            if (bundle.containsKey(BluetoothHeadsetClient.EXTRA_OPERATOR_NAME)) {
                 me.addReplyParam("operator-name",
-                        bundle.getString(BluetoothHandsfreeClient.EXTRA_OPERATOR_NAME));
+                        bundle.getString(BluetoothHeadsetClient.EXTRA_OPERATOR_NAME));
             }
 
-            if (bundle.containsKey(BluetoothHandsfreeClient.EXTRA_SUBSCRIBER_INFO)) {
+            if (bundle.containsKey(BluetoothHeadsetClient.EXTRA_SUBSCRIBER_INFO)) {
                 me.addReplyParam("subscriber-info",
-                        bundle.getString(BluetoothHandsfreeClient.EXTRA_SUBSCRIBER_INFO));
+                        bundle.getString(BluetoothHeadsetClient.EXTRA_SUBSCRIBER_INFO));
             }
 
             me.send();
         }
     }
 
-    static String callToJson(BluetoothHandsfreeClientCall call) {
+    static String callToJson(BluetoothHeadsetClientCall call) {
         JSONObject json = new JSONObject();
 
         try {
@@ -477,21 +477,21 @@ public class HfpTestActivity extends MonkeyActivity implements IBluetoothConnect
 
     static String callStateToString(int state) {
         switch (state) {
-            case BluetoothHandsfreeClientCall.CALL_STATE_ACTIVE:
+            case BluetoothHeadsetClientCall.CALL_STATE_ACTIVE:
                 return "active";
-            case BluetoothHandsfreeClientCall.CALL_STATE_HELD:
+            case BluetoothHeadsetClientCall.CALL_STATE_HELD:
                 return "held";
-            case BluetoothHandsfreeClientCall.CALL_STATE_DIALING:
+            case BluetoothHeadsetClientCall.CALL_STATE_DIALING:
                 return "dialing";
-            case BluetoothHandsfreeClientCall.CALL_STATE_ALERTING:
+            case BluetoothHeadsetClientCall.CALL_STATE_ALERTING:
                 return "alerting";
-            case BluetoothHandsfreeClientCall.CALL_STATE_INCOMING:
+            case BluetoothHeadsetClientCall.CALL_STATE_INCOMING:
                 return "incoming";
-            case BluetoothHandsfreeClientCall.CALL_STATE_WAITING:
+            case BluetoothHeadsetClientCall.CALL_STATE_WAITING:
                 return "waiting";
-            case BluetoothHandsfreeClientCall.CALL_STATE_HELD_BY_RESPONSE_AND_HOLD:
+            case BluetoothHeadsetClientCall.CALL_STATE_HELD_BY_RESPONSE_AND_HOLD:
                 return "held_by_rnh";
-            case BluetoothHandsfreeClientCall.CALL_STATE_TERMINATED:
+            case BluetoothHeadsetClientCall.CALL_STATE_TERMINATED:
                 return "terminated";
         }
 
@@ -500,15 +500,15 @@ public class HfpTestActivity extends MonkeyActivity implements IBluetoothConnect
 
     private void updateAgFeatures(Bundle b) {
         // only supported AG features are being sent
-        mFeatVtag = b.containsKey(BluetoothHandsfreeClient.EXTRA_AG_FEATURE_ATTACH_NUMBER_TO_VT);
-        mFeatVoiceRecognition = b.containsKey(BluetoothHandsfreeClient.EXTRA_AG_FEATURE_VOICE_RECOGNITION);
-        mFeatThreeWayCalling = b.containsKey(BluetoothHandsfreeClient.EXTRA_AG_FEATURE_3WAY_CALLING);
-        mFeatEnhancedCallControl = b.containsKey(BluetoothHandsfreeClient.EXTRA_AG_FEATURE_ECC);
-        mFeatReject = b.containsKey(BluetoothHandsfreeClient.EXTRA_AG_FEATURE_REJECT_CALL);
-        mFeatMerge = b.containsKey(BluetoothHandsfreeClient.EXTRA_AG_FEATURE_MERGE);
-        mFeatMergeDetach = b.containsKey(BluetoothHandsfreeClient.EXTRA_AG_FEATURE_MERGE_AND_DETACH);
-        mFeatReleaseAndAccept = b.containsKey(BluetoothHandsfreeClient.EXTRA_AG_FEATURE_RELEASE_AND_ACCEPT);
-        mFeatAcceptHeldOrWaiting = b.containsKey(BluetoothHandsfreeClient.EXTRA_AG_FEATURE_ACCEPT_HELD_OR_WAITING_CALL);
-        mFeatReleaseHeldOrWaiting = b.containsKey(BluetoothHandsfreeClient.EXTRA_AG_FEATURE_RELEASE_HELD_OR_WAITING_CALL);
+        mFeatVtag = b.containsKey(BluetoothHeadsetClient.EXTRA_AG_FEATURE_ATTACH_NUMBER_TO_VT);
+        mFeatVoiceRecognition = b.containsKey(BluetoothHeadsetClient.EXTRA_AG_FEATURE_VOICE_RECOGNITION);
+        mFeatThreeWayCalling = b.containsKey(BluetoothHeadsetClient.EXTRA_AG_FEATURE_3WAY_CALLING);
+        mFeatEnhancedCallControl = b.containsKey(BluetoothHeadsetClient.EXTRA_AG_FEATURE_ECC);
+        mFeatReject = b.containsKey(BluetoothHeadsetClient.EXTRA_AG_FEATURE_REJECT_CALL);
+        mFeatMerge = b.containsKey(BluetoothHeadsetClient.EXTRA_AG_FEATURE_MERGE);
+        mFeatMergeDetach = b.containsKey(BluetoothHeadsetClient.EXTRA_AG_FEATURE_MERGE_AND_DETACH);
+        mFeatReleaseAndAccept = b.containsKey(BluetoothHeadsetClient.EXTRA_AG_FEATURE_RELEASE_AND_ACCEPT);
+        mFeatAcceptHeldOrWaiting = b.containsKey(BluetoothHeadsetClient.EXTRA_AG_FEATURE_ACCEPT_HELD_OR_WAITING_CALL);
+        mFeatReleaseHeldOrWaiting = b.containsKey(BluetoothHeadsetClient.EXTRA_AG_FEATURE_RELEASE_HELD_OR_WAITING_CALL);
     }
 }
