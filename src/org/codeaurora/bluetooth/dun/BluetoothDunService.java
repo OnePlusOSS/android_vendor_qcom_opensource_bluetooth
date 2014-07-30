@@ -387,8 +387,12 @@ public class BluetoothDunService extends Service {
                 synchronized(mConnection) {
                     try {
                         if (mAdapterService == null) {
-                            if ( !bindService(new Intent(IBluetooth.class.getName()), mConnection, 0)) {
-                                Log.v(TAG, "Could not bind to AdapterService");
+                            Intent bindIntent = new Intent(IBluetooth.class.getName());
+                            ComponentName comp = bindIntent.resolveSystemService(getPackageManager(), 0);
+                            bindIntent.setComponent(comp);
+                            if (comp == null || !bindServiceAsUser(bindIntent, mConnection, 0,
+                                    android.os.Process.myUserHandle())) {
+                                Log.e(TAG, "Could not bind to Bluetooth Dun Service with " + bindIntent);
                                 return;
                             }
                         }
