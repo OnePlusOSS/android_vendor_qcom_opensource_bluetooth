@@ -50,12 +50,12 @@ import android.os.Message;
 import android.util.Log;
 
 import com.android.vcard.VCardEntry;
-import org.codeaurora.bluetooth.mapclient.BluetoothMapBmessage;
-import org.codeaurora.bluetooth.mapclient.BluetoothMapEventReport;
-import org.codeaurora.bluetooth.mapclient.BluetoothMapMessage;
-import org.codeaurora.bluetooth.mapclient.BluetoothMasClient;
-import org.codeaurora.bluetooth.pbapclient.BluetoothPbapCard;
-import org.codeaurora.bluetooth.pbapclient.BluetoothPbapClient;
+import android.bluetooth.client.map.BluetoothMapBmessage;
+import android.bluetooth.client.map.BluetoothMapEventReport;
+import android.bluetooth.client.map.BluetoothMapMessage;
+import android.bluetooth.client.map.BluetoothMasClient;
+import android.bluetooth.client.pbap.BluetoothPbapCard;
+import android.bluetooth.client.pbap.BluetoothPbapClient;
 import org.codeaurora.bluetooth.bttestapp.R;
 import org.codeaurora.bluetooth.bttestapp.services.IMapServiceCallback;
 import org.codeaurora.bluetooth.bttestapp.services.IPbapServiceCallback;

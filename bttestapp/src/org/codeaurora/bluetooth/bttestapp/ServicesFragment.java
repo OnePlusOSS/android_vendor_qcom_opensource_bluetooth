@@ -54,8 +54,8 @@ import android.widget.Switch;
 import android.widget.TextView;
 
 import android.bluetooth.BluetoothA2dp;
-import org.codeaurora.bluetooth.mapclient.BluetoothMasClient;
-import org.codeaurora.bluetooth.pbapclient.BluetoothPbapClient;
+import android.bluetooth.client.map.BluetoothMasClient;
+import android.bluetooth.client.pbap.BluetoothPbapClient;
 import org.codeaurora.bluetooth.bttestapp.R;
 
 import org.json.JSONArray;

@@ -29,9 +29,9 @@
 
 package org.codeaurora.bluetooth.bttestapp.services;
 
-import org.codeaurora.bluetooth.mapclient.BluetoothMapBmessage;
-import org.codeaurora.bluetooth.mapclient.BluetoothMapEventReport;
-import org.codeaurora.bluetooth.mapclient.BluetoothMapMessage;
+import android.bluetooth.client.map.BluetoothMapBmessage;
+import android.bluetooth.client.map.BluetoothMapEventReport;
+import android.bluetooth.client.map.BluetoothMapMessage;
 
 import java.util.ArrayList;
 

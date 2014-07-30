@@ -30,7 +30,7 @@
 package org.codeaurora.bluetooth.bttestapp.services;
 
 import com.android.vcard.VCardEntry;
-import org.codeaurora.bluetooth.pbapclient.BluetoothPbapCard;
+import android.bluetooth.client.pbap.BluetoothPbapCard;
 
 import java.util.ArrayList;
 
