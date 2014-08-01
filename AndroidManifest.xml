@@ -124,7 +124,6 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 <action android:name="android.bluetooth.device.action.ACL_DISCONNECTED"/>
             </intent-filter>
         </receiver>
-<!--
         <activity android:name=".sap.BluetoothSapPermissionActivity"
             android:process="@string/process"
             android:excludeFromRecents="true"
@@ -152,7 +151,6 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 <action android:name="android.bluetooth.device.action.ACL_DISCONNECTED"/>
             </intent-filter>
         </receiver>
--->
         <activity android:name=".dun.BluetoothDunPermissionActivity"
             android:process="@string/process"
             android:excludeFromRecents="true"
