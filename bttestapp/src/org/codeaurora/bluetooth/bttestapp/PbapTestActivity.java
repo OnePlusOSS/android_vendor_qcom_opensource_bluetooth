@@ -280,6 +280,7 @@ public class PbapTestActivity extends MonkeyActivity implements IBluetoothConnec
         @Override
         public void onPullPhoneBookError() {
             Logger.e(TAG, "Received from PBAP pull phone book error.");
+            mListViewDownloadContacts.setVisibility(View.GONE);
             stopProgressBarDownload();
             Toast.makeText(PbapTestActivity.this, "PullPhoneBook FAILED", Toast.LENGTH_LONG).show();
             new MonkeyEvent("pbap-pullphonebook", false).send();
@@ -288,6 +289,7 @@ public class PbapTestActivity extends MonkeyActivity implements IBluetoothConnec
         @Override
         public void onPullVcardListingError() {
             Logger.e(TAG, "Received from PBAP listing error.");
+            mListViewBrowseContacts.setVisibility(View.GONE);
             stopProgressBarBrowse();
             Toast.makeText(PbapTestActivity.this, "PullvCardListing FAILED", Toast.LENGTH_LONG)
                     .show();
