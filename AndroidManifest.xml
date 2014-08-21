@@ -178,7 +178,6 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 <action android:name="android.bluetooth.device.action.ACL_DISCONNECTED"/>
             </intent-filter>
         </receiver>
-<!--
         <service
             android:name=".pxpservice.PxpMonitorService"
             android:process="@string/process"
@@ -187,6 +186,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 <action android:name="org.codeaurora.bluetooth.pxpservice.PxpMonitorService" />
             </intent-filter>
         </service>
+<!--
         <service
             android:process="@string/process"
             android:exported="true"
