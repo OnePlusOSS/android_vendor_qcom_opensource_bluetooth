@@ -7,7 +7,7 @@ src_dirs:= src/org/codeaurora/bluetooth/btcservice \
            src/org/codeaurora/bluetooth/dun \
            src/org/codeaurora/bluetooth/sap \
            src/org/codeaurora/bluetooth/pxpservice \
-           #src/org/codeaurora/bluetooth/a4wp
+           src/org/codeaurora/bluetooth/a4wp
 
 LOCAL_SRC_FILES := \
         $(call all-java-files-under, $(src_dirs)) \
@@ -18,7 +18,7 @@ LOCAL_CERTIFICATE := platform
 LOCAL_JAVA_LIBRARIES := javax.obex
 LOCAL_JAVA_LIBRARIES += mms-common
 LOCAL_JAVA_LIBRARIES += telephony-common
-#LOCAL_JAVA_LIBRARIES += com.quicinc.wbc
+LOCAL_JAVA_LIBRARIES += com.quicinc.wbc
 
 LOCAL_STATIC_JAVA_LIBRARIES := com.android.vcard
 
