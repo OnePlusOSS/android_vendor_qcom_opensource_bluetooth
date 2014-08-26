@@ -73,8 +73,8 @@ import org.codeaurora.bluetooth.R;
 public class BluetoothDunService extends Service {
 
     private static final String TAG                             = "BluetoothDunService";
-    private static final boolean DBG                            = false;
-    public  static final boolean VERBOSE                        = false;
+    public static final String LOG_TAG                          = "BluetoothDun";
+    public static boolean VERBOSE;
 
     private final static String DUN_SERVER                      = "qcom.dun.server";
 
@@ -284,7 +284,7 @@ public class BluetoothDunService extends Service {
     public void onCreate() {
 
         super.onCreate();
-
+        VERBOSE = Log.isLoggable(LOG_TAG, Log.VERBOSE) ? true : false;
         if (VERBOSE) Log.v(TAG, "Dun Service onCreate");
 
         mDunDevices = new HashMap<BluetoothDevice, BluetoothDunDevice>();
@@ -363,7 +363,7 @@ public class BluetoothDunService extends Service {
                             closeRfcommSocket();
                             startRfcommListenerThread();
 
-                            if (DBG) Log.d(TAG,"DUN user Authorization Timeout");
+                            if (VERBOSE) Log.v(TAG, "DUN user Authorization Timeout");
                         }
                         break;
                 }
@@ -374,16 +374,14 @@ public class BluetoothDunService extends Service {
     private void parseIntent(final Intent intent) {
 
         String action = intent.getStringExtra("action");
-        if (VERBOSE) Log.v(TAG, "action: " + action);
+        Log.d(TAG, "parseIntent: action: " + action);
 
         int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
-        if (VERBOSE) Log.v(TAG, "state: " + state);
+        if (VERBOSE) Log.v(TAG, "parseIntent: state: " + state);
 
         boolean removeTimeoutMsg = true;
         if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
-
             if ((state == BluetoothAdapter.STATE_ON) && (!mDunEnable)) {
-
                 synchronized(mConnection) {
                     try {
                         if (mAdapterService == null) {
@@ -422,8 +420,7 @@ public class BluetoothDunService extends Service {
                     }
                     return;
                 }
-            }
-            else if (state == BluetoothAdapter.STATE_TURNING_OFF) {
+            } else if (state == BluetoothAdapter.STATE_TURNING_OFF) {
                 // Send any pending timeout now, as this service will be destroyed.
                 if (mDunHandler.hasMessages(MESSAGE_DUN_USER_TIMEOUT)) {
                     Intent timeoutIntent = new Intent(BluetoothDevice.ACTION_CONNECTION_ACCESS_CANCEL);
@@ -474,16 +471,14 @@ public class BluetoothDunService extends Service {
                removeTimeoutMsg = false;
             }
 
-        }  else if (action.equals(DUN_ACCESS_ALLOWED_ACTION)) {
+        } else if (action.equals(DUN_ACCESS_ALLOWED_ACTION)) {
+            if (VERBOSE) Log.v(TAG, "DunService-Received ACCESS_ALLOWED_ACTION");
+
             if (mRemoteDevice == null) {
                Log.e(TAG, "Unexpected error!");
                return;
             }
 
-            if (VERBOSE) {
-
-                Log.v(TAG, "DunService-Received ACCESS_ALLOWED_ACTION");
-            }
             synchronized(mAuthLock) {
                 if (!mIsWaitingAuthorization) {
                     // this reply is not for us
@@ -509,10 +504,10 @@ public class BluetoothDunService extends Service {
             mIsWaitingAuthorization = false;
             closeRfcommSocket();
             startRfcommListenerThread();
-        } else if ( BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
+        } else if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
 
             if (intent.hasExtra(BluetoothDevice.EXTRA_DEVICE)) {
-               BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                 if(device != null)
                     Log.d(TAG,"device: "+ device.getName());
                 if(mRemoteDevice != null)
@@ -679,7 +674,7 @@ public class BluetoothDunService extends Service {
 
     private final synchronized void closeListenSocket() {
         // exit SocketAcceptThread early
-        if (VERBOSE) Log.v(TAG, "Close listen Socket : " );
+        Log.d(TAG, "Close listen Socket : ");
         if (mListenSocket != null) {
             try {
                 // this will cause mListenSocket.accept() return early with
@@ -693,7 +688,7 @@ public class BluetoothDunService extends Service {
     }
 
     private final synchronized void closeRfcommSocket() {
-        if (VERBOSE) Log.v(TAG, "Close rfcomm Socket : " );
+        Log.d(TAG, "Close rfcomm Socket : ");
         if (mRfcommSocket != null) {
             try {
                 mRfcommSocket.close();
@@ -705,7 +700,7 @@ public class BluetoothDunService extends Service {
     }
 
     private final synchronized void closeDundSocket() {
-        if (VERBOSE) Log.v(TAG, "Close dund  Socket : " );
+        Log.d(TAG, "Close dund  Socket : ");
         if (mDundSocket != null) {
             try {
                 mDundSocket.close();
@@ -717,7 +712,7 @@ public class BluetoothDunService extends Service {
     }
 
     private final void closeDunService() {
-        if (VERBOSE) Log.v(TAG, "Dun Service closeDunService in");
+        Log.d(TAG, "Dun Service closeDunService in");
 
         // exit initRfcommSocket early
         mInterrupted = true;
@@ -781,7 +776,7 @@ public class BluetoothDunService extends Service {
 
         stopSelf();
 
-        if (VERBOSE) Log.v(TAG, "Dun Service closeDunService out");
+        Log.d(TAG, "Dun Service closeDunService out");
     }
 
     private void createDunNotification(BluetoothDevice device) {
@@ -854,13 +849,12 @@ public class BluetoothDunService extends Service {
 
             while (!stopped) {
                 try {
-                    if (VERBOSE) Log.v(TAG, "Accepting socket connection...");
                     listenSocket = mListenSocket;
                     if (listenSocket == null) {
                         Log.w(TAG, "mListenSocket is null");
                         break;
                     }
-
+                    Log.d(TAG, "Listening for rfcomm socket connection...");
                     mRfcommSocket = mListenSocket.accept();
 
                     synchronized (BluetoothDunService.this) {
@@ -897,7 +891,7 @@ public class BluetoothDunService extends Service {
                     if (VERBOSE) Log.v(TAG, "SocketAcceptThread stopped ");
                 } catch (IOException ex) {
                     stopped=true;
-                    if (VERBOSE) Log.v(TAG, "Accept thread exception: " + ex.toString());
+                    Log.w(TAG, "Handled Accept thread exception: " + ex.toString());
                 }
             }
         }
@@ -935,29 +929,28 @@ public class BluetoothDunService extends Service {
                     return;
                 }
             }
-            if(mDundSocket != null) {
-                if( mDundSocket.isConnected())
-                    try {
-                        mDundOutputStream = mDundSocket.getOutputStream();
-                    } catch (IOException ex) {
-                        if (VERBOSE)
-                            Log.v(TAG, "mDundOutputStream exception: " + ex.toString());
-                    }
-                else return;
-            }
-            else return;
 
-            if (mRfcommSocket != null) {
-                if(mRfcommSocket.isConnected())
-                    try {
-                        mRfcommInputStream = mRfcommSocket.getInputStream();
-                    } catch (IOException ex) {
-                        if (VERBOSE)
-                            Log.v(TAG, "mRfcommInputStream exception: " + ex.toString());
-                    }
-                else return;
+            if (mDundSocket != null && mDundSocket.isConnected()) {
+                try {
+                    mDundOutputStream = mDundSocket.getOutputStream();
+                } catch (IOException ex) {
+                    Log.w(TAG, "Handled mDundOutputStream exception: " + ex.toString());
+                }
+            } else {
+                Log.w(TAG, "UplinkThread: Dund Socket is not connected: " +  mDundSocket);
+                return;
             }
-            else return;
+
+            if (mRfcommSocket != null && mRfcommSocket.isConnected()) {
+                try {
+                    mRfcommInputStream = mRfcommSocket.getInputStream();
+                } catch (IOException ex) {
+                    Log.w(TAG, "Handled mRfcommInputStream exception: " + ex.toString());
+                }
+            } else {
+                Log.w(TAG, "UplinkThread: rfcomm Socket is not connected: " +  mRfcommSocket);
+                return;
+            }
 
             // create the downlink thread for reading the responses
             //from DUN server process
@@ -972,12 +965,11 @@ public class BluetoothDunService extends Service {
                     /* Read the DUN request from Rfcomm channel */
                     NumRead = mRfcommInputStream.read(IpcMsgBuffer.array(), DUN_IPC_MSG_OFF_MSG,
                                                                                 DUN_MAX_MSG_LEN);
-                    if ( NumRead < 0) {
+                    if (NumRead < 0) {
                         IntExit = true;
                         break;
-                    }
-                    else if ( NumRead != 0) {
-                        /* Wrtie the same DUN request to the DUN server socket with
+                    } else if (NumRead != 0) {
+                        /* Write the same DUN request to the DUN server socket with
                            some additional parameters */
                         IpcMsgBuffer.put(DUN_IPC_MSG_OFF_MSG_TYPE, DUN_IPC_MSG_DUN_REQUEST);
                         IpcMsgBuffer.putShort(DUN_IPC_MSG_OFF_MSG_LEN, (short)NumRead);
@@ -995,7 +987,7 @@ public class BluetoothDunService extends Service {
                     }
                 } catch (IOException ex) {
                     IntExit = true;
-                    if (VERBOSE) Log.v(TAG, "Rfcomm channel Read exception: " + ex.toString());
+                    Log.w(TAG, "Handled Rfcomm channel Read exception: " + ex.toString());
                     break;
                 }
             }
@@ -1046,7 +1038,7 @@ public class BluetoothDunService extends Service {
             }
             /* reset the modem status */
             mRmtMdmStatus = 0x00;
-            if (VERBOSE) Log.v(TAG, "uplink thread exited ");
+            Log.d(TAG, "uplink thread exited");
         }
 
         void shutdown() {
@@ -1084,22 +1076,24 @@ public class BluetoothDunService extends Service {
                 }
                 try {
                     if ((mRfcommSocket == null) || (!mRfcommSocket.isConnected())) {
+                        Log.w(TAG, "MonitorThread: rfcomm Socket is not connected: "
+                                + mRfcommSocket);
                         break;
                     }
                     len = mRfcommSocket.getSocketOpt(BTSOCK_OPT_GET_MODEM_BITS, IpcMsgBuffer.array());
                     if(len != DUN_IPC_MDM_STATUS_MSG_SIZE)  {
-                        Log.e(TAG, "getSocketOpt return length of socket option mismatch:");
+                        Log.w(TAG, "getSocketOpt return mismatch len: " + len);
                         continue;
                     }
                 } catch (IOException ex) {
-                    if (VERBOSE) Log.v(TAG, "getSocketOpt Exception: " + ex.toString());
+                    Log.w(TAG, "Handled getSocketOpt Exception: " + ex.toString());
                 }
                 if( mdmBits != IpcMsgBuffer.get(0)) {
                     mdmBits = IpcMsgBuffer.get(0);
                     notifyModemStatus(mdmBits);
                 }
             }
-            if (VERBOSE) Log.v(TAG, "MonitorThread thread exited ");
+            Log.d(TAG, "MonitorThread thread exited");
         }
 
         void shutdown() {
@@ -1127,40 +1121,39 @@ public class BluetoothDunService extends Service {
         @Override
         public void run() {
 
-            if (mDundSocket != null) {
-                if ( mDundSocket.isConnected())
-                    try {
-                        mDundInputStream = mDundSocket.getInputStream();
-                    } catch (IOException ex) {
-                        if (VERBOSE) Log.v(TAG, "mDundInputStream exception: " + ex.toString());
-                    }
-                else return;
+            if (mDundSocket != null && mDundSocket.isConnected()) {
+                try {
+                    mDundInputStream = mDundSocket.getInputStream();
+                } catch (IOException ex) {
+                    Log.w(TAG, "Handled mDundInputStream exception: " + ex.toString());
+                }
+            } else {
+                Log.w(TAG, "DownlinkThread: Dund Socket is not connected: " +  mDundSocket);
+                return;
             }
-            else return;
 
-            if (mRfcommSocket != null) {
-                if (mRfcommSocket.isConnected())
-                    try {
-                        mRfcommOutputStream = mRfcommSocket.getOutputStream();
-                    } catch (IOException ex) {
-                        if (VERBOSE) Log.v(TAG, "mRfcommOutputStream exception: " + ex.toString());
-                    }
-                else return;
+            if (mRfcommSocket != null && mRfcommSocket.isConnected()) {
+                try {
+                    mRfcommOutputStream = mRfcommSocket.getOutputStream();
+                } catch (IOException ex) {
+                    Log.w(TAG, "Handled mRfcommOutputStream exception: " + ex.toString());
+                }
+            } else {
+                Log.w(TAG, "DownlinkThread: rfcomm Socket is not connected: " +  mRfcommSocket);
+                return;
             }
-            else return;
 
             while (!stopped) {
                 try {
-                    if (VERBOSE) Log.v(TAG, "Reading the DUN responses from Dund");
                     /* Read the DUN responses from DUN server */
                     NumRead = mDundInputStream.read(IpcMsgBuffer.array(),0, DUN_MAX_IPC_MSG_LEN);
-                    if (VERBOSE) Log.v(TAG, "NumRead" + NumRead);
-                    if ( NumRead < 0) {
+                    Log.d(TAG, "Read the DUN response from Dund, NumRead: " + NumRead);
+                    if (NumRead < 0) {
                         break;
-                    }
-                    else if( NumRead != 0) {
+                    } else if(NumRead != 0) {
                         /* some times read buffer contains multiple responses */
                         do {
+                            if (VERBOSE) Log.v(TAG, "ReadIndex: " + ReadIndex);
                             /* swap bytes of message len as buffer is Big Endian */
                             TempByte = IpcMsgBuffer.get(ReadIndex + DUN_IPC_MSG_OFF_MSG_LEN);
 
@@ -1171,10 +1164,25 @@ public class BluetoothDunService extends Service {
 
                             MsgLen =  IpcMsgBuffer.getShort(ReadIndex + DUN_IPC_MSG_OFF_MSG_LEN);
 
-                            if((ReadIndex + MsgLen + DUN_IPC_HEADER_SIZE) > NumRead) {
-                                if (VERBOSE) Log.v(TAG, "Boundary condition hit");
-                                mDundInputStream.read(IpcMsgBuffer.array(), NumRead , ReadIndex + MsgLen + DUN_IPC_HEADER_SIZE - NumRead);
+                            /* Max DUN msg/response length including IPC header is 32767,
+                               which can only be read from the DunD socket in single read.
+                               As msg/response length is varied & single msg/response can
+                               be smaller than max length, So multiple msgs/responses are
+                               read in single read. Boundary condition hits, when max length
+                               is already read, which include multiple responses, but some of
+                               the bytes of last response still need to be read. */
 
+                            if((ReadIndex + MsgLen + DUN_IPC_HEADER_SIZE) > NumRead) {
+                                int tempNumRead = 0;
+                                tempNumRead = mDundInputStream.read(IpcMsgBuffer.array(), NumRead,
+                                        ReadIndex + MsgLen + DUN_IPC_HEADER_SIZE - NumRead);
+                                Log.w(TAG, "Boundary condition hit, ReadIndex: " + ReadIndex
+                                        + " MsgLen: " + MsgLen + " NumRead: " + NumRead
+                                        + " tempNumRead: " + tempNumRead);
+                                if (tempNumRead >= 0)
+                                    NumRead += tempNumRead;
+                                else
+                                    break;
                             }
 
                             if (IpcMsgBuffer.get(ReadIndex + DUN_IPC_MSG_OFF_MSG_TYPE) == DUN_IPC_MSG_DUN_RESPONSE) {
@@ -1205,15 +1213,13 @@ public class BluetoothDunService extends Service {
                                 if (VERBOSE)
                                     Log.v(TAG, "DownlinkThread modem status message received");
                             }
-
-                            ReadIndex = ReadIndex + IpcMsgBuffer.getShort(ReadIndex + DUN_IPC_MSG_OFF_MSG_LEN);
-                            ReadIndex = ReadIndex + DUN_IPC_HEADER_SIZE;
-                        } while(ReadIndex < NumRead);
+                            ReadIndex = ReadIndex + MsgLen + DUN_IPC_HEADER_SIZE;
+                        } while(ReadIndex > 0 && ReadIndex < NumRead);
                     }
 
                 } catch (IOException ex) {
                     stopped = true;
-                    if (VERBOSE) Log.v(TAG, "Dund Read exception: " + ex.toString());
+                    Log.w(TAG, "Handled Dund Read exception: " + ex.toString());
                 }
                 /* reset the ReadIndex */
                 ReadIndex = 0;
@@ -1223,7 +1229,7 @@ public class BluetoothDunService extends Service {
             /* close the rfcomm socket */
             closeRfcommSocket();
 
-            if (VERBOSE) Log.v(TAG, "downlink thread exited ");
+            Log.d(TAG, "downlink thread exited ");
         }
 
         void shutdown() {
@@ -1239,16 +1245,16 @@ public class BluetoothDunService extends Service {
         int WriteLen = DUN_IPC_HEADER_SIZE + DUN_IPC_CTRL_MSG_SIZE;
         ByteBuffer IpcMsgBuffer = ByteBuffer.allocate(WriteLen);
 
-        if (mDundSocket != null) {
-            if ( mDundSocket.isConnected())
-                try {
-                    mDundOutputStream = mDundSocket.getOutputStream();
-                } catch (IOException ex) {
-                    if (VERBOSE) Log.v(TAG, "mDundOutputStream exception: " + ex.toString());
-                }
-            else return false;
+        if (mDundSocket != null && mDundSocket.isConnected()) {
+            try {
+                mDundOutputStream = mDundSocket.getOutputStream();
+            } catch (IOException ex) {
+                Log.w(TAG, "disconnect: Handled mDundOutputStream exception: " + ex.toString());
+            }
+        } else {
+            Log.w(TAG, "disconnect: Dund Socket is not connected: " +  mDundSocket);
+            return false;
         }
-        else return false;
 
         IpcMsgBuffer.put(DUN_IPC_MSG_OFF_MSG_TYPE, DUN_IPC_MSG_CTRL_REQUEST);
         IpcMsgBuffer.putShort(DUN_IPC_MSG_OFF_MSG_LEN,DUN_IPC_CTRL_MSG_SIZE);
@@ -1256,7 +1262,7 @@ public class BluetoothDunService extends Service {
         try {
             mDundOutputStream.write(IpcMsgBuffer.array(), 0, WriteLen);
         } catch (IOException ex) {
-            if (VERBOSE) Log.v(TAG, "mDundOutputStream wrtie exception: " + ex.toString());
+            Log.w(TAG, "disconnect: Handled mDundOutputStream write exception: " + ex.toString());
         }
         return true;
     }
@@ -1266,18 +1272,18 @@ public class BluetoothDunService extends Service {
         OutputStream mDundOutputStream = null;
         int WriteLen = DUN_IPC_HEADER_SIZE + DUN_IPC_MDM_STATUS_MSG_SIZE;
         ByteBuffer IpcMsgBuffer = ByteBuffer.allocate(WriteLen);
-        if (DBG) Log.d(TAG, "notifyModemStatus: status: " + status);
+        Log.d(TAG, "notifyModemStatus: status: " + status);
 
-        if (mDundSocket != null) {
-            if ( mDundSocket.isConnected())
-                try {
-                    mDundOutputStream = mDundSocket.getOutputStream();
-                } catch (IOException ex) {
-                    if (VERBOSE) Log.v(TAG, "mDundOutputStream exception: " + ex.toString());
-                }
-            else return false;
+        if (mDundSocket != null && mDundSocket.isConnected()) {
+            try {
+                mDundOutputStream = mDundSocket.getOutputStream();
+            } catch (IOException ex) {
+                Log.w(TAG, "notifyModemStatus: mDundOutputStream exception: " + ex.toString());
+            }
+        } else {
+            Log.w(TAG, "notifyModemStatus: Dund Socket is not connected: " +  mDundSocket);
+            return false;
         }
-        else return false;
 
         IpcMsgBuffer.put(DUN_IPC_MSG_OFF_MSG_TYPE, DUN_IPC_MSG_MDM_STATUS);
         IpcMsgBuffer.putShort(DUN_IPC_MSG_OFF_MSG_LEN,DUN_IPC_MDM_STATUS_MSG_SIZE);
@@ -1285,7 +1291,7 @@ public class BluetoothDunService extends Service {
         try {
             mDundOutputStream.write(IpcMsgBuffer.array(), 0, WriteLen);
         } catch (IOException ex) {
-            if (VERBOSE) Log.v(TAG, "mDundOutputStream wrtie exception: " + ex.toString());
+            Log.e(TAG, "Handled mDundOutputStream write exception: " + ex.toString());
         }
         return true;
     }
@@ -1310,7 +1316,6 @@ public class BluetoothDunService extends Service {
     }
 
     private final void handleDunDeviceStateChange(BluetoothDevice device, int state) {
-        if (DBG) Log.d(TAG, "handleDunDeviceStateChange: device: " + device + " state: " + state);
         int prevState;
         BluetoothDunDevice dunDevice = mDunDevices.get(device);
         if (dunDevice == null) {
@@ -1318,7 +1323,8 @@ public class BluetoothDunService extends Service {
         } else {
             prevState = dunDevice.mState;
         }
-        Log.d(TAG, "handleDunDeviceStateChange preState: " + prevState + " state: " + state);
+        Log.d(TAG, "handleDunDeviceStateChange device: " + device + " preState: " + prevState
+                + " state: " + state);
         if (prevState == state) return;
 
         if (dunDevice == null) {
@@ -1332,8 +1338,6 @@ public class BluetoothDunService extends Service {
            the intent for connection state change, as it was causing a race
            condition, with the UI not being updated with the correct connection
            state. */
-        Log.d(TAG, "Dun Device state : device: " + device + " State:" +
-                       prevState + "->" + state);
         notifyProfileConnectionStateChanged(device, BluetoothProfile.DUN, state, prevState);
         Intent intent = new Intent(BluetoothDun.ACTION_CONNECTION_STATE_CHANGED);
         intent.putExtra(BluetoothDevice.EXTRA_DEVICE, device);
@@ -1348,30 +1352,31 @@ public class BluetoothDunService extends Service {
         int WriteLen = DUN_IPC_MDM_STATUS_MSG_SIZE;
         ByteBuffer IpcMsgBuffer = ByteBuffer.allocate(WriteLen);
 
-        if (DBG) Log.d(TAG, "handleModemStatusChange  status: " + status);
+        if (VERBOSE) Log.v(TAG, "handleModemStatusChange  status: " + status);
 
         if ((mRfcommSocket == null) || (!mRfcommSocket.isConnected())) {
+            Log.w(TAG, "rfcomm socket is not connected" + mRfcommSocket);
             return;
         }
         if(mRmtMdmStatus != status) {
             mdmBits = (byte)((~(int)mRmtMdmStatus) & ((int)mRmtMdmStatus ^ (int)status));
-            if (DBG) Log.d(TAG, "handleModemStatusChange  mdmBits " + mdmBits);
+            if (VERBOSE) Log.v(TAG, "handleModemStatusChange  mdmBits " + mdmBits);
             if(mdmBits > 0) {
                 IpcMsgBuffer.put(0, mdmBits);
                 try {
                     mRfcommSocket.setSocketOpt(BTSOCK_OPT_SET_MODEM_BITS, IpcMsgBuffer.array(), WriteLen);
                 } catch (IOException ex) {
-                    if (VERBOSE) Log.v(TAG, "getSocketOpt Exception: " + ex.toString());
+                    Log.w(TAG, "Handled getSocketOpt Exception: " + ex.toString());
                 }
             }
             mdmBits = (byte)(((int)mRmtMdmStatus) & ((int)mRmtMdmStatus ^ (int)status));
-            if (DBG) Log.d(TAG, "handleModemStatusChange  mdmBits " + mdmBits);
+            if (VERBOSE) Log.v(TAG, "handleModemStatusChange  mdmBits " + mdmBits);
             if(mdmBits > 0) {
                 IpcMsgBuffer.put(0, mdmBits);
                 try {
                     mRfcommSocket.setSocketOpt(BTSOCK_OPT_CLR_MODEM_BITS, IpcMsgBuffer.array(), WriteLen);
                 } catch (IOException ex) {
-                    if (VERBOSE) Log.v(TAG, "getSocketOpt Exception: " + ex.toString());
+                     Log.w(TAG, "Handled getSocketOpt Exception: " + ex.toString());
                 }
             }
             mRmtMdmStatus = status;
