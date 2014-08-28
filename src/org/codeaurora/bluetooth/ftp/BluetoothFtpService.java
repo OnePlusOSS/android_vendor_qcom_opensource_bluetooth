@@ -790,15 +790,16 @@ public class BluetoothFtpService extends Service {
         Notification notification = null;
         String name = getRemoteDeviceName();
         if (action.equals(ACCESS_REQUEST_ACTION)) {
-            deleteIntent.setAction(ACCESS_ALLOWED_ACTION);
+            deleteIntent.setAction(ACCESS_DISALLOWED_ACTION);
             notification = new Notification(android.R.drawable.stat_sys_data_bluetooth,
                 getString(R.string.ftp_notif_ticker), System.currentTimeMillis());
             notification.setLatestEventInfo(this, getString(R.string.ftp_notif_ticker),
                     getString(R.string.ftp_notif_message, name), PendingIntent
                             .getActivity(this, 0, clickIntent, 0));
             notification.flags |= Notification.FLAG_AUTO_CANCEL;
-            notification.flags |= Notification.FLAG_ONLY_ALERT_ONCE;
-            notification.defaults = Notification.DEFAULT_SOUND;
+            notification.flags |= Notification.FLAG_NO_CLEAR;
+            notification.priority = Notification.PRIORITY_MAX;
+            notification.defaults = Notification.DEFAULT_ALL;
             notification.deleteIntent = PendingIntent.getBroadcast(this, 0, deleteIntent, 0);
             nm.notify(NOTIFICATION_ID_ACCESS, notification);
         } else if (action.equals(AUTH_CHALL_ACTION)) {
