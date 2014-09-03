@@ -31,8 +31,8 @@
         <Key keyLabel="Prev\n&#x21E6;" keyCode="0x80"/>
         <Key keyLabel="Next\n&#x21E8;" keyCode="0x81"/>
         <Key keyLabel="Stop" keyCode="0x82"/>
-        <Key keyLabel="Play" keyCode="0x83"/>
-        <Key keyLabel="Pause" keyCode="0x84"/>
+        <Key keyLabel="Play\nPause" keyCode="0x83"/>
+        <Key visible="false"/>
     </Layout>
     <Layout>
         <Key keyLabel="Num\nLock" keyCode="0x53"/>
