@@ -76,17 +76,17 @@ public class A4wpService extends Service
     private BluetoothAdapter mBluetoothAdapter = null;
     private BluetoothGattServer mBluetoothGattServer = null;
     private BluetoothDevice mDevice = null;
-    private static final UUID A4WP_SERVICE_UUID = UUID.fromString("6455e670-a146-11e2-9e96-0800200cfffe");
+
+    private static final UUID A4WP_SERVICE_UUID = UUID.fromString("6455fffe-a146-11e2-9e96-0800200c9a67");
     //PRU writes
     private static final UUID A4WP_PRU_CTRL_UUID = UUID.fromString("6455e670-a146-11e2-9e96-0800200c9a67");
-    private static final UUID A4WP_PTU_STATIC_UUID = UUID.fromString("6455e670-a146-11e2-9e96-0800200c9a68");
+    private static final UUID A4WP_PTU_STATIC_UUID = UUID.fromString("6455e671-a146-11e2-9e96-0800200c9a67");
     //PRU reads
-    private static final UUID A4WP_PRU_ALERT_UUID = UUID.fromString("6455e670-a146-11e2-9e96-0800200c9a69");
-    private static final UUID A4WP_PRU_STATIC_UUID = UUID.fromString("6455e670-a146-11e2-9e96-0800200c9a70");
-    private static final UUID A4WP_PRU_DYNAMIC_UUID = UUID.fromString("6455e670-a146-11e2-9e96-0800200c9a71");
+    private static final UUID A4WP_PRU_ALERT_UUID = UUID.fromString("6455e672-a146-11e2-9e96-0800200c9a67");
+    private static final UUID A4WP_PRU_STATIC_UUID = UUID.fromString("6455e673-a146-11e2-9e96-0800200c9a67");
+    private static final UUID A4WP_PRU_DYNAMIC_UUID = UUID.fromString("6455e674-a146-11e2-9e96-0800200c9a67");
 
-    private static final UUID A4WP_PRU_ALERT_DESC_UUID = UUID.fromString("6455e670-a146-11e2-9e96-0800200c9a69");
-    //CHECK: Using the Alert UUID for now
+    private static final UUID A4WP_PRU_ALERT_DESC_UUID = UUID.fromString("6455e672-a146-11e2-9e96-0800200c9a67");
 
     private static final Object mLock = new Object();
     private int mState = BluetoothProfile.STATE_DISCONNECTED;
@@ -122,7 +122,7 @@ public class A4wpService extends Service
     private AdvertiseData mAdvertisementData;
     private BluetoothLeAdvertiser mAdvertiser;
     private AdvertiseCallback mAdvertiseCallback = new myAdvertiseCallback(1);
-    ParcelUuid uuid1 = ParcelUuid.fromString("6455e670-a146-11e2-9e96-0800200cfffe");
+    ParcelUuid uuid1 = ParcelUuid.fromString("6455fffe-a146-11e2-9e96-0800200c9a67");
 
     private WbcManager.WbcEventListener mWbcCallback = new WbcManager.WbcEventListener() {
 
@@ -670,13 +670,13 @@ public class A4wpService extends Service
             mIndex = index;
         }
 
-        //@Override
-        public void onSuccess(AdvertiseSettings settingsInEffect) {
+        @Override
+        public void onStartSuccess(AdvertiseSettings settingsInEffect) {
             Log.d(LOGTAG, "advertise success " + mIndex);
         }
 
-        //@Override
-        public void onFailure(int errorCode) {
+        @Override
+        public void onStartFailure(int errorCode) {
             Log.d(LOGTAG, "advetise failure " + mIndex);
         }
     }
@@ -684,21 +684,29 @@ public class A4wpService extends Service
 
     private void StartAdvertising()
     {
+        /* serviceData represnts service data for Wipower that needs
+           to be part of advertising,
+           0x28 i& 0x00 represents the primary based handle
+           0xFF and 0x60 represents:
+           ADV Flags are set to:  CAT3 PRU 21, Reboot bit and  OVP indicator
+        */
         byte[] serviceData = new byte[] {
-                (byte)0xfe, (byte)0xff, 0x28, 0x00, (byte)0xff, 0x60 };
+                0x28, 0x00, (byte)0xff, 0x60 };
 
         mAdvertiser = mBluetoothAdapter.getBluetoothLeAdvertiser();
         mAdvertisementData = new AdvertiseData.Builder()
-            .setServiceData(uuid1, serviceData).build();
+            .addServiceData(uuid1, serviceData).build();
 
         mAdvertiseSettings = new AdvertiseSettings.Builder()
-            .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_WIPOWER_LATENCY)
+            .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_POWER)
             .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_ULTRA_LOW)
             .setIsConnectable(true).build();
-            //.setType(AdvertiseSettings.ADVERTISE_TYPE_CONNECTABLE).build();
 
         Log.d(LOGTAG, " Calling mAdvertiser.startAdvertising");
-        mAdvertiser.startAdvertising(mAdvertiseSettings, mAdvertisementData, mAdvertiseCallback);
+        if(mAdvertiser != null)
+            mAdvertiser.startAdvertising(mAdvertiseSettings, mAdvertisementData, mAdvertiseCallback);
+        else
+            Log.d(LOGTAG, " mAdvertiser is null");
     }
 
     private void stopAdvertising()
@@ -820,7 +828,7 @@ public class A4wpService extends Service
         Log.d(LOGTAG, "onStart Command called!!");
 
         //mWipowerBoot is used to hold power enable command till the service is been registered completely
-        if (mWipowerBoot == true) {
+        if (mWipowerBoot == true && mWipowerManager != null) {
             if (mChargeComplete == true) {
                 mWipowerManager.enablePowerApply(true, true, true);
             } else {
