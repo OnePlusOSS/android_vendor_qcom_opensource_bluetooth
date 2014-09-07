@@ -28,9 +28,9 @@
 -->
 <Keyboard>
     <Layout>
-        <Key keyLabel="Vol Down &#x21E9;" keyCode="0x87"/>
-        <Key keyLabel="Mute" keyCode="0x85"/>
-        <Key keyLabel="Vol Up &#x21E7;" keyCode="0x86"/>
+        <Key keyLabel="Vol Down &#x21E9;" keyCode="0x86"/>
+        <Key keyLabel="Mute" keyCode="0x84"/>
+        <Key keyLabel="Vol Up &#x21E7;" keyCode="0x85"/>
     </Layout>
     <Layout>
         <Key keyLabel="Print Screen" keyCode="0x46"/>
