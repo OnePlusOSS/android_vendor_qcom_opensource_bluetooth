@@ -571,8 +571,10 @@ public class A4wpService extends Service
     private final BluetoothGattServerCallback mGattCallbacks = new BluetoothGattServerCallback() {
         @Override
         public void onConnectionStateChange(BluetoothDevice device, int status, int newState) {
+            WipowerState state = WipowerState.OFF;
             mState = newState;
-            if (mState == BluetoothProfile.STATE_DISCONNECTED) {
+            state = mWipowerManager.getState();
+            if ((mState == BluetoothProfile.STATE_DISCONNECTED) && state == WipowerState.ON) {
                 Log.v(LOGTAG, "onConnectionStateChange:DISCONNECTED " + device + "charge complete " + mChargeComplete);
                 if (mDevice != null && mWipowerManager != null) {
                     mWipowerManager.enableDataNotification(false);
