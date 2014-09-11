@@ -46,7 +46,7 @@ public class BTEventHandler extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        if(SystemProperties.getBoolean("ro.bluetooth.a4wp", false) == false) {
+        if(SystemProperties.getBoolean("persist.bluetooth.a4wp", false) == false) {
             Log.e(TAG, "A4WP is not supported");
             return;
         }
