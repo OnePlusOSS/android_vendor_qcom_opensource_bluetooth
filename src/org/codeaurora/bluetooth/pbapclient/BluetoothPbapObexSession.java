@@ -100,14 +100,17 @@ final class BluetoothPbapObexSession {
              * since abort may block until complete GET is processed inside OBEX
              * session, let's run it in separate thread so it won't block UI
              */
-            Log.d(TAG, "aborting the ongoing request");
-            (new Thread() {
-                @Override
-                public void run() {
+            Thread t = new Thread(new Runnable() {
+            public void run () {
+                if (mObexClientThread != null && mObexClientThread.mRequest != null) {
+                    Log.d(TAG, "Spawning a new thread for aborting");
                     mObexClientThread.mRequest.abort();
                 }
-            }).run();
-        }
+            }
+            });
+            t.start();
+            Log.d(TAG, "Exiting from the abort thread");
+       }
     }
 
     public boolean schedule(BluetoothPbapRequest request) {
