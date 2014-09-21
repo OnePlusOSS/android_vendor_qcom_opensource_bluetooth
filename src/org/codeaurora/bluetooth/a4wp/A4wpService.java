@@ -117,6 +117,7 @@ public class A4wpService extends Service
 
     private static boolean mWipowerBoot = false;
     static boolean mChargeComplete = true;
+    static boolean isConnected = false;
 
     private AdvertiseSettings mAdvertiseSettings;
     private AdvertiseData mAdvertisementData;
@@ -438,7 +439,7 @@ public class A4wpService extends Service
             mWipowerManager.startCharging();
             mWipowerManager.enableAlertNotification(false);
             mWipowerManager.enableDataNotification(true);
-            stopAdvertising();
+            isConnected = true;
         } else {
             Log.v(LOGTAG, "do Disable PruOutPut");
             return status;
@@ -573,9 +574,10 @@ public class A4wpService extends Service
         public void onConnectionStateChange(BluetoothDevice device, int status, int newState) {
             WipowerState state = WipowerState.OFF;
             mState = newState;
-            state = mWipowerManager.getState();
-            if ((mState == BluetoothProfile.STATE_DISCONNECTED) && state == WipowerState.ON) {
+            if (mState == BluetoothProfile.STATE_DISCONNECTED && isConnected == true) {
                 Log.v(LOGTAG, "onConnectionStateChange:DISCONNECTED " + device + "charge complete " + mChargeComplete);
+                stopAdvertising();
+                isConnected = false;
                 if (mDevice != null && mWipowerManager != null) {
                     mWipowerManager.enableDataNotification(false);
                     mWipowerManager.stopCharging();
