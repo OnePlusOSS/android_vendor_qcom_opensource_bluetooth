@@ -657,8 +657,6 @@ public class BluetoothFtpService extends Service {
                     stopped = true; // job done ,close this thread;
                 } catch (IOException ex) {
                     stopped = true; //IO exception, close the thread
-                    //Assign socket handle to null.
-                    mRfcommServerSocket = null;
                     if (VERBOSE) Log.v(RTAG, "Accept exception: " + ex.toString());
                 }
             }
