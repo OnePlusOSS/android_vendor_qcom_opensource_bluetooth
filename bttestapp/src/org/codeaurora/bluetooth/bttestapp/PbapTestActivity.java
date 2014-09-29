@@ -428,6 +428,11 @@ public class PbapTestActivity extends MonkeyActivity implements IBluetoothConnec
 
     @Override
     protected void onPause() {
+        /*
+         * Going to call abort if any pending request is ongoing,
+         * checks for the same are handled internally
+         */
+        mProfileService.getPbapClient().abort();
         super.onPause();
         Logger.v(TAG, "onPause()");
     }
@@ -981,6 +986,10 @@ public class PbapTestActivity extends MonkeyActivity implements IBluetoothConnec
     }
 
     public void onClick_abort(View v) {
+        /*
+         * Going to call abort if any pending request is ongoing,
+         * checks for the same are handled internally
+         */
         mProfileService.getPbapClient().abort();
     }
 }
