@@ -168,6 +168,19 @@ public class PxpMonitorService extends Service {
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 Log.v(TAG, "onConnectionStateChange(): starting discovery");
 
+                if((deviceProp.mState != MONITOR_STATE_STARTING) && (deviceProp.pathLossAlertLevel != PxpConsts.ALERT_LEVEL_NO)) {
+                    int rssiMin = deviceProp.txPowerLevel - deviceProp.maxPathLossThreshold;
+                    int rssiMax = deviceProp.txPowerLevel - deviceProp.minPathLossThreshold;
+                    Log.d(TAG, "rssiMin::"+rssiMin);
+                    Log.d(TAG, "rssiMax::"+rssiMax);
+
+                    if (!deviceProp.mQAdapter.writeRssiThreshold(deviceProp.mLPProxymityMonitorCallback, rssiMin, rssiMax)) {
+                     // start software method to monitor rssi
+                       startPathLossSwMonitor();
+                    }
+                    deviceProp.mState = MONITOR_STATE_STARTING;
+                }
+
                 if (leDevice.getBondState() != BluetoothDevice.BOND_BONDING) {
                     Log.v(TAG, "bondState != BluetoothDevice.BOND_BONDING");
                     deviceProp.startDiscoverServices = true;
@@ -196,7 +209,7 @@ public class PxpMonitorService extends Service {
                 if (deviceProp.deviceAddress != null && address.equals(deviceProp.deviceAddress)
                     && deviceProp.gatt != null) {
 
-
+                   deviceProp.mState = MONITOR_STATE_IDLE;
                    Log.e(TAG, "Trying to use an existing mBluetoothGatt for connection.");
                    if(deviceProp.AddedToWhitelist == false) {
                        Log.v(TAG, "PairingFail = " + deviceProp.PairingFail);
@@ -690,14 +703,12 @@ public class PxpMonitorService extends Service {
             Log.d(TAG, "device added");
             Log.d(TAG, "hashmap size" + mHashMapDevice.size());
 
-        } else {
-
-            if (deviceProp.deviceAddress != null && address.equals(deviceProp.deviceAddress)) {
-
-
+        }
+        else if (deviceProp.deviceAddress != null && address.equals(deviceProp.deviceAddress)) {
+                Log.d(TAG, "register lpp ");
+                deviceProp.BluetoothLwPwrProximityMonitor(this, leDevice, new QcBluetoothMonitorRssiCallback(leDevice));
+                deviceProp.mState = MONITOR_STATE_IDLE;
                 deviceProp.gatt = leDevice.connectGatt(this, false, mGattCallback);
-
-            }
         }
         Log.d(TAG, "Trying to create a new connection.");
         return true;
@@ -720,15 +731,14 @@ public class PxpMonitorService extends Service {
             return;
         }
 
-        deviceProp.reset();
         deviceProp.disconnect = true;
-        deviceProp.mQAdapter.registerLppClient(deviceProp.mLPProxymityMonitorCallback, leDevice.getAddress(), false);
-        deviceProp.mState = MONITOR_STATE_CLOSED;
+        if(deviceProp.mState == MONITOR_STATE_STARTED) {
+            deviceProp.mQAdapter.enableRssiMonitor(deviceProp.mLPProxymityMonitorCallback, false);
+            deviceProp.mState = MONITOR_STATE_STOPPING;
+        }
 
-        deviceProp.gatt.disconnect();
         if (deviceProp.gatt != null) {
-            deviceProp.gatt.close();
-            deviceProp.gatt = null;
+            deviceProp.gatt.disconnect();
         }
     }
 
@@ -753,7 +763,10 @@ public class PxpMonitorService extends Service {
                 deviceProp.mState == MONITOR_STATE_STARTED) {
                     deviceProp.mQAdapter.enableRssiMonitor(deviceProp.mLPProxymityMonitorCallback, false);
             }
-            deviceProp.mQAdapter.registerLppClient(deviceProp.mLPProxymityMonitorCallback, device.getAddress(), false);
+            if (deviceProp.gatt != null) {
+                deviceProp.gatt.disconnect();
+                deviceProp.gatt.close();
+            }
             if (DBG) Log.d(TAG, "Monitor is closed");
              deviceProp.mState = MONITOR_STATE_CLOSED;
         }
@@ -875,17 +888,20 @@ public class PxpMonitorService extends Service {
         if (deviceProp.pathLossAlertLevel != PxpConsts.ALERT_LEVEL_NO)
         {
             Log.v(TAG, "deviceProp.mPathLossAlertLevel != PxpConsts.ALERT_LEVEL_NO");
-            int rssiMin = deviceProp.txPowerLevel - deviceProp.minPathLossThreshold;
-            int rssiMax = deviceProp.txPowerLevel - deviceProp.maxPathLossThreshold;
-            Log.d(TAG, "rssiMin::"+rssiMin);
-            Log.d(TAG, "rssiMax::"+rssiMax);
-            // start hardware rssi monitor
-            if (!deviceProp.mQAdapter.writeRssiThreshold(deviceProp.mLPProxymityMonitorCallback, rssiMin, rssiMax)) {
+            if (deviceProp.mState != MONITOR_STATE_STARTING) {
+                int rssiMin = deviceProp.txPowerLevel - deviceProp.maxPathLossThreshold;
+                int rssiMax = deviceProp.txPowerLevel - deviceProp.minPathLossThreshold;
+                Log.d(TAG, "rssiMin::"+rssiMin);
+                Log.d(TAG, "rssiMax::"+rssiMax);
+               // start hardware rssi monitor
+                Log.d(TAG, "registerLppClient::");
+                deviceProp.mQAdapter.registerLppClient(deviceProp.mLPProxymityMonitorCallback, leDevice.getAddress(), true);
+                if (!deviceProp.mQAdapter.writeRssiThreshold(deviceProp.mLPProxymityMonitorCallback, rssiMin, rssiMax)) {
                 // start software method to monitor rssi
-                startPathLossSwMonitor();
+                    startPathLossSwMonitor();
+                }
+                deviceProp.mState = MONITOR_STATE_STARTING;
             }
-            deviceProp.mState = MONITOR_STATE_STARTING;
-
         }
         else {
             // stop hardware rssi monitor
@@ -893,7 +909,6 @@ public class PxpMonitorService extends Service {
                    deviceProp.mState == MONITOR_STATE_STARTED) {
                     deviceProp.mQAdapter.enableRssiMonitor(deviceProp.mLPProxymityMonitorCallback, false);
                    deviceProp.mState = MONITOR_STATE_STOPPING;
-                   deviceProp.mQAdapter.registerLppClient(deviceProp.mLPProxymityMonitorCallback, leDevice.getAddress(), false);
                    if (DBG) Log.d(TAG, "Monitor is stopping");
                 }
 
