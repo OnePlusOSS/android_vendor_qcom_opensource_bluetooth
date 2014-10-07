@@ -1129,9 +1129,11 @@ public class MapTestActivity extends MonkeyActivity implements GetTextDialogList
                     .setTextColor(msg.isPriority() ? Color.YELLOW : Color.DKGRAY);
 
             ((TextView) v.findViewById(R.id.message_row_subject)).setText(msg.getSubject());
-
-            ((TextView) v.findViewById(R.id.message_row_date))
-                    .setText(new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(msg.getDateTime()));
+            Date dateTimeFormat = msg.getDateTime();
+            if(dateTimeFormat != null ) {
+                ((TextView) v.findViewById(R.id.message_row_date))
+                        .setText(new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(dateTimeFormat));
+            }
 
             ((TextView) v.findViewById(R.id.message_row_from)).setText(msg.getSenderAddressing());
             if (msg.getSenderAddressing() != null && !msg.getSenderAddressing().isEmpty()) {
