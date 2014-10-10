@@ -58,6 +58,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Hashtable;
 
 public class HfpTestActivity extends MonkeyActivity implements IBluetoothConnectionObserver,
         CallHistoryDialogListener {
@@ -73,6 +74,8 @@ public class HfpTestActivity extends MonkeyActivity implements IBluetoothConnect
     private final ArrayList<String> mCallHistory = new ArrayList<String>();
 
     private ActionBar mActionBar = null;
+
+    private Hashtable<Integer, BluetoothHeadsetClientCall> mCalls;
 
    // this should be visible for fragments
     BluetoothHeadsetClient mBluetoothHeadsetClient;
@@ -317,6 +320,7 @@ public class HfpTestActivity extends MonkeyActivity implements IBluetoothConnect
 
         ActivityHelper.initialize(this, R.layout.activity_hfp_test);
         BluetoothConnectionReceiver.registerObserver(this);
+        mCalls = new Hashtable<Integer, BluetoothHeadsetClientCall>();
 
         // bind to app service
         Intent intent = new Intent(this, ProfileService.class);
@@ -355,6 +359,25 @@ public class HfpTestActivity extends MonkeyActivity implements IBluetoothConnect
         filter.addAction(BluetoothHeadsetClient.ACTION_RESULT);
         filter.addAction(BluetoothHeadsetClient.ACTION_LAST_VTAG);
         registerReceiver(mHfpClientReceiver, filter);
+        if (mBluetoothHeadsetClient != null) {
+            for (BluetoothHeadsetClientCall call : mCalls.values()) {
+                call.setState(BluetoothHeadsetClientCall.CALL_STATE_TERMINATED);
+                mCallsListFragment.onCallChanged(call);
+                new MonkeyEvent("hfp-call-changed", true)
+                        .addExtReply(callToJson(call))
+                        .send();
+            }
+            for (BluetoothHeadsetClientCall call :
+                    mBluetoothHeadsetClient.getCurrentCalls(mDevice)) {
+                Logger.v(TAG, "Updating call controls");
+                mCallsListFragment.onCallChanged(call);
+                new MonkeyEvent("hfp-call-changed", true)
+                        .addExtReply(callToJson(call))
+                        .send();
+            }
+        } else {
+            Logger.v(TAG,"mBluetoothHeadsetClient is null");
+        }
         super.onResume();
     }
 
@@ -363,6 +386,20 @@ public class HfpTestActivity extends MonkeyActivity implements IBluetoothConnect
         Logger.v(TAG, "onPause");
 
         unregisterReceiver(mHfpClientReceiver);
+        if (mBluetoothHeadsetClient != null) {
+            mCalls.clear();
+            Integer id = 1;
+            // save all calls status
+            if (!mBluetoothHeadsetClient.getCurrentCalls(mDevice).isEmpty()) {
+                for (BluetoothHeadsetClientCall call :
+                    mBluetoothHeadsetClient.getCurrentCalls(mDevice)) {
+                    mCalls.put(id, call);
+                    id++;
+                }
+            }
+        } else {
+            Logger.v(TAG,"mBluetoothHeadsetClient is null");
+        }
         super.onPause();
     }
 
