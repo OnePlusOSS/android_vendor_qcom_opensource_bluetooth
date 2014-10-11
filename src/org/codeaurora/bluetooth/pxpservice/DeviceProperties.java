@@ -204,11 +204,14 @@ public class DeviceProperties {
                 if (status == BluetoothGatt.GATT_SUCCESS && (enable != 0)) {
                     mState = MONITOR_STATE_STARTED;
                     if (DBG) Log.d(TAG, "Monitor is started successfully");
-                    }
                 }
+                if (enable == 0) {
+                   mQAdapter.registerLppClient(mLPProxymityMonitorCallback, mDevice.getAddress(),false);
+                   mState = MONITOR_STATE_CLOSED;
+                }
+            }
         }
-
-         if (mState == MONITOR_STATE_STARTED && mMonitorCbk != null) {
+        if (mState == MONITOR_STATE_STARTED && mMonitorCbk != null) {
             if (DBG) Log.d(TAG, "Notify users that monitor has been started successfully");
             mMonitorCbk.onStarted();
         }
