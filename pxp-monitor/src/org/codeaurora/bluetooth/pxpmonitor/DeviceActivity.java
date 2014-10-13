@@ -306,7 +306,7 @@ public class DeviceActivity extends Activity {
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.device, menu);
 
-        if (!mPxpServiceProxy.isPropertiesSet(mLeDevice)) {
+        if (null == mPxpServiceProxy || !mPxpServiceProxy.isPropertiesSet(mLeDevice)) {
             return false;
         }
 
