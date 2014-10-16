@@ -529,7 +529,7 @@ public class BluetoothDunService extends Service {
             removeTimeoutMsg = false;
         }
 
-        if (removeTimeoutMsg) {
+        if (removeTimeoutMsg && mDunHandler != null) {
             mDunHandler.removeMessages(MESSAGE_DUN_USER_TIMEOUT);
         }
     }
@@ -1264,7 +1264,8 @@ public class BluetoothDunService extends Service {
         IpcMsgBuffer.putShort(DUN_IPC_MSG_OFF_MSG_LEN,DUN_IPC_CTRL_MSG_SIZE);
         IpcMsgBuffer.put(DUN_IPC_MSG_OFF_MSG, DUN_CRTL_MSG_DISCONNECT_REQ);
         try {
-            mDundOutputStream.write(IpcMsgBuffer.array(), 0, WriteLen);
+            if (mDundOutputStream != null)
+                mDundOutputStream.write(IpcMsgBuffer.array(), 0, WriteLen);
         } catch (IOException ex) {
             Log.w(TAG, "disconnect: Handled mDundOutputStream write exception: " + ex.toString());
         }
@@ -1293,7 +1294,8 @@ public class BluetoothDunService extends Service {
         IpcMsgBuffer.putShort(DUN_IPC_MSG_OFF_MSG_LEN,DUN_IPC_MDM_STATUS_MSG_SIZE);
         IpcMsgBuffer.put(DUN_IPC_MSG_OFF_MSG, status);
         try {
-            mDundOutputStream.write(IpcMsgBuffer.array(), 0, WriteLen);
+            if (mDundOutputStream != null)
+                mDundOutputStream.write(IpcMsgBuffer.array(), 0, WriteLen);
         } catch (IOException ex) {
             Log.e(TAG, "Handled mDundOutputStream write exception: " + ex.toString());
         }
