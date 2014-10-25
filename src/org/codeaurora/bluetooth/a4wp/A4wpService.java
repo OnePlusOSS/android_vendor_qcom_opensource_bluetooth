@@ -107,6 +107,9 @@ public class A4wpService extends Service
     private static final int MSB_MASK = 0xFF00;
     private static final int LSB_MASK= 0x00FF;
 
+    //Timout value set to 30Sec which enures we advertise in lmited mode
+    private static final int WIPOWER_ADV_TIMEOUT= 0x7530;
+
     //PRU Write param length for validation
     private static final byte A4WP_PTU_STATIC_LENGTH = 0x11;
     private static final byte A4WP_PRU_CTRL_LENGTH = 0x05;
@@ -439,9 +442,12 @@ public class A4wpService extends Service
             mWipowerManager.startCharging();
             mWipowerManager.enableAlertNotification(false);
             mWipowerManager.enableDataNotification(true);
+            stopAdvertising();
             isConnected = true;
         } else {
             Log.v(LOGTAG, "do Disable PruOutPut");
+            mWipowerManager.stopCharging();
+            mWipowerManager.enableDataNotification(false);
             return status;
         }
 
@@ -576,7 +582,6 @@ public class A4wpService extends Service
             mState = newState;
             if (mState == BluetoothProfile.STATE_DISCONNECTED && isConnected == true) {
                 Log.v(LOGTAG, "onConnectionStateChange:DISCONNECTED " + device + "charge complete " + mChargeComplete);
-                stopAdvertising();
                 isConnected = false;
                 if (mDevice != null && mWipowerManager != null) {
                     mWipowerManager.enableDataNotification(false);
@@ -588,7 +593,7 @@ public class A4wpService extends Service
                     }
                     mDevice = null;
                 }
-            } else {
+            } else if (mState == BluetoothProfile.STATE_CONNECTED) {
                 Log.v(LOGTAG, "onConnectionStateChange:CONNECTED");
                 mDevice = device;
             }
@@ -634,6 +639,7 @@ public class A4wpService extends Service
                 else if(id == A4WP_PRU_STATIC_UUID)
                 {
                     value = mPruStaticParam.getValue();
+                    mBluetoothGattServer.connect(mDevice, false);
                 }
                 else if (id == A4WP_PRU_DYNAMIC_UUID) {
                     if (mPruDynamicParam == null) {
@@ -704,7 +710,8 @@ public class A4wpService extends Service
         mAdvertiseSettings = new AdvertiseSettings.Builder()
             .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_POWER)
             .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_ULTRA_LOW)
-            .setConnectable(true).build();
+            .setConnectable(true)
+            .setTimeout(WIPOWER_ADV_TIMEOUT).build();
 
         Log.d(LOGTAG, " Calling mAdvertiser.startAdvertising");
         if(mAdvertiser != null)
@@ -716,7 +723,9 @@ public class A4wpService extends Service
     private void stopAdvertising()
     {
        /* to be completed */
-       mAdvertiser.stopAdvertising(mAdvertiseCallback);
+       if (mAdvertiseCallback != null &&  mAdvertiser != null) {
+           mAdvertiser.stopAdvertising(mAdvertiseCallback);
+       }
     }
 
     private boolean startServer() {
