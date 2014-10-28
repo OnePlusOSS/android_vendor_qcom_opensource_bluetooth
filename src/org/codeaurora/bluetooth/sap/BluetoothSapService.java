@@ -542,7 +542,8 @@ public class BluetoothSapService extends Service {
         }
 
         if (removeTimeoutMsg) {
-            mSapHandler.removeMessages(MESSAGE_SAP_USER_TIMEOUT);
+            if (mSapHandler != null)
+                mSapHandler.removeMessages(MESSAGE_SAP_USER_TIMEOUT);
         }
     }
 
@@ -1226,7 +1227,8 @@ public class BluetoothSapService extends Service {
         IpcMsgBuffer.putShort(SAP_IPC_MSG_OFF_MSG_LEN,SAP_IPC_CTRL_MSG_SIZE);
         IpcMsgBuffer.put(SAP_IPC_MSG_OFF_MSG, SAP_CRTL_MSG_DISCONNECT_REQ);
         try {
-            mSapdOutputStream.write(IpcMsgBuffer.array(), 0, WriteLen);
+            if (mSapdOutputStream != null)
+                mSapdOutputStream.write(IpcMsgBuffer.array(), 0, WriteLen);
         } catch (IOException ex) {
             if (VERBOSE) Log.v(TAG, "mSapdOutputStream wrtie exception: " + ex.toString());
         }
@@ -1254,7 +1256,8 @@ public class BluetoothSapService extends Service {
         IpcMsgBuffer.putShort(SAP_IPC_MSG_OFF_MSG_LEN,SAP_IPC_CTRL_MSG_SIZE);
         IpcMsgBuffer.put(SAP_IPC_MSG_OFF_MSG, SAP_CRTL_MSG_DISCONNECT_REQ_IMM);
         try {
-            mSapdOutputStream.write(IpcMsgBuffer.array(), 0, WriteLen);
+            if (mSapdOutputStream != null)
+                mSapdOutputStream.write(IpcMsgBuffer.array(), 0, WriteLen);
         } catch (IOException ex) {
             if (VERBOSE) Log.v(TAG, "mSapdOutputStream wrtie exception: " + ex.toString());
         }
