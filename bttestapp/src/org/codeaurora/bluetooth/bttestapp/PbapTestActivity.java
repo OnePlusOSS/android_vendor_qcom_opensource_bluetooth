@@ -183,7 +183,9 @@ public class PbapTestActivity extends MonkeyActivity implements IBluetoothConnec
         @Override
         public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
             BluetoothPbapCard pbacpCard = (BluetoothPbapCard) parent.getAdapter().getItem(position);
-            mProfileService.getPbapClient().pullVcardEntry(pbacpCard.handle);
+            if ((mProfileService != null) && (mProfileService.getPbapClient() != null)) {
+                mProfileService.getPbapClient().pullVcardEntry(pbacpCard.handle);
+            }
         }
     };
 
@@ -432,9 +434,13 @@ public class PbapTestActivity extends MonkeyActivity implements IBluetoothConnec
          * Going to call abort if any pending request is ongoing,
          * checks for the same are handled internally
          */
-        mProfileService.getPbapClient().abort();
-        super.onPause();
-        Logger.v(TAG, "onPause()");
+        if ((mProfileService != null) && (mProfileService.getPbapClient() != null)) {
+            mProfileService.getPbapClient().abort();
+            super.onPause();
+            Logger.v(TAG, "onPause()");
+        } else {
+            Logger.e(TAG, "Not able to ABORT");
+        }
     }
 
     @Override
@@ -449,10 +455,12 @@ public class PbapTestActivity extends MonkeyActivity implements IBluetoothConnec
             return false;
         }
 
-        if (mProfileService.getPbapClient().getState() != BluetoothPbapClient.ConnectionState.DISCONNECTED) {
-            menu.findItem(R.id.menu_pbap_disconnect).setVisible(true);
-        } else {
-            menu.findItem(R.id.menu_pbap_connect).setVisible(true);
+        if (mProfileService.getPbapClient() != null) {
+            if (mProfileService.getPbapClient().getState() != BluetoothPbapClient.ConnectionState.DISCONNECTED) {
+                menu.findItem(R.id.menu_pbap_disconnect).setVisible(true);
+            } else {
+                menu.findItem(R.id.menu_pbap_connect).setVisible(true);
+            }
         }
 
         return true;
@@ -462,10 +470,12 @@ public class PbapTestActivity extends MonkeyActivity implements IBluetoothConnec
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menu_pbap_connect:
-                mProfileService.getPbapClient().connect();
+                if ((mProfileService != null) && (mProfileService.getPbapClient() != null))
+                    mProfileService.getPbapClient().connect();
                 break;
             case R.id.menu_pbap_disconnect:
-                mProfileService.getPbapClient().disconnect();
+                if ((mProfileService != null) && (mProfileService.getPbapClient() != null))
+                    mProfileService.getPbapClient().disconnect();
                 break;
             default:
                 Logger.w(TAG, "Unknown item selected.");
@@ -753,12 +763,13 @@ public class PbapTestActivity extends MonkeyActivity implements IBluetoothConnec
         mEditTextDownloadOffsetValue.setText(String.valueOf(mDownloadValueOffset));
 
         try {
-            if (mProfileService.getPbapClient().pullPhoneBook(
-                    mDownloadSpinner.getSelectedItem().toString(), mDownloadValueFilter,
-                    mDownloadValueCardType, mDownloadValueMaxCount, mDownloadValueOffset)) {
-                startProgressBarDownload();
+            if ((mProfileService != null) && (mProfileService.getPbapClient() != null)) {
+                if (mProfileService.getPbapClient().pullPhoneBook(
+                        mDownloadSpinner.getSelectedItem().toString(), mDownloadValueFilter,
+                        mDownloadValueCardType, mDownloadValueMaxCount, mDownloadValueOffset))
+                    startProgressBarDownload();
             } else {
-                Toast.makeText(this, "PullPhoneBook FAILED", Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, "PullPhoneBook FAILED", Toast.LENGTH_LONG).show();
             }
         } catch (IllegalArgumentException e) {
             Toast.makeText(this,
@@ -808,15 +819,16 @@ public class PbapTestActivity extends MonkeyActivity implements IBluetoothConnec
         mEditTextBrowseOffsetValue.setText(String.valueOf(mBrowseValueOffset));
 
         try {
-            boolean started;
-
-            if (searchValue != "" && !searchValue.isEmpty()) {
-                started = mProfileService.getPbapClient().pullVcardListing(null, order,
+            boolean started = false;
+            if ((mProfileService != null) && (mProfileService.getPbapClient() != null)) {
+                if (searchValue != "" && !searchValue.isEmpty()) {
+                    started = mProfileService.getPbapClient().pullVcardListing(null, order,
                         mBrowseValueSearchAttr, searchValue, mBrowseValueMaxCount,
                         mBrowseValueOffset);
-            } else {
-                started = mProfileService.getPbapClient().pullVcardListing(null, order,
+                } else {
+                    started = mProfileService.getPbapClient().pullVcardListing(null, order,
                         mBrowseValueMaxCount, mBrowseValueOffset);
+                }
             }
 
             if (started) {
@@ -928,12 +940,16 @@ public class PbapTestActivity extends MonkeyActivity implements IBluetoothConnec
     }
 
     public void onClick_download_getsize(View v) {
-        mProfileService.getPbapClient().pullPhoneBookSize(
+        if ((mProfileService != null) && (mProfileService.getPbapClient() != null)) {
+            mProfileService.getPbapClient().pullPhoneBookSize(
                 mDownloadSpinner.getSelectedItem().toString());
+        }
     }
 
     public void onClick_browse_getsize(View v) {
-        mProfileService.getPbapClient().pullVcardListingSize("");
+        if ((mProfileService != null) && (mProfileService.getPbapClient() != null)) {
+            mProfileService.getPbapClient().pullVcardListingSize("");
+        }
     }
 
     public void onClickVcardFilterAttributes(View v) {
@@ -969,8 +985,10 @@ public class PbapTestActivity extends MonkeyActivity implements IBluetoothConnec
             mEditTextHandleValue.setText(mVcardHandleValue);
         }
 
-        mProfileService.getPbapClient().pullVcardEntry(mVcardHandleValue, mVcardValueFilter,
+        if ((mProfileService != null) && (mProfileService.getPbapClient() != null)) {
+            mProfileService.getPbapClient().pullVcardEntry(mVcardHandleValue, mVcardValueFilter,
                 mVcardValueCardType);
+        }
     }
 
     private void setPhonebook(String dst) {
@@ -978,11 +996,15 @@ public class PbapTestActivity extends MonkeyActivity implements IBluetoothConnec
 
         mSetPathQueue = new ArrayDeque<String>(Arrays.asList(dst.split("/")));
 
-        mProfileService.getPbapClient().setPhoneBookFolderRoot();
+        if ((mProfileService != null) && (mProfileService.getPbapClient() != null)) {
+            mProfileService.getPbapClient().setPhoneBookFolderRoot();
+        }
     }
 
     private void setPhonebookFolder(String folder) {
-        mProfileService.getPbapClient().setPhoneBookFolderDown(folder);
+        if ((mProfileService != null) && (mProfileService.getPbapClient() != null)) {
+            mProfileService.getPbapClient().setPhoneBookFolderDown(folder);
+        }
     }
 
     public void onClick_abort(View v) {
@@ -990,6 +1012,8 @@ public class PbapTestActivity extends MonkeyActivity implements IBluetoothConnec
          * Going to call abort if any pending request is ongoing,
          * checks for the same are handled internally
          */
-        mProfileService.getPbapClient().abort();
+        if ((mProfileService != null) && (mProfileService.getPbapClient() != null)) {
+            mProfileService.getPbapClient().abort();
+        }
     }
 }
