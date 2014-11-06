@@ -389,8 +389,10 @@ public class HfpTestActivity extends MonkeyActivity implements IBluetoothConnect
         if (mBluetoothHeadsetClient != null) {
             mCalls.clear();
             Integer id = 1;
+            int connState = mBluetoothHeadsetClient.getConnectionState(mDevice);
             // save all calls status
-            if (!mBluetoothHeadsetClient.getCurrentCalls(mDevice).isEmpty()) {
+            if (connState == BluetoothProfile.STATE_CONNECTED &&
+                    !mBluetoothHeadsetClient.getCurrentCalls(mDevice).isEmpty()) {
                 for (BluetoothHeadsetClientCall call :
                     mBluetoothHeadsetClient.getCurrentCalls(mDevice)) {
                     mCalls.put(id, call);
