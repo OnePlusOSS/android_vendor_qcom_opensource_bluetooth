@@ -83,7 +83,7 @@ public class BluetoothFtpService extends Service {
     //public static final boolean VERBOSE = false;
 
     public static final boolean DEBUG = true;
-    public static boolean VERBOSE;
+    public static boolean VERBOSE = true;
     private int mState;
 
     /**
@@ -314,6 +314,7 @@ public class BluetoothFtpService extends Service {
         } else if (action.equals(ACCESS_ALLOWED_ACTION)) {
             if (!isWaitingAuthorization) {
                 // this reply is not for us
+                if (VERBOSE) Log.v(TAG, "isWaitingAuthorization =  " + isWaitingAuthorization);
                 return;
             }
 
@@ -336,6 +337,8 @@ public class BluetoothFtpService extends Service {
                 }
             removeFtpNotification(NOTIFICATION_ID_ACCESS);
         } else if (action.equals(ACCESS_DISALLOWED_ACTION)) {
+            if (VERBOSE) Log.v(TAG, "ACCESS_DISALLOWED_ACTION");
+            isWaitingAuthorization = false;
             stopObexServerSession();
         } else if (action.equals(AUTH_RESPONSE_ACTION)) {
             String sessionkey = intent.getStringExtra(EXTRA_SESSION_KEY);
@@ -528,6 +531,7 @@ public class BluetoothFtpService extends Service {
         if (VERBOSE) Log.v(TAG, "Ftp Service stopObexServerSession");
 
         if (mServerSession != null) {
+            if (VERBOSE) Log.v(TAG, "stopObexServerSession, closing mServerSession");
             mServerSession.close();
             mServerSession = null;
         }
@@ -535,6 +539,7 @@ public class BluetoothFtpService extends Service {
         mRfcommAcceptThread = null;
 
         try {
+            if (VERBOSE) Log.v(TAG, "stopObexServerSession, closeRfcommSocket");
             closeRfcommSocket(false, true);
         } catch (IOException e) {
             Log.e(TAG, "closeSocket error: " + e.toString());
@@ -542,6 +547,7 @@ public class BluetoothFtpService extends Service {
         // Last obex transaction is finished, we start to listen for incoming
         // connection again
         if (mAdapter.isEnabled()) {
+            if (VERBOSE) Log.v(TAG, "stopObexServerSession, startRfcommSocketListener");
             startRfcommSocketListener();
         }
     }
