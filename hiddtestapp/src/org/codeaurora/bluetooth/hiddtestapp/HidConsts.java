@@ -43,7 +43,7 @@ public class HidConsts {
         (byte) 0xa1, (byte) 0x01,                    // COLLECTION (Application)
         (byte) 0x09, (byte) 0x01,                    //   USAGE (Pointer)
         (byte) 0xa1, (byte) 0x00,                    //   COLLECTION (Physical)
-        (byte) 0x85, (byte) 0x01,                    //     REPORT_ID (1)
+        (byte) 0x85, (byte) 0x02,                    //     REPORT_ID (2)
         (byte) 0x05, (byte) 0x09,                    //     USAGE_PAGE (Button)
         (byte) 0x19, (byte) 0x01,                    //     USAGE_MINIMUM (Button 1)
         (byte) 0x29, (byte) 0x03,                    //     USAGE_MAXIMUM (Button 3)
@@ -93,7 +93,7 @@ public class HidConsts {
         (byte) 0x05, (byte) 0x01,                    // USAGE_PAGE (Generic Desktop)
         (byte) 0x09, (byte) 0x06,                    // USAGE (Keyboard)
         (byte) 0xa1, (byte) 0x01,                    // COLLECTION (Application)
-        (byte) 0x85, (byte) 0x10,                    //   REPORT_ID (16)
+        (byte) 0x85, (byte) 0x01,                    //   REPORT_ID (1)
         (byte) 0x05, (byte) 0x07,                    //   USAGE_PAGE (Keyboard)
         (byte) 0x19, (byte) 0xe0,                    //   USAGE_MINIMUM (Keyboard LeftControl)
         (byte) 0x29, (byte) 0xe7,                    //   USAGE_MAXIMUM (Keyboard Right GUI)
@@ -121,7 +121,7 @@ public class HidConsts {
         (byte) 0x05, (byte) 0x07,                    //   USAGE_PAGE (Keyboard)
         (byte) 0x95, (byte) 0x05,                    //   REPORT_COUNT (5)
         (byte) 0x75, (byte) 0x01,                    //   REPORT_SIZE (1)
-        (byte) 0x85, (byte) 0x10,                    //   REPORT_ID (16)
+        (byte) 0x85, (byte) 0x01,                    //   REPORT_ID (1)
         (byte) 0x05, (byte) 0x08,                    //   USAGE_PAGE (LEDs)
         (byte) 0x19, (byte) 0x01,                    //   USAGE_MINIMUM (Num Lock)
         (byte) 0x29, (byte) 0x05,                    //   USAGE_MAXIMUM (Kana)
@@ -141,11 +141,11 @@ public class HidConsts {
     };
     /* @formatter:on */
 
-    public final static byte MOUSE_REPORT_ID = 1;
+    public final static byte KEYBOARD_INPUT_REPORT_ID = 1;
 
-    public final static byte KEYBOARD_INPUT_REPORT_ID = 16;
+    public final static byte KEYBOARD_OUTPUT_REPORT_ID = 1;
 
-    public final static byte KEYBOARD_OUTPUT_REPORT_ID = 16;
+    public final static byte MOUSE_REPORT_ID = 2;
 
     public final static byte BOOT_KEYBOARD_REPORT_ID = 1;
 
