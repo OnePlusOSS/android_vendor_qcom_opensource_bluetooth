@@ -107,8 +107,8 @@ public class A4wpService extends Service
     private static final int MSB_MASK = 0xFF00;
     private static final int LSB_MASK= 0x00FF;
 
-    //Timout value set to 30Sec which enures we advertise in lmited mode
-    private static final int WIPOWER_ADV_TIMEOUT= 0x7530;
+    //Timeout value set to 5Sec which enures we advertise in limited mode
+    private static final int WIPOWER_ADV_TIMEOUT = 5000;
 
     //PRU Write param length for validation
     private static final byte A4WP_PTU_STATIC_LENGTH = 0x11;
@@ -437,15 +437,22 @@ public class A4wpService extends Service
         Log.v(LOGTAG, "processPruControl>");
         PruControl control = new PruControl(value);
         control.print();
+
+        if (mWipowerManager == null) {
+            Log.e(LOGTAG, "mWipowerManager is null");
+            return status;
+        }
+
         if (control.getEnablePruOutput()) {
             Log.v(LOGTAG, "do Enable PruOutPut");
             mWipowerManager.startCharging();
             mWipowerManager.enableAlertNotification(false);
             mWipowerManager.enableDataNotification(true);
-            stopAdvertising();
-            isConnected = true;
         } else {
             Log.v(LOGTAG, "do Disable PruOutPut");
+            if (mChargeComplete == true) {
+                mWipowerManager.enablePowerApply(true, true, true);
+            }
             mWipowerManager.stopCharging();
             mWipowerManager.enableDataNotification(false);
             return status;
@@ -584,11 +591,10 @@ public class A4wpService extends Service
                 Log.v(LOGTAG, "onConnectionStateChange:DISCONNECTED " + device + "charge complete " + mChargeComplete);
                 isConnected = false;
                 if (mDevice != null && mWipowerManager != null) {
+                    stopAdvertising();
                     mWipowerManager.enableDataNotification(false);
                     mWipowerManager.stopCharging();
-                    if (mChargeComplete == true) {
-                        mWipowerManager.enablePowerApply(true, true, true);
-                    } else {
+                    if (mChargeComplete != true) {
                         mWipowerManager.enablePowerApply(true, true, false);
                     }
                     mDevice = null;
@@ -596,6 +602,9 @@ public class A4wpService extends Service
             } else if (mState == BluetoothProfile.STATE_CONNECTED) {
                 Log.v(LOGTAG, "onConnectionStateChange:CONNECTED");
                 mDevice = device;
+                /* Initiate a dummy connection such that on stop advertisment
+                   the advetisment instances are cleared properly */
+                mBluetoothGattServer.connect(mDevice, false);
             }
         }
 
@@ -639,7 +648,7 @@ public class A4wpService extends Service
                 else if(id == A4WP_PRU_STATIC_UUID)
                 {
                     value = mPruStaticParam.getValue();
-                    mBluetoothGattServer.connect(mDevice, false);
+                    isConnected = true;
                 }
                 else if (id == A4WP_PRU_DYNAMIC_UUID) {
                     if (mPruDynamicParam == null) {
@@ -785,9 +794,6 @@ public class A4wpService extends Service
 
 
         mBluetoothGattServer.addService(a4wpService);
-
-        //Log.d(LOGTAG, "calling StartAdvertising");
-        //StartAdvertising();
 
         return true;
     }
