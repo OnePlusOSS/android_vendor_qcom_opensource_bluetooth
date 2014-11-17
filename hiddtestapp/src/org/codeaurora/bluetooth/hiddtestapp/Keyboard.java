@@ -133,7 +133,8 @@ public class Keyboard extends LinearLayout implements Key.KeyListener {
                         VISIBLE : INVISIBLE);
                     key.setKeyListener(this);
 
-                    if (attrs != null & attrs.shiftLabel != null & attrs.shiftLabel.length() > 0) {
+                    if (attrs != null && attrs.shiftLabel != null &&
+                        attrs.shiftLabel.length() > 0) {
                         mKeysWithShiftLabel.add(key);
                     }
 
