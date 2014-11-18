@@ -461,10 +461,12 @@ public class ServicesFragment extends ListFragment {
 
                 case PBAP:
                     if (isChecked) {
-                        mActivity.mProfileService.getPbapClient().connect();
+                        if (mActivity.mProfileService.getPbapClient()!= null)
+                            mActivity.mProfileService.getPbapClient().connect();
                         buttonView.setEnabled(false);
                     } else {
-                        mActivity.mProfileService.getPbapClient().disconnect();
+                        if (mActivity.mProfileService.getPbapClient()!= null)
+                            mActivity.mProfileService.getPbapClient().disconnect();
                         buttonView.setEnabled(false);
                     }
                     break;
