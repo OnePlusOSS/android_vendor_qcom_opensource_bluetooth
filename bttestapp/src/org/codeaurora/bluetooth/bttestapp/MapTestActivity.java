@@ -207,11 +207,14 @@ public class MapTestActivity extends MonkeyActivity implements GetTextDialogList
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             mProfileService = ((ProfileService.LocalBinder) service).getService();
-
-            BluetoothMasInstance inst = mProfileService.getMapClient(mMasInstanceId)
-                    .getInstanceData();
-            MapTestActivity.this.getActionBar().setSubtitle(inst.getName());
-
+            if(mProfileService != null) {
+                BluetoothMasClient cli = mProfileService.getMapClient(mMasInstanceId);
+                if (cli != null) {
+                    BluetoothMasInstance inst = cli.getInstanceData();
+                    if(inst != null)
+                      MapTestActivity.this.getActionBar().setSubtitle(inst.getName());
+                    }
+            }
             mProfileService.setMapCallback(mMasInstanceId, new IMapServiceCallback() {
 
                 @Override
@@ -244,7 +247,10 @@ public class MapTestActivity extends MonkeyActivity implements GetTextDialogList
                 public void onSetPath(String path) {
                     if (mSetPathQueue != null && mSetPathQueue.size() > 0) {
                         String next = mSetPathQueue.removeFirst();
-                        mProfileService.getMapClient(mMasInstanceId).setFolderDown(next);
+                        if(mProfileService != null &&
+                           (mProfileService.getMapClient(mMasInstanceId)) != null ) {
+                            mProfileService.getMapClient(mMasInstanceId).setFolderDown(next);
+                        }
                     } else {
                         mTextViewCurrentFolder.setText(path);
                         clearFolderList();
@@ -436,9 +442,10 @@ public class MapTestActivity extends MonkeyActivity implements GetTextDialogList
                 }
             }
 
-            mTextViewCurrentFolder.setText(mProfileService.getMapClient(mMasInstanceId)
+            if(mProfileService != null && (mProfileService.getMapClient(mMasInstanceId)) != null ){
+                mTextViewCurrentFolder.setText(mProfileService.getMapClient(mMasInstanceId)
                     .getCurrentPath());
-
+            }
             updateUi(true);
 
             if (mStartingGetMessageHandle != null) {
@@ -599,7 +606,7 @@ public class MapTestActivity extends MonkeyActivity implements GetTextDialogList
 
         boolean connected = false;
 
-        if (mProfileService != null) {
+        if(mProfileService != null && (mProfileService.getMapClient(mMasInstanceId)) != null ) {
             connected = (mProfileService.getMapClient(mMasInstanceId).getState() == BluetoothMasClient.ConnectionState.CONNECTED);
         }
 
@@ -645,18 +652,24 @@ public class MapTestActivity extends MonkeyActivity implements GetTextDialogList
     }
 
     private void onClickConnect() {
-        mProfileService.getMapClient(mMasInstanceId).connect();
-        goToState(Job.CONNECT);
+        if(mProfileService != null && (mProfileService.getMapClient(mMasInstanceId)) != null ){
+            mProfileService.getMapClient(mMasInstanceId).connect();
+            goToState(Job.CONNECT);
+        }
     }
 
     private void onClickDisconnect() {
-        mProfileService.getMapClient(mMasInstanceId).disconnect();
-        goToState(Job.DISCONNECT);
+        if(mProfileService != null && (mProfileService.getMapClient(mMasInstanceId)) != null ){
+            mProfileService.getMapClient(mMasInstanceId).disconnect();
+            goToState(Job.DISCONNECT);
+        }
     }
 
     private void onClickUpdateInbox() {
-        mProfileService.getMapClient(mMasInstanceId).updateInbox();
-        goToState(Job.UPDATE_INBOX);
+        if(mProfileService != null && (mProfileService.getMapClient(mMasInstanceId)) != null ){
+            mProfileService.getMapClient(mMasInstanceId).updateInbox();
+            goToState(Job.UPDATE_INBOX);
+        }
     }
 
     private VCardEntry createVcard(BluetoothMapBmessage.Type type, String val) {
@@ -705,7 +718,9 @@ public class MapTestActivity extends MonkeyActivity implements GetTextDialogList
             bmsg.setEncoding(encView.getSelectedItem().toString());
         }
 
-        bmsg.setFolder(mProfileService.getMapClient(mMasInstanceId).getCurrentPath());
+        if(mProfileService != null && (mProfileService.getMapClient(mMasInstanceId)) != null ) {
+            bmsg.setFolder(mProfileService.getMapClient(mMasInstanceId).getCurrentPath());
+        }
 
         for (String rcpt : mEditOriginators) {
             bmsg.addOriginator(createVcard(bmsg.getType(), rcpt));
@@ -717,7 +732,8 @@ public class MapTestActivity extends MonkeyActivity implements GetTextDialogList
 
         bmsg.setBodyContent(contentsView.getText().toString());
 
-        mProfileService
+        if(mProfileService != null && (mProfileService.getMapClient(mMasInstanceId)) != null ) {
+            mProfileService
                 .getMapClient(mMasInstanceId)
                 .pushMessage(
                         null,
@@ -725,7 +741,8 @@ public class MapTestActivity extends MonkeyActivity implements GetTextDialogList
                         charset == R.id.map_msg_push_charset_native ? BluetoothMasClient.CharsetType.NATIVE
                                 : BluetoothMasClient.CharsetType.UTF_8, transparent, retry);
 
-        goToState(Job.PUSH_MESSAGE);
+            goToState(Job.PUSH_MESSAGE);
+        }
     }
 
     @Override
@@ -755,7 +772,8 @@ public class MapTestActivity extends MonkeyActivity implements GetTextDialogList
     }
 
     public void onClickDeleteMessage(View view) {
-        if (mPreviewMsgHandle != null) {
+        if(mPreviewMsgHandle != null && mProfileService != null &&
+            (mProfileService.getMapClient(mMasInstanceId)) != null ) {
             mProfileService.getMapClient(mMasInstanceId).setMessageDeletedStatus(mPreviewMsgHandle,
                     true);
             goToState(Job.DELETE_MESSAGE);
@@ -767,25 +785,31 @@ public class MapTestActivity extends MonkeyActivity implements GetTextDialogList
             return;
         }
 
-        if (mMapBmessage.getStatus().equals(BluetoothMapBmessage.Status.READ)) {
-            mProfileService.getMapClient(mMasInstanceId).setMessageReadStatus(mPreviewMsgHandle,
+        if(mProfileService != null && (mProfileService.getMapClient(mMasInstanceId)) != null ) {
+            if (mMapBmessage.getStatus().equals(BluetoothMapBmessage.Status.READ)) {
+                mProfileService.getMapClient(mMasInstanceId).setMessageReadStatus(mPreviewMsgHandle,
                     false);
-            goToState(Job.SET_STATUS_UNREAD);
-        } else {
-            mProfileService.getMapClient(mMasInstanceId).setMessageReadStatus(mPreviewMsgHandle,
+                goToState(Job.SET_STATUS_UNREAD);
+            } else {
+                mProfileService.getMapClient(mMasInstanceId).setMessageReadStatus(mPreviewMsgHandle,
                     true);
-            goToState(Job.SET_STATUS_READ);
+                goToState(Job.SET_STATUS_READ);
+            }
         }
     }
 
     public void onClickSetPathRoot(View view) {
-        mProfileService.getMapClient(mMasInstanceId).setFolderRoot();
-        goToState(Job.SET_PATH);
+        if(mProfileService != null && (mProfileService.getMapClient(mMasInstanceId)) != null ){
+            mProfileService.getMapClient(mMasInstanceId).setFolderRoot();
+            goToState(Job.SET_PATH);
+        }
     }
 
     public void onClickSetPathUp(View view) {
-        mProfileService.getMapClient(mMasInstanceId).setFolderUp();
-        goToState(Job.SET_PATH);
+        if(mProfileService != null && (mProfileService.getMapClient(mMasInstanceId)) != null ){
+            mProfileService.getMapClient(mMasInstanceId).setFolderUp();
+            goToState(Job.SET_PATH);
+        }
     }
 
     public void onClickSetPathEnter(View view) {
@@ -804,19 +828,23 @@ public class MapTestActivity extends MonkeyActivity implements GetTextDialogList
         int count = Integer.parseInt(mEditTextMaxListCountFolders.getText().toString());
         int offset = Integer.parseInt(mEditTextListStartOffsetFolders.getText().toString());
 
-        try {
-            mProfileService.getMapClient(mMasInstanceId).getFolderListing(count, offset);
-            goToState(Job.GET_FOLDER_LISTING);
-        } catch (IllegalArgumentException e) {
-            Toast.makeText(this,
+        if(mProfileService != null && (mProfileService.getMapClient(mMasInstanceId)) != null ){
+            try {
+                mProfileService.getMapClient(mMasInstanceId).getFolderListing(count, offset);
+                goToState(Job.GET_FOLDER_LISTING);
+            } catch (IllegalArgumentException e) {
+                Toast.makeText(this,
                     "GetFolderListing FAILED: illegal arguments (" + e.getMessage() + ")",
                     Toast.LENGTH_LONG).show();
+            }
         }
     }
 
     public void onClickGetFolderListingSize(View view) {
-        mProfileService.getMapClient(mMasInstanceId).getFolderListingSize();
-        goToState(Job.GET_FOLDER_LISTING_SIZE);
+        if(mProfileService != null && (mProfileService.getMapClient(mMasInstanceId)) != null ){
+            mProfileService.getMapClient(mMasInstanceId).getFolderListingSize();
+            goToState(Job.GET_FOLDER_LISTING_SIZE);
+        }
     }
 
     public void onClickMessageParameters(View view) {
@@ -1068,11 +1096,12 @@ public class MapTestActivity extends MonkeyActivity implements GetTextDialogList
         }
 
         try {
-            mProfileService.getMapClient(mMasInstanceId).getMessagesListing(folder,
-                    mMessageListingParameters,
-                    getLocalMessageFilter(), subjectLength, maxListCount, listStartOffset);
-
-            goToState(Job.GET_MESSAGE_LISTING);
+            if(mProfileService != null && (mProfileService.getMapClient(mMasInstanceId)) != null ){
+                mProfileService.getMapClient(mMasInstanceId).getMessagesListing(folder,
+                        mMessageListingParameters,
+                        getLocalMessageFilter(), subjectLength, maxListCount, listStartOffset);
+                goToState(Job.GET_MESSAGE_LISTING);
+            }
             updateListEmptyView(true);
         } catch (IllegalArgumentException e) {
             Toast.makeText(this,
@@ -1095,8 +1124,10 @@ public class MapTestActivity extends MonkeyActivity implements GetTextDialogList
     }
 
     public void onClickGetMessageListingSize(View view) {
-        mProfileService.getMapClient(mMasInstanceId).getMessagesListingSize();
-        goToState(Job.GET_MESSAGE_LISTING_SIZE);
+        if(mProfileService != null && (mProfileService.getMapClient(mMasInstanceId)) != null ){
+            mProfileService.getMapClient(mMasInstanceId).getMessagesListingSize();
+            goToState(Job.GET_MESSAGE_LISTING_SIZE);
+        }
     }
 
     class BluetoothMapMessageAdapter extends ArrayAdapter<BluetoothMapMessage> {
@@ -1237,12 +1268,12 @@ public class MapTestActivity extends MonkeyActivity implements GetTextDialogList
             LinearLayout lay = (LinearLayout) findViewById(R.id.maptest_tab_list);
             mListTouchables = lay.getTouchables();
         }
-
-        for (View view : mListTouchables) {
-            view.setEnabled(mProfileService.getMapClient(mMasInstanceId).getState() == BluetoothMasClient.ConnectionState.CONNECTED
+        if(mProfileService != null && (mProfileService.getMapClient(mMasInstanceId)) != null ){
+            for (View view : mListTouchables) {
+                view.setEnabled(mProfileService.getMapClient(mMasInstanceId).getState() == BluetoothMasClient.ConnectionState.CONNECTED
                     && mCurrentJob == Job.IDLE);
+            }
         }
-
         if (invalidateOptionsMenu) {
             invalidateOptionsMenu();
         }
@@ -1333,15 +1364,21 @@ public class MapTestActivity extends MonkeyActivity implements GetTextDialogList
         switch (item.getItemId()) {
             case 1:
             case 2:
-                mProfileService.getMapClient(mMasInstanceId).setMessageReadStatus(bmsg.getHandle(),
-                        item.getItemId() == 1);
-                goToState(Job.SET_STATUS_READ);
+                if(mProfileService != null &&
+                    (mProfileService.getMapClient(mMasInstanceId)) != null ) {
+                        mProfileService.getMapClient(mMasInstanceId)
+                                    .setMessageReadStatus(bmsg.getHandle(),item.getItemId() == 1);
+                    goToState(Job.SET_STATUS_READ);
+                }
                 break;
             case 3:
             case 4:
-                mProfileService.getMapClient(mMasInstanceId).setMessageDeletedStatus(
+                if(mProfileService != null &&
+                    (mProfileService.getMapClient(mMasInstanceId)) != null ) {
+                    mProfileService.getMapClient(mMasInstanceId).setMessageDeletedStatus(
                         bmsg.getHandle(), item.getItemId() == 3);
-                goToState(Job.DELETE_MESSAGE);
+                    goToState(Job.DELETE_MESSAGE);
+                }
                 break;
             case 5:
                 getMessage(bmsg.getHandle(), CharsetType.NATIVE, false);
@@ -1449,7 +1486,9 @@ public class MapTestActivity extends MonkeyActivity implements GetTextDialogList
     private void goToFolder(String dst) {
         mSetPathQueue = new ArrayDeque<String>(Arrays.asList(dst.split("/")));
 
-        mProfileService.getMapClient(mMasInstanceId).setFolderRoot();
+        if(mProfileService != null && (mProfileService.getMapClient(mMasInstanceId)) != null ){
+            mProfileService.getMapClient(mMasInstanceId).setFolderRoot();
+        }
     }
 
     private boolean getMessage(String handle, CharsetType charset, boolean attachments) {
@@ -1458,6 +1497,9 @@ public class MapTestActivity extends MonkeyActivity implements GetTextDialogList
         }
 
         BluetoothMasClient cli = mProfileService.getMapClient(mMasInstanceId);
+        if (cli == null) {
+            return false;
+        }
 
         if (!cli.getMessage(handle, charset, attachments)) {
             return false;
