@@ -159,9 +159,6 @@ public class FileUtils {
         } catch(FileNotFoundException e) {
             Log.e(TAG,"copyFile file not found "+ e.toString());
             return ResponseCodes.OBEX_HTTP_INTERNAL_ERROR;
-        } catch(IOException e) {
-            Log.e(TAG,"copyFile open stream failed "+ e.toString());
-            return ResponseCodes.OBEX_HTTP_INTERNAL_ERROR;
         } finally {
             if (null != reader && null == writer) {
                 try {

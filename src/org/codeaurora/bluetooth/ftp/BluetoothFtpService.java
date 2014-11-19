@@ -366,7 +366,7 @@ public class BluetoothFtpService extends Service {
             removeTimeoutMsg = false;
         }
 
-        if (removeTimeoutMsg) {
+        if (removeTimeoutMsg && mSessionStatusHandler != null) {
             mSessionStatusHandler.removeMessages(MSG_INTERNAL_USER_TIMEOUT);
         }
     }
