@@ -767,7 +767,7 @@ public class BluetoothFtpObexServer extends ServerRequestHandler {
              *
              * Else call the routine to send the requested file names contents
              */
-             if(type.equals(TYPE_LISTING)){
+             if(type.equals(TYPE_LISTING)) {
                 if(!validName || ( mCurrentPath!= null && ( mCurrentPath.equals(rootPrimaryStoragePath) ||
                     mCurrentPath.equals(rootSecondaryStoragePath)) ) ) {
                     if (D) Log.d(TAG,"Not having a name ");
@@ -790,7 +790,7 @@ public class BluetoothFtpObexServer extends ServerRequestHandler {
                     }
                 } else {
                     if (D) Log.d(TAG,"Non Root Folder");
-                    if(type.equals(TYPE_LISTING)){
+                    if(type.equals(TYPE_LISTING) && mCurrentPath != null) {
                         File currentfolder = new File(mCurrentPath);
                         if (D) Log.d(TAG,"Current folder name = " +
                                                 currentfolder.getName() +
@@ -876,6 +876,10 @@ public class BluetoothFtpObexServer extends ServerRequestHandler {
             outputStream = op.openOutputStream();
         } catch(IOException e) {
             Log.e(TAG,"SendFilecontents open stream "+ e.toString());
+            if(outputStream != null ) {
+              closeStream(outputStream, op);
+              outputStream = null;
+            }
             return ResponseCodes.OBEX_HTTP_INTERNAL_ERROR;
         } finally {
             if (fileInputStream != null && outputStream == null) {
