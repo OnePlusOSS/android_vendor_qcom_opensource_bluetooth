@@ -1290,7 +1290,8 @@ public class BluetoothSapService extends Service {
         IpcMsgBuffer.put(SAP_HEADER_SIZE + SAP_MSG_OFF_PARAM_VAL, CONN_ERR);
 
         try {
-            mRfcommOutputStream.write(IpcMsgBuffer.array(), 0, WriteLen);
+            if (mRfcommOutputStream != null)
+                mRfcommOutputStream.write(IpcMsgBuffer.array(), 0, WriteLen);
         } catch (IOException ex) {
             if (VERBOSE) Log.v(TAG, "mRfcommOutputStream  wrtie exception: " + ex.toString());
         }
