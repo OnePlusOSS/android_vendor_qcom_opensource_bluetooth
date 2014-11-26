@@ -1017,6 +1017,7 @@ public class BluetoothSapService extends Service {
                     /* Read the SAP request from Rfcomm channel */
                     NumRead = mRfcommInputStream.read(IpcMsgBuffer.array(), SAP_IPC_MSG_OFF_MSG + TotalRead,
                                                                                 SAP_MAX_MSG_LEN - TotalRead);
+                    if (VERBOSE) Log.v(TAG, "NumRead from rfcomm = " + NumRead);
                     if ( NumRead < 0) {
                         break;
                     }
@@ -1134,7 +1135,7 @@ public class BluetoothSapService extends Service {
                     if (VERBOSE) Log.v(TAG, "Reading the SAP responses from Sapd");
                     /* Read the SAP responses from SAP server */
                     NumRead = mSapdInputStream.read(IpcMsgBuffer.array(),0, SAP_MAX_IPC_MSG_LEN);
-                    if (VERBOSE) Log.v(TAG, "NumRead" + NumRead);
+                    if (VERBOSE) Log.v(TAG, "NumRead from sapd = " + NumRead);
                     if ( NumRead < 0) {
                         break;
                     }
@@ -1153,12 +1154,14 @@ public class BluetoothSapService extends Service {
                                 try {
                                     mRfcommOutputStream.write(IpcMsgBuffer.array(), ReadIndex + SAP_IPC_MSG_OFF_MSG,
                                            IpcMsgBuffer.getShort(ReadIndex + SAP_IPC_MSG_OFF_MSG_LEN));
+                                    mRfcommOutputStream.flush();
                                 } catch (IOException ex) {
                                     stopped = true;
                                     break;
                                 }
                                 if (VERBOSE)
-                                    Log.v(TAG, "DownlinkThread Msg written to Rfcomm");
+                                    Log.v(TAG, "Length of DownlinkThread Msg written to Rfcomm" +
+                                    IpcMsgBuffer.getShort(ReadIndex + SAP_IPC_MSG_OFF_MSG_LEN));
                             }
                             else if (IpcMsgBuffer.get(ReadIndex + SAP_IPC_MSG_OFF_MSG_TYPE) == SAP_IPC_MSG_CTRL_RESPONSE) {
 
@@ -1290,8 +1293,10 @@ public class BluetoothSapService extends Service {
         IpcMsgBuffer.put(SAP_HEADER_SIZE + SAP_MSG_OFF_PARAM_VAL, CONN_ERR);
 
         try {
-            if (mRfcommOutputStream != null)
+            if (mRfcommOutputStream != null) {
                 mRfcommOutputStream.write(IpcMsgBuffer.array(), 0, WriteLen);
+                mRfcommOutputStream.flush();
+            }
         } catch (IOException ex) {
             if (VERBOSE) Log.v(TAG, "mRfcommOutputStream  wrtie exception: " + ex.toString());
         }
