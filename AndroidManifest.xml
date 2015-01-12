@@ -187,19 +187,6 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             </intent-filter>
         </service>
 
-        <service
-            android:process="@string/process"
-            android:exported="true"
-            android:name = ".a4wp.A4wpService">
-        </service>
-        <receiver
-            android:process="@string/process"
-            android:exported="true"
-            android:name=".a4wp.BTEventHandler">
-            <intent-filter>
-                <action android:name="android.bluetooth.adapter.action.STATE_CHANGED" />
-            </intent-filter>
-        </receiver>
 
     </application>
 </manifest>
