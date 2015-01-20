@@ -327,6 +327,7 @@ public class PbapTestActivity extends MonkeyActivity implements IBluetoothConnec
             Toast.makeText(PbapTestActivity.this, "PBAP session connected", Toast.LENGTH_SHORT)
                     .show();
             invalidateOptionsMenu();
+            setButtonsVisible(true);
         }
 
         @Override
@@ -334,6 +335,7 @@ public class PbapTestActivity extends MonkeyActivity implements IBluetoothConnec
             Toast.makeText(PbapTestActivity.this, "PBAP session disconnected", Toast.LENGTH_SHORT)
                     .show();
             invalidateOptionsMenu();
+            setButtonsVisible(false);
         }
     };
 
@@ -345,7 +347,14 @@ public class PbapTestActivity extends MonkeyActivity implements IBluetoothConnec
         public void onServiceConnected(ComponentName name, IBinder service) {
             Logger.v(TAG, "onServiceConnected()");
             mProfileService = ((ProfileService.LocalBinder) service).getService();
-            mProfileService.setPbapCallback(mPbapServiceCallback);
+
+            if (mProfileService != null) {
+                mProfileService.setPbapCallback(mPbapServiceCallback);
+                if (mProfileService.getPbapClient() != null) {
+                    if (mProfileService.getPbapClient().getState() == BluetoothPbapClient.ConnectionState.CONNECTED)
+                        setButtonsVisible(true);
+                }
+            }
 
             ProfileService.PbapSessionData pbap = mProfileService.getPbapSessionData();
 
@@ -373,6 +382,24 @@ public class PbapTestActivity extends MonkeyActivity implements IBluetoothConnec
         }
     };
 
+    private void enableButton(int id, boolean enable) {
+        Button button = (Button) findViewById(id);
+        button.setEnabled(enable);
+    }
+
+    private void setButtonsVisible (boolean visible) {
+        enableButton(R.id.pbap_download_filter_button, visible);
+        enableButton(R.id.pbap_download_search, visible);
+        enableButton(R.id.pbap_browse_search, visible);
+        enableButton(R.id.pbap_download_getsize, visible);
+        enableButton(R.id.pbap_download_abort, visible);
+        enableButton(R.id.pbap_browse_getsize, visible);
+        enableButton(R.id.pbap_browse_abort, visible);
+        enableButton(R.id.pbap_browse_set_phonebook, visible);
+        enableButton(R.id.pbap_vcard_set_phonebook, visible);
+        enableButton(R.id.pbap_vcard_get_vcard, visible);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -385,6 +412,7 @@ public class PbapTestActivity extends MonkeyActivity implements IBluetoothConnec
         prepareUserInterfaceDownload();
         prepareUserInterfaceBrowse();
         prepareUserInterfaceVcard();
+        setButtonsVisible (false);
 
         mBluetoothPbapCardAdapter = new BluetoothPbapCardAdapter();
         mListViewBrowseContacts.setAdapter(mBluetoothPbapCardAdapter);
