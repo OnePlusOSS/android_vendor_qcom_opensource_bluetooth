@@ -451,10 +451,15 @@ public class ServicesFragment extends ListFragment {
                 switch (srv.mType) {
                     case HFP:
                         if (isChecked) {
-                            mActivity.mProfileService.getHfpClient().connect(mActivity.mDevice);
+                            if (mActivity.mProfileService.getHfpClient() != null) {
+                                mActivity.mProfileService.getHfpClient().connect(mActivity.mDevice);
+                            }
                             buttonView.setEnabled(false);
                         } else {
-                            mActivity.mProfileService.getHfpClient().disconnect(mActivity.mDevice);
+                            if (mActivity.mProfileService.getHfpClient() != null) {
+                                mActivity.mProfileService.getHfpClient()
+                                        .disconnect(mActivity.mDevice);
+                            }
                             buttonView.setEnabled(false);
                         }
                         break;
