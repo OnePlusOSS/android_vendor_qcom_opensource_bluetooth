@@ -189,8 +189,6 @@ public class BluetoothFtpService extends Service {
 
     private static final int NOTIFICATION_ID_AUTH = -1000006;
 
-    private static final int NOTIFICATION_ID_CONNECTED = -1000010;
-
     private static final int FTP_MEDIA_SCANNED = 4;
 
     private static final int FTP_MEDIA_SCANNED_FAILED = 5;
@@ -204,8 +202,6 @@ public class BluetoothFtpService extends Service {
     public static final int FTP_MEDIA_FILES_DELETE = 9;
 
     public static boolean isL2capSocket = false;
-
-    private Notification mConnectedNotification = null;
 
     private BluetoothAdapter mAdapter;
 
@@ -713,13 +709,8 @@ public class BluetoothFtpService extends Service {
                     break;
                 case MSG_SERVERSESSION_CLOSE:
                     stopObexServerSession();
-                    stopForeground(true);
-                    mConnectedNotification = null;
                     break;
                 case MSG_SESSION_ESTABLISHED:
-                    if(mConnectedNotification == null)
-                        mConnectedNotification = createFtpConnectedNotification();
-                    startForeground(NOTIFICATION_ID_CONNECTED, mConnectedNotification);
                     break;
                 case MSG_SESSION_DISCONNECTED:
                     break;
@@ -771,18 +762,6 @@ public class BluetoothFtpService extends Service {
             }
         }
     };
-   private Notification createFtpConnectedNotification() {
-        Log.v(TAG, "Creating FTP access CONNECTED");
-
-        Notification notification = new Notification(android.R.drawable.stat_sys_data_bluetooth,
-            getString(R.string.ftp_notif_active_session), System.currentTimeMillis());
-        notification.setLatestEventInfo(this,  getString(R.string.ftp_notif_active_session),
-            getString( R.string.ftp_notif_connected , getRemoteDeviceName()), null);
-        notification.flags |= Notification.FLAG_AUTO_CANCEL;
-        notification.flags |= Notification.FLAG_ONLY_ALERT_ONCE;
-        notification.defaults = Notification.DEFAULT_SOUND;
-        return notification;
-    }
     private void createFtpNotification(String action) {
 
         NotificationManager nm = (NotificationManager)

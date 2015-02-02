@@ -170,10 +170,7 @@ public class BluetoothMasService extends Service {
             ParcelUuid.fromString("00001133-0000-1000-8000-00805f9b34fb");
 
     // Ensure not conflict with Opp notification ID
-    private static final int NOTIFICATION_ID_ACCESS = -1000007;
-    private static final int NOTIFICATION_ID_CONNECTED = -1000008;
-
-    private Notification mConnectedNotification = null;
+    private static final int NOTIFICATION_ID_ACCESS = -1000005;
 
     private BluetoothAdapter mAdapter;
 
@@ -491,25 +488,9 @@ public class BluetoothMasService extends Service {
                 {
                     final int masId = msg.arg1;
                     mConnectionManager.stopObexServerSession(masId);
-                    //Dismiss CONNECTED Notification if no Active Connections
-                    boolean stopFgNotification = true;
-                    for (BluetoothMasObexConnection connection : mConnectionManager.mConnections) {
-                       if (connection.mConnSocket != null) {
-                           if(VERBOSE) Log.v(TAG,"Active Session exists  ");
-                           stopFgNotification = false;
-                           break;
-                       }
-                    }
-                    if(stopFgNotification ==  true){
-                         stopForeground(true);
-                         mConnectedNotification=null;
-                    }
                     break;
                 }
                 case MSG_SESSION_ESTABLISHED:
-                    if(mConnectedNotification == null)
-                        mConnectedNotification = createMapConnectedNotification(mRemoteDevice);
-                    startForeground(NOTIFICATION_ID_CONNECTED, mConnectedNotification);
                     break;
                 case MSG_SESSION_DISCONNECTED:
                     break;
@@ -519,24 +500,6 @@ public class BluetoothMasService extends Service {
         }
     };
 
-    private Notification createMapConnectedNotification(BluetoothDevice device) {
-        if (VERBOSE) Log.v(TAG, "Creating MAS access CONNECTED");
-
-        Notification notification = new Notification(android.R.drawable.stat_sys_data_bluetooth,
-            getString(R.string.map_notif_active_session), System.currentTimeMillis());
-        String name = device.getName();
-        if (TextUtils.isEmpty(name)) {
-            name = getString(R.string.defaultname);
-        }
-        notification.setLatestEventInfo(this,  getString(R.string.map_notif_active_session),
-            getString( R.string.map_notif_connected ,name), null);
-        notification.flags |= Notification.FLAG_AUTO_CANCEL;
-        notification.flags |= Notification.FLAG_ONLY_ALERT_ONCE;
-        notification.defaults = Notification.DEFAULT_SOUND;
-        return notification;
-
-
-    }
     private void createMapNotification(BluetoothDevice device) {
         if (VERBOSE) Log.v(TAG, "Creating MAS access notification");
         mIsRequestBeingNotified = true;
@@ -961,6 +924,7 @@ public class BluetoothMasService extends Service {
                             Log.i(TAG, "CONNECTION SOCKET NULL");
                             break;
                         }
+
                         mRemoteDevice = mConnSocket.getRemoteDevice();
                         if (mRemoteDevice == null) {
                             Log.i(TAG, "getRemoteDevice() = null");
