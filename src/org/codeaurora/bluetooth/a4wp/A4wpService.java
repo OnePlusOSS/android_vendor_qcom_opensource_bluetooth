@@ -65,6 +65,8 @@ import android.bluetooth.le.AdvertiseSettings;
 import android.bluetooth.le.AdvertiseData;
 import android.bluetooth.le.BluetoothLeAdvertiser;
 import android.os.ParcelUuid;
+import android.os.PowerManager;
+import android.os.SystemProperties;
 
 /**
  * Class which executes A4WP service
@@ -76,6 +78,7 @@ public class A4wpService extends Service
     private BluetoothAdapter mBluetoothAdapter = null;
     private BluetoothGattServer mBluetoothGattServer = null;
     private BluetoothDevice mDevice = null;
+    private PowerManager.WakeLock mWakeLock = null;
 
     private static final UUID A4WP_SERVICE_UUID = UUID.fromString("6455fffe-a146-11e2-9e96-0800200c9a67");
     //PRU writes
@@ -148,6 +151,26 @@ public class A4wpService extends Service
             Log.v(LOGTAG, "onWbcEventUpdate: charge complete " +  mChargeComplete);
         }
     };
+
+    private  void acquire_wake_lock(boolean wake) {
+        if (wake == true) {
+            if (mWakeLock == null) {
+                PowerManager pm = (PowerManager)getSystemService(
+                Context.POWER_SERVICE);
+                mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
+                    "StartingWipowerConnection");
+                mWakeLock.setReferenceCounted(false);
+                mWakeLock.acquire();
+                Log.w(LOGTAG, "Acquire Wake Lock");
+            }
+        } else {
+            if (mWakeLock != null) {
+                mWakeLock.release();
+                mWakeLock = null;
+                Log.w(LOGTAG, "Release Wake Lock");
+            }
+       }
+    }
 
     private class PruStaticParam {
         private byte mOptvalidity;
@@ -445,6 +468,11 @@ public class A4wpService extends Service
 
         if (control.getEnablePruOutput()) {
             Log.v(LOGTAG, "do Enable PruOutPut");
+            /* Wake lock is enabled by default, to disbale need to set property */
+            if(SystemProperties.getBoolean("persist.a4wp.skip_connection_wakelock", false) == false) {
+                /* Hold wake lock during connection */
+                acquire_wake_lock(true);
+            }
             mWipowerManager.startCharging();
             mWipowerManager.enableAlertNotification(false);
             mWipowerManager.enableDataNotification(true);
@@ -455,6 +483,9 @@ public class A4wpService extends Service
             }
             mWipowerManager.stopCharging();
             mWipowerManager.enableDataNotification(false);
+            if(SystemProperties.getBoolean("persist.a4wp.skip_connection_wakelock", false) == false) {
+                acquire_wake_lock(false);
+            }
             return status;
         }
 
@@ -596,6 +627,10 @@ public class A4wpService extends Service
                     mWipowerManager.stopCharging();
                     if (mChargeComplete != true) {
                         mWipowerManager.enablePowerApply(true, true, false);
+                    }
+                    if(SystemProperties.getBoolean("persist.a4wp.skip_connection_wakelock", false) == false) {
+                        /* Drop wake lock once the connection is dropped gracefully */
+                        acquire_wake_lock(false);
                     }
                     mDevice = null;
                 }
@@ -853,6 +888,10 @@ public class A4wpService extends Service
             } else {
                 mWipowerManager.enablePowerApply(true, true, false);
             }
+        }
+        if(SystemProperties.getBoolean("persist.a4wp.skip_connection_wakelock", false) == false) {
+            //release wake lock in case if held during crashes or on BT restart.
+            acquire_wake_lock(false);
         }
         return START_STICKY;
    }
