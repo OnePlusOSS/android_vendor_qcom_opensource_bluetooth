@@ -113,7 +113,7 @@ public class A4wpService extends Service
     private final static byte DEFAULT_FW_VERSION = 0x0006;
     private final static byte DEFAULT_MAX_POWER_DESIRED = 0x0032;  // 5Watts
     private final static short DEFAULT_VRECT_MIN = 7000;       // 7 Volts
-    private final static short DEFAULT_VRECT_MAX = 18000;       // 18 Volts
+    private final static short DEFAULT_VRECT_MAX = 19300;       // 19.3 Volts
     private final static short DEFAULT_VRECT_SET = 7200;       // 7.2 Volts
     private final static short DEFAULT_DELTA_R1 = 0x0001;
     private final static int DEFAULT_RFU_VAL = 0x0000;
@@ -626,6 +626,11 @@ public class A4wpService extends Service
                 if (mBluetoothGattServer != null && mDevice != null) {
                     Log.v(LOGTAG, "onPowerApply " + state + "dropping Connection");
                     mBluetoothGattServer.cancelConnection(mDevice);
+                    if (mChargeComplete == true) {
+                        mWipowerManager.enablePowerApply(true, true, true);
+                    } else {
+                        mWipowerManager.enablePowerApply(true, true, false);
+                    }
                 } else {
                     Log.v(LOGTAG, "onPowerApply " + state + "skip dropping Connection");
                 }
