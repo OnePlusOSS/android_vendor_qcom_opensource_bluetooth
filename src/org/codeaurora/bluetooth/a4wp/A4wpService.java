@@ -121,6 +121,19 @@ public class A4wpService extends Service
     private static final byte A4WP_ADV_MIN_INTERVAL = 0x20;
     private static final byte A4WP_ADV_MAX_INTERVAL = 0x20;
 
+    //mask bits for charge port and irect validations
+    private static final int CHARGE_PORT_MASK = 0x02;
+    private static final int IRECT_MASK_MSB = 0x00;
+    private static final int IRECT_MASK_LSB = 0x15;
+    private static final int VRECT_MASK = 0x00;
+
+    //Indices definitions
+    private static final int PRU_ALERT = 16;
+    private static final int IRECT_LSB = 3;
+    private static final int IRECT_MSB = 4;
+    private static final int VRECT_LSB = 1;
+    private static final int VRECT_MSB = 2;
+
     private static boolean mWipowerBoot = false;
     static boolean mChargeComplete = true;
 
@@ -662,6 +675,19 @@ public class A4wpService extends Service
                                        offset, value);
                 }
         }
+        /* Due to bad coupling irect value drops to zero and vrect remains
+          constant would render stark to reset the CHG_OK pin, So as to
+          set this pin on coupling being recovered host delivers the charge
+          enable command to set the CHG_OK pin. */
+        private void isChargeEnabled(byte[] value)
+        {
+            if ((byte)(value[PRU_ALERT] & CHARGE_PORT_MASK) == CHARGE_PORT_MASK) {
+                if ((value[IRECT_LSB] <= IRECT_MASK_LSB && value[IRECT_MSB] == IRECT_MASK_MSB)
+                     && (value[VRECT_LSB] > VRECT_MASK || value[VRECT_MSB] > VRECT_MASK)) {
+                    mWipowerManager.startCharging();
+                }
+            }
+        }
 
         @Override
         public void onCharacteristicReadRequest(BluetoothDevice device, int requestId,
@@ -692,6 +718,7 @@ public class A4wpService extends Service
                     } else {
                         value[16] = (byte)(value[16] & (~CHARGE_COMPLETE_BIT));
                     }
+                    isChargeEnabled(value);
                 }
                 if (value != null)
                 {
