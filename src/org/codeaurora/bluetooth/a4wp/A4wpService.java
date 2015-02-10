@@ -646,9 +646,6 @@ public class A4wpService extends Service
                 }
             } else if (mState == BluetoothProfile.STATE_CONNECTED) {
                 Log.v(LOGTAG, "onConnectionStateChange:CONNECTED");
-                /* Initiate a dummy connection such that on stop advertisment
-                   the advetisment instances are cleared properly */
-                mBluetoothGattServer.connect(device, false);
             }
         }
 
@@ -706,6 +703,9 @@ public class A4wpService extends Service
                 {
                     value = mPruStaticParam.getValue();
                     mDevice = device;
+                    /* Initiate a dummy connection such that on stop advertisment
+                       the advetisment instances are cleared properly */
+                    mBluetoothGattServer.connect(mDevice, false);
                 }
                 else if (id == A4WP_PRU_DYNAMIC_UUID) {
                     if (mPruDynamicParam == null) {
@@ -775,8 +775,8 @@ public class A4wpService extends Service
             .addServiceData(uuid1, serviceData).build();
 
         mAdvertiseSettings = new AdvertiseSettings.Builder()
-            .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_POWER)
-            .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_ULTRA_LOW)
+            .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY)
+            .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
             .setConnectable(true)
             .setTimeout(WIPOWER_ADV_TIMEOUT).build();
 
