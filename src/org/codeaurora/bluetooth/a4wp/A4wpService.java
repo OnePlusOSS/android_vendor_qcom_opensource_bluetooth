@@ -106,18 +106,23 @@ public class A4wpService extends Service
     private final static short DEFAULT_FIELDS = 0x0000;
     private final static short DEFAULT_PROTOCOL_REV = 0x0000;
     private final static short DEFAULT_RFU = 0x0000;
+    //03 if MTP, Has to be 04 for fluid.
     private final static byte DEFAULT_CATEGORY = 0x0003;
     private final static byte DEFAULT_CAPABILITIES = 0x0010;
     private final static byte DEFAULT_HW_VERSION = 0x0007;
     private final static byte DEFAULT_FW_VERSION = 0x0006;
-    private final static byte DEFAULT_MAX_POWER_DESIRED = 0x0032;
-    private final static short DEFAULT_VRECT_MIN = 0x003200;
-    private final static short DEFAULT_VRECT_MAX = 0x004650;
-    private final static short DEFAULT_VRECT_SET = 0x003580;
+    private final static byte DEFAULT_MAX_POWER_DESIRED = 0x0032;  // 5Watts
+    private final static short DEFAULT_VRECT_MIN = 7000;       // 7 Volts
+    private final static short DEFAULT_VRECT_MAX = 18000;       // 18 Volts
+    private final static short DEFAULT_VRECT_SET = 7200;       // 7.2 Volts
     private final static short DEFAULT_DELTA_R1 = 0x0001;
     private final static int DEFAULT_RFU_VAL = 0x0000;
     private static final int MSB_MASK = 0xFF00;
     private static final int LSB_MASK= 0x00FF;
+    // On charge port disbaled need to be set to 10.2 Volts
+    private final static short VRECT_MIN_CHG_DISABLED = 10200;
+    // Populate Vrectmin, Vrectmax, Vrectset and temperature in the optional fields
+    private final static byte OPTIONAL_FIELD_MASK = 0x3C;
 
     //Timeout value set to 5Sec which enures we advertise in limited mode
     private static final int WIPOWER_ADV_TIMEOUT = 5000;
@@ -135,15 +140,24 @@ public class A4wpService extends Service
     private static final int IRECT_MASK_MSB = 0x00;
     private static final int IRECT_MASK_LSB = 0x15;
     private static final int VRECT_MASK = 0x00;
+    private static short VRECT_DYN;
 
     //Indices definitions
-    private static final int PRU_ALERT = 16;
-    private static final int IRECT_LSB = 3;
-    private static final int IRECT_MSB = 4;
+    private static final int OPTIONAL_FIELDS = 0;
     private static final int VRECT_LSB = 1;
     private static final int VRECT_MSB = 2;
+    private static final int IRECT_LSB = 3;
+    private static final int IRECT_MSB = 4;
+    private static final int VRECT_MIN_LSB = 10;
+    private static final int VRECT_MIN_MSB = 11;
+    private static final int VRECT_SET_LSB = 12;
+    private static final int VRECT_SET_MSB = 13;
+    private static final int VRECT_MAX_LSB = 14;
+    private static final int VRECT_MAX_MSB = 15;
+    private static final int PRU_ALERT = 16;
 
     private static boolean mWipowerBoot = false;
+    private static boolean isChargePortSet = false;
     static boolean mChargeComplete = true;
 
     private AdvertiseSettings mAdvertiseSettings;
@@ -513,7 +527,9 @@ public class A4wpService extends Service
                 /* Hold wake lock during connection */
                 acquire_wake_lock(true);
             }
-            mWipowerManager.startCharging();
+            Log.v(LOGTAG, "StopAdvertising on connect");
+            Message msg = mHandler.obtainMessage(STOP_ADVERTISING);
+            mHandler.sendMessage(msg);
             mWipowerManager.enableAlertNotification(false);
             mWipowerManager.enableDataNotification(true);
         } else {
@@ -526,6 +542,7 @@ public class A4wpService extends Service
             if(SystemProperties.getBoolean("persist.a4wp.skip_connection_wakelock", false) == false) {
                 acquire_wake_lock(false);
             }
+            isChargePortSet = false;
             return status;
         }
 
@@ -651,6 +668,9 @@ public class A4wpService extends Service
 
     };
 
+    public static short toUnsigned(byte b) {
+        return (short)(b & 0xff);
+    }
 
     /**
      * GATT callbacks
@@ -674,6 +694,7 @@ public class A4wpService extends Service
                     }
                     mDevice = null;
                 }
+                isChargePortSet = false;
             } else if (mState == BluetoothProfile.STATE_CONNECTED) {
                 Log.v(LOGTAG, "onConnectionStateChange:CONNECTED");
             }
@@ -702,16 +723,29 @@ public class A4wpService extends Service
                                        offset, value);
                 }
         }
-        /* Due to bad coupling irect value drops to zero and vrect remains
+        /*a> Due to bad coupling irect value drops to zero and vrect remains
           constant would render stark to reset the CHG_OK pin, So as to
           set this pin on coupling being recovered host delivers the charge
-          enable command to set the CHG_OK pin. */
-        private void isChargeEnabled(byte[] value)
+          enable command to set the CHG_OK pin.
+          b> Charge port needs to be enabled only if the vrect value is greater
+          than the Vmin values */
+        private void chkDynParamsAndStartCharging(byte[] value)
         {
-            if ((byte)(value[PRU_ALERT] & CHARGE_PORT_MASK) == CHARGE_PORT_MASK) {
-                if ((value[IRECT_LSB] <= IRECT_MASK_LSB && value[IRECT_MSB] == IRECT_MASK_MSB)
-                     && (value[VRECT_LSB] > VRECT_MASK || value[VRECT_MSB] > VRECT_MASK)) {
+            VRECT_DYN = 0x00;
+            if (!isChargePortSet) {
+                VRECT_DYN = (short)toUnsigned(value[VRECT_LSB]);
+                VRECT_DYN |= (short)(toUnsigned(value[VRECT_MSB]) << 8);
+                if (DEFAULT_VRECT_MIN <= VRECT_DYN) {
                     mWipowerManager.startCharging();
+                    isChargePortSet = true;
+                }
+            }
+            if (isChargePortSet) {
+                if ((byte)(value[PRU_ALERT] & CHARGE_PORT_MASK) == CHARGE_PORT_MASK) {
+                    if ((value[IRECT_LSB] <= IRECT_MASK_LSB && value[IRECT_MSB] == IRECT_MASK_MSB)
+                         && (value[VRECT_LSB] > VRECT_MASK || value[VRECT_MSB] > VRECT_MASK)) {
+                         mWipowerManager.startCharging();
+                    }
                 }
             }
         }
@@ -744,11 +778,25 @@ public class A4wpService extends Service
                     }
                     value = mPruDynamicParam.getValue();
                     if (mChargeComplete == true) {
-                        value[16] = (byte)(value[16] | CHARGE_COMPLETE_BIT);
+                        value[PRU_ALERT] = (byte)(value[PRU_ALERT] | CHARGE_COMPLETE_BIT);
                     } else {
-                        value[16] = (byte)(value[16] & (~CHARGE_COMPLETE_BIT));
+                        value[PRU_ALERT] = (byte)(value[PRU_ALERT] & (~CHARGE_COMPLETE_BIT));
                     }
-                    isChargeEnabled(value);
+                    chkDynParamsAndStartCharging(value);
+                    if ((byte)(value[PRU_ALERT] & CHARGE_PORT_MASK) == CHARGE_PORT_MASK) {
+                        value[VRECT_MIN_LSB] = (byte)(LSB_MASK & DEFAULT_VRECT_SET);
+                        value[VRECT_MIN_MSB] = (byte)((MSB_MASK & DEFAULT_VRECT_SET) >> 8);
+                        value[VRECT_SET_LSB] = (byte)(LSB_MASK & DEFAULT_VRECT_SET);
+                        value[VRECT_SET_MSB] = (byte)((MSB_MASK & DEFAULT_VRECT_SET) >> 8);
+                        value[VRECT_MAX_LSB] = (byte)(LSB_MASK & DEFAULT_VRECT_MAX);
+                        value[VRECT_MAX_MSB] = (byte)((MSB_MASK & DEFAULT_VRECT_MAX) >> 8);
+                        value[OPTIONAL_FIELDS] = (byte)OPTIONAL_FIELD_MASK;
+                    } else {
+                        value[VRECT_MIN_LSB] = (byte)(LSB_MASK & VRECT_MIN_CHG_DISABLED);
+                        value[VRECT_MIN_MSB] = (byte)((MSB_MASK & VRECT_MIN_CHG_DISABLED) >> 8);
+                        value[VRECT_SET_LSB] = (byte)(LSB_MASK & VRECT_MIN_CHG_DISABLED);
+                        value[VRECT_SET_MSB] = (byte)((MSB_MASK & VRECT_MIN_CHG_DISABLED) >> 8);
+                    }
                 }
                 if (value != null)
                 {
