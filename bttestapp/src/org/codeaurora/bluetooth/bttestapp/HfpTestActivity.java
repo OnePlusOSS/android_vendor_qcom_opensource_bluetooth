@@ -359,6 +359,13 @@ public class HfpTestActivity extends MonkeyActivity implements IBluetoothConnect
         filter.addAction(BluetoothHeadsetClient.ACTION_RESULT);
         filter.addAction(BluetoothHeadsetClient.ACTION_LAST_VTAG);
         registerReceiver(mHfpClientReceiver, filter);
+        if (mBluetoothHeadsetClient != null &&
+                mBluetoothHeadsetClient.getConnectionState(mDevice) !=
+                BluetoothProfile.STATE_CONNECTED) {
+            Logger.v(TAG, "No device is connected");
+            super.onResume();
+            return;
+        }
         if (mBluetoothHeadsetClient != null) {
             for (BluetoothHeadsetClientCall call : mCalls.values()) {
                 call.setState(BluetoothHeadsetClientCall.CALL_STATE_TERMINATED);
