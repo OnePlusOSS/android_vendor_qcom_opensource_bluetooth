@@ -9,6 +9,7 @@
     <uses-permission android:name="android.permission.BLUETOOTH_STACK" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.RECEIVE_BLUETOOTH_MAP" />
+    <uses-permission android:name="android.permission.ACCESS_BLUETOOTH_AVRCP_CT_DATA" />
 
     <uses-sdk
         android:minSdkVersion="17"
