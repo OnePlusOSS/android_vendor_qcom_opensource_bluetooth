@@ -80,6 +80,7 @@ public class A4wpService extends Service
     private static OutputStream mOutputStream = null;
     private BluetoothAdapter mBluetoothAdapter = null;
     private BluetoothGattServer mBluetoothGattServer = null;
+    private BluetoothGattCharacteristic mPruAlertChar = null;
     private BluetoothDevice mDevice = null;
     private PowerManager.WakeLock mWakeLock = null;
 
@@ -96,7 +97,7 @@ public class A4wpService extends Service
     private static final UUID A4WP_PRU_STATIC_UUID = UUID.fromString("6455e673-a146-11e2-9e96-0800200c9a67");
     private static final UUID A4WP_PRU_DYNAMIC_UUID = UUID.fromString("6455e674-a146-11e2-9e96-0800200c9a67");
 
-    private static final UUID A4WP_PRU_ALERT_DESC_UUID = UUID.fromString("6455e675-a146-11e2-9e96-0800200c9a67");
+    private static final UUID A4WP_PRU_ALERT_DESC_UUID = UUID.fromString("64552902-a146-11e2-9e96-0800200c9a67");
 
     private static final Object mLock = new Object();
     private int mState = BluetoothProfile.STATE_DISCONNECTED;
@@ -128,6 +129,7 @@ public class A4wpService extends Service
     //PRU Write param length for validation
     private static final byte A4WP_PTU_STATIC_LENGTH = 0x11;
     private static final byte A4WP_PRU_CTRL_LENGTH = 0x05;
+    private static final byte CCCD_LENGTH = 0x02; // Client Characteristic Configuration Declaration length
 
     //Advertisement interval values.
     private static final byte A4WP_ADV_MIN_INTERVAL = 0x20;
@@ -299,21 +301,78 @@ public class A4wpService extends Service
     }
 
     private class PruAlert {
-       private byte mAlert;
+        private final int PRU_ALERT_NOTIFY_BIT = 0x0100; // Notify bit in CCCD
+        private boolean mEnablePruAlerts       = false;  // Are PRU Alerts enabled
+        private byte mAlert;
 
-       public PruAlert(byte value) {
-           mAlert = value;
-       }
+        public PruAlert(byte value) {
+            mAlert = value;
+            mEnablePruAlerts = false;
+        }
 
-       public void setValue(byte value) {
-           mAlert = value;
-       }
+        public void setValue(byte value) {
+            mAlert = value;
+        }
 
-       public byte[] getValue() {
-           byte[] res = new byte[1];
-           res[0] = mAlert;
-           return res;
-       }
+        public byte[] getValue() {
+            byte[] res = new byte[1];
+            res[0] = mAlert;
+            return res;
+        }
+
+        // Handle the CCCD Write for Notifications/Indications from PTU
+        private int processPruAlertRequest(byte[] value) {
+            int   status  = 0;
+            int intValue= 0;
+            intValue = ((value[0]<< 8) & 0x0000ff00) | ((value[1] << 0) & 0x000000ff);
+
+            Log.v(LOGTAG, "processPruAlertRequest. Value: " + intValue);
+
+            if ((intValue & PRU_ALERT_NOTIFY_BIT) == PRU_ALERT_NOTIFY_BIT) {
+                Log.v(LOGTAG, "processPruAlertRequest. PRU Alerts Enabled");
+                mEnablePruAlerts  = true;
+                mWipowerManager.enableAlertNotification(true);
+            } else {
+                mWipowerManager.enableAlertNotification(false);
+                mEnablePruAlerts  = false;
+            }
+
+            return status;
+        } // end of processPruAlertRequest
+
+        // Send Notification/Indications to PTU
+        private int sendPruAlert(byte alertValue) {
+            int status  = 0;
+            byte[] alertVal = {0};
+
+            Log.v(LOGTAG, "sendPruAlert. Value: " + alertValue);
+
+            if (mEnablePruAlerts == false)
+            {
+                Log.v(LOGTAG, "sendPruAlert. PRU Alerts are Disabled");
+                return status;
+            }
+
+            if (mPruAlertChar == null)
+            {
+                Log.v(LOGTAG, "sendPruAlert. Alert characteristic is NULL");
+                return status;
+            }
+
+            if (alertValue == 0)
+            {
+                Log.v(LOGTAG, "sendPruAlert. No alerts to send");
+                return status;
+            }
+
+            alertVal[0] = alertValue;
+            mPruAlertChar.setValue(alertVal);
+            mBluetoothGattServer.notifyCharacteristicChanged(mDevice,
+                mPruAlertChar, false);
+
+            return status;
+        } // end of sendPruAlert
+
     }
 
     private class PtuStaticParam {
@@ -514,7 +573,6 @@ public class A4wpService extends Service
                 acquire_wake_lock(true);
             }
             if (mOutputControl == true) {
-                mWipowerManager.enableAlertNotification(false);
                 mWipowerManager.enableDataNotification(true);
             }
             mOutputControl = true;
@@ -613,7 +671,7 @@ public class A4wpService extends Service
 
         @Override
         public void onWipowerAlert(WipowerAlert alert) {
-            Log.v(LOGTAG, "onWipowerAlert");
+            Log.v(LOGTAG, "onWipowerAlert: " + alert);
             byte alertVal = 0;
             if (alert == WipowerAlert.ALERT_OVER_VOLTAGE) {
                 Log.v(LOGTAG, "Over Voltage");
@@ -643,6 +701,8 @@ public class A4wpService extends Service
                 Log.v(LOGTAG, "Alert charge port");
                 alertVal |= CHARGE_PORT;
             }
+
+            mPruAlert.sendPruAlert(alertVal);
         }
 
 
@@ -707,6 +767,7 @@ public class A4wpService extends Service
                 {
                      status = processPtuStaticParam(value);
                 }
+
                 if (responseNeeded == true) {
                     mBluetoothGattServer.sendResponse(device, requestId, status,
                                        offset, value);
@@ -733,6 +794,28 @@ public class A4wpService extends Service
                      Log.v(LOGTAG, "device=" + id + "requestId=" + requestId + "status=" + status + "offset=" + offset + "value=" + value[0]);
                      mBluetoothGattServer.sendResponse(device, requestId, status, offset, value);
                 }
+        }
+
+        @Override
+        public void onDescriptorWriteRequest(BluetoothDevice device, int requestId,
+                BluetoothGattDescriptor descriptor, boolean preparedWrite,
+                boolean responseNeeded, int offset,  byte[] value) {
+
+                int status = 0;
+                UUID id = descriptor.getUuid();
+                Log.v(LOGTAG, "onDescriptorWriteRequest() - descriptor" + id);
+                if ((id == A4WP_PRU_ALERT_DESC_UUID) && (value.length == CCCD_LENGTH))
+                {
+                    mDevice = device; // save the device as Notifications may need to be generated anytime now
+                    status = mPruAlert.processPruAlertRequest(value);
+                } else
+                {
+                    Log.v(LOGTAG, "onDescriptorWriteRequest() - Invalid descriptor: " + id + " OR length: " + value.length);
+                }
+
+                if (responseNeeded == true)
+                    mBluetoothGattServer.sendResponse(device, requestId, status,
+                                       offset, value);
         }
 
         /*a> Due to bad coupling irect value drops to zero and vrect remains
@@ -771,11 +854,7 @@ public class A4wpService extends Service
                 int status = 0;
 
                 Log.v(LOGTAG, "onCharacteristicReadRequest:" + id);
-                if (id == A4WP_PRU_ALERT_UUID)
-                {
-                    value = mPruAlert.getValue();
-                }
-                else if(id == A4WP_PRU_STATIC_UUID)
+                if(id == A4WP_PRU_STATIC_UUID)
                 {
                     mWipowerManager.enablePowerApply(false, false, false);
                     value = mPruStaticParam.getValue();
@@ -917,7 +996,7 @@ public class A4wpService extends Service
                 BluetoothGattCharacteristic.PERMISSION_WRITE |
                 BluetoothGattCharacteristic.PERMISSION_READ);
 
-        BluetoothGattCharacteristic pruAlert = new BluetoothGattCharacteristic(
+        mPruAlertChar = new BluetoothGattCharacteristic(
                 A4WP_PRU_ALERT_UUID,
                 BluetoothGattCharacteristic.PROPERTY_READ | BluetoothGattCharacteristic.PROPERTY_NOTIFY,
                 BluetoothGattCharacteristic.PERMISSION_READ );
@@ -938,14 +1017,14 @@ public class A4wpService extends Service
                 BluetoothGattCharacteristic.PERMISSION_READ |
                 BluetoothGattCharacteristic.PERMISSION_WRITE);
 
-        pruAlert.addDescriptor(pruAlertDesc);
+        mPruAlertChar.addDescriptor(pruAlertDesc);
 
         BluetoothGattService a4wpService = new BluetoothGattService(
                 A4WP_SERVICE_UUID, BluetoothGattService.SERVICE_TYPE_PRIMARY);
 
         a4wpService.addCharacteristic(pruControl);
         a4wpService.addCharacteristic(ptuStatic);
-        a4wpService.addCharacteristic(pruAlert);
+        a4wpService.addCharacteristic(mPruAlertChar);
         a4wpService.addCharacteristic(pruStatic);
         a4wpService.addCharacteristic(pruDynamic);
 
@@ -974,7 +1053,7 @@ public class A4wpService extends Service
         //Initialize PRU Static param
         mPruStaticParam = new PruStaticParam();
         mPruDynamicParam = new WipowerDynamicParam();
-        mPruAlert = new PruAlert((byte)1);
+        mPruAlert = new PruAlert((byte)0);
 
         mWipowerManager = WipowerManager.getWipowerManger(this, mWipowerCallback);
         if (mWipowerManager != null)
