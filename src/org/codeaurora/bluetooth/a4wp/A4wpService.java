@@ -61,7 +61,6 @@ import com.quicinc.wbc.WbcManager;
 import com.quicinc.wbc.WbcTypes;
 import android.os.Handler;
 import android.os.HandlerThread;
-import android.os.Looper;
 import android.os.Message;
 
 import android.bluetooth.le.AdvertiseCallback;
@@ -87,7 +86,6 @@ public class A4wpService extends Service
     // Advertising variables
     private final static int START_ADVERTISING = 1;
     private final static int STOP_ADVERTISING = 0;
-    private WipowerAdvHandler mHandler;
 
     private static final UUID A4WP_SERVICE_UUID = UUID.fromString("6455fffe-a146-11e2-9e96-0800200c9a67");
     //PRU writes
@@ -166,25 +164,6 @@ public class A4wpService extends Service
     private BluetoothLeAdvertiser mAdvertiser;
     private AdvertiseCallback mAdvertiseCallback = new myAdvertiseCallback(1);
     ParcelUuid uuid1 = ParcelUuid.fromString("6455fffe-a146-11e2-9e96-0800200c9a67");
-
-    // Handler to maintain advertisement messages
-    private final class WipowerAdvHandler extends Handler {
-        private WipowerAdvHandler(Looper looper) {
-            super(looper);
-        }
-
-       @Override
-        public void handleMessage(Message msg) {
-           switch (msg.what) {
-               case START_ADVERTISING:
-                   StartAdvertising();
-                   break;
-               case STOP_ADVERTISING:
-                   stopAdvertising();
-                   break;
-           }
-        }
-    }
 
     private WbcManager.WbcEventListener mWbcCallback = new WbcManager.WbcEventListener() {
 
@@ -535,9 +514,6 @@ public class A4wpService extends Service
                 acquire_wake_lock(true);
             }
             if (mOutputControl == true) {
-                Log.v(LOGTAG, "StopAdvertising on connect");
-                Message msg = mHandler.obtainMessage(STOP_ADVERTISING);
-                mHandler.sendMessage(msg);
                 mWipowerManager.enableAlertNotification(false);
                 mWipowerManager.enableDataNotification(true);
             }
@@ -601,6 +577,7 @@ public class A4wpService extends Service
         @Override
         public void onWipowerReady() {
             Log.v(LOGTAG, "onWipowerReady");
+            mWipowerManager.enablePowerApply(false, false, false);
             if (mChargeComplete == true) {
                 mWipowerManager.enablePowerApply(true, true, true);
             } else {
@@ -616,12 +593,9 @@ public class A4wpService extends Service
 
         @Override
         public void onPowerApply(PowerApplyEvent state) {
-            Log.v(LOGTAG, "onPowerApply" + state);
-            if (state == PowerApplyEvent.ON) {
-                Log.v(LOGTAG, "StartAdvertising");
-                Message msg = mHandler.obtainMessage(START_ADVERTISING);
-                mHandler.sendMessage(msg);
 
+            if (state == PowerApplyEvent.ON) {
+                Log.v(LOGTAG, "onPowerApply" + state);
             } else {
                 if (mBluetoothGattServer != null && mDevice != null) {
                     Log.v(LOGTAG, "onPowerApply " + state + "dropping Connection");
@@ -780,6 +754,7 @@ public class A4wpService extends Service
                 }
                 else if(id == A4WP_PRU_STATIC_UUID)
                 {
+                    mWipowerManager.enablePowerApply(false, false, false);
                     value = mPruStaticParam.getValue();
                     mDevice = device;
                     /* Initiate a dummy connection such that on stop advertisment
@@ -844,6 +819,14 @@ public class A4wpService extends Service
         @Override
         public void onStartSuccess(AdvertiseSettings settingsInEffect) {
             Log.d(LOGTAG, "advertise success " + mIndex);
+            if (mWipowerManager != null) {
+                mWipowerManager.enablePowerApply(false, false, false);
+                if (mChargeComplete == true) {
+                    mWipowerManager.enablePowerApply(true, true, true);
+                } else {
+                    mWipowerManager.enablePowerApply(true, true, false);
+                }
+            }
         }
 
         @Override
@@ -871,8 +854,7 @@ public class A4wpService extends Service
         mAdvertiseSettings = new AdvertiseSettings.Builder()
             .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY)
             .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
-            .setConnectable(true)
-            .setTimeout(WIPOWER_ADV_TIMEOUT).build();
+            .setConnectable(true).build();
 
         Log.d(LOGTAG, " Calling mAdvertiser.startAdvertising");
         if(mAdvertiser != null)
@@ -946,6 +928,8 @@ public class A4wpService extends Service
 
 
         mBluetoothGattServer.addService(a4wpService);
+        Log.d(LOGTAG, "calling StartAdvertising");
+        StartAdvertising();
 
         return true;
     }
@@ -977,11 +961,6 @@ public class A4wpService extends Service
             Log.v(LOGTAG, "onCreate: charge complete " + mChargeComplete);
             mWbcManager.register(mWbcCallback);
         }
-        // Starting a thread to handle the advertising
-        HandlerThread thread = new HandlerThread("WipowerAdvHandler");
-        thread.start();
-        Looper looper = thread.getLooper();
-        mHandler = new WipowerAdvHandler(looper);
     }
 
     @Override
@@ -994,12 +973,6 @@ public class A4wpService extends Service
         if(SystemProperties.getBoolean("persist.a4wp.skipwakelock", false) == false) {
             //release wake lock during BT-OFF.
             acquire_wake_lock(false);
-        }
-
-        // Clear thread on destroy
-        Looper looper = mHandler.getLooper();
-        if (looper != null) {
-           looper.quit();
         }
     }
 
