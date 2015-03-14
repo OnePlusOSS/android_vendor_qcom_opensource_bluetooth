@@ -96,7 +96,7 @@ public class A4wpService extends Service
     private static final UUID A4WP_PRU_STATIC_UUID = UUID.fromString("6455e673-a146-11e2-9e96-0800200c9a67");
     private static final UUID A4WP_PRU_DYNAMIC_UUID = UUID.fromString("6455e674-a146-11e2-9e96-0800200c9a67");
 
-    private static final UUID A4WP_PRU_ALERT_DESC_UUID = UUID.fromString("6455e672-a146-11e2-9e96-0800200c9a67");
+    private static final UUID A4WP_PRU_ALERT_DESC_UUID = UUID.fromString("6455e675-a146-11e2-9e96-0800200c9a67");
 
     private static final Object mLock = new Object();
     private int mState = BluetoothProfile.STATE_DISCONNECTED;
@@ -712,6 +712,29 @@ public class A4wpService extends Service
                                        offset, value);
                 }
         }
+
+        @Override
+        public void onDescriptorReadRequest(BluetoothDevice device, int requestId,
+                        int offset, BluetoothGattDescriptor descriptor) {
+
+                UUID id = descriptor.getUuid();
+                byte[] value = {0};
+                int status = 0;
+
+                Log.v(LOGTAG, "onDescriptorReadRequest() - descriptor" + id);
+                if (id == A4WP_PRU_ALERT_DESC_UUID)
+                {
+                    value = mPruAlert.getValue();
+                }
+
+
+                if (value != null)
+                {
+                     Log.v(LOGTAG, "device=" + id + "requestId=" + requestId + "status=" + status + "offset=" + offset + "value=" + value[0]);
+                     mBluetoothGattServer.sendResponse(device, requestId, status, offset, value);
+                }
+        }
+
         /*a> Due to bad coupling irect value drops to zero and vrect remains
           constant would render stark to reset the CHG_OK pin, So as to
           set this pin on coupling being recovered host delivers the charge
@@ -951,6 +974,7 @@ public class A4wpService extends Service
         //Initialize PRU Static param
         mPruStaticParam = new PruStaticParam();
         mPruDynamicParam = new WipowerDynamicParam();
+        mPruAlert = new PruAlert((byte)1);
 
         mWipowerManager = WipowerManager.getWipowerManger(this, mWipowerCallback);
         if (mWipowerManager != null)
