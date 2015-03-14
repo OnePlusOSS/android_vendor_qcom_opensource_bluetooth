@@ -53,7 +53,6 @@ import java.nio.ByteBuffer;
 import android.wipower.WipowerManager;
 import android.wipower.WipowerManagerCallback;
 import android.wipower.WipowerManager.WipowerState;
-import android.wipower.WipowerManager.WipowerAlert;
 import android.wipower.WipowerManager.PowerApplyEvent;
 import android.wipower.WipowerManager.PowerLevel;
 import android.wipower.WipowerDynamicParam;
@@ -177,6 +176,12 @@ public class A4wpService extends Service
                     // this will set charge complete bit in pru alert
                     // eventally leading to a possible disconnect from ptu
                     mChargeComplete = true;
+                    if (mPruAlert != null)
+                    {
+                       byte  alert = 0;
+                       alert = (byte) (alert | CHARGE_COMPLETE_BIT);
+                       mPruAlert.sendPruAlert(alert);
+                    }
                 } else {
                     // We could be in 600mS scan state here and since charging needs to be resumed
                     // send enable power apply command to scan for short beacons */
@@ -619,13 +624,7 @@ public class A4wpService extends Service
         return status;
     }
 
-    private static final int OVER_VOLT_BIT = 0x80;
-    private static final byte OVER_CURR_BIT = 0x40;
-    private static final byte OVER_TEMP_BIT = 0x20;
-    private static final byte SELF_PROT_BIT = 0x10;
     private static final byte CHARGE_COMPLETE_BIT = 0x08;
-    private static final byte WIRED_CHARGE_DETECT = 0x04;
-    private static final byte CHARGE_PORT = 0x02;
 
     /**
      * Wipower callbacks
@@ -670,39 +669,9 @@ public class A4wpService extends Service
         }
 
         @Override
-        public void onWipowerAlert(WipowerAlert alert) {
-            Log.v(LOGTAG, "onWipowerAlert: " + alert);
-            byte alertVal = 0;
-            if (alert == WipowerAlert.ALERT_OVER_VOLTAGE) {
-                Log.v(LOGTAG, "Over Voltage");
-                alertVal |= OVER_VOLT_BIT&0xff;
-            }
-            else if (alert == WipowerAlert.ALERT_OVER_CURRENT) {
-                Log.v(LOGTAG, "Over Current");
-                alertVal |= OVER_CURR_BIT;
-            }
-            else if (alert == WipowerAlert.ALERT_OVER_TEMPERATURE) {
-                Log.v(LOGTAG, "Over Temperature");
-                alertVal |= OVER_TEMP_BIT;
-            }
-            else if (alert == WipowerAlert.ALERT_SELF_PROTECTION) {
-                Log.v(LOGTAG, "PRU self protection ON");
-                alertVal |= SELF_PROT_BIT;
-            }
-            else if (alert == WipowerAlert.ALERT_CHARGE_COMPLETE) {
-                Log.v(LOGTAG, "Charge complete alert ");
-                alertVal |= CHARGE_COMPLETE_BIT;
-            }
-            else if (alert == WipowerAlert.ALERT_WIRED_CHARGER_DETECTED) {
-                Log.v(LOGTAG, "Wired charger detected");
-                alertVal |= WIRED_CHARGE_DETECT;
-            }
-            else if (alert == WipowerAlert.ALERT_CHARGE_PORT) {
-                Log.v(LOGTAG, "Alert charge port");
-                alertVal |= CHARGE_PORT;
-            }
-
-            mPruAlert.sendPruAlert(alertVal);
+        public void onWipowerAlert(byte alert) {
+            Log.v(LOGTAG, "onWipowerAlert: " + alert + " alert recieved");
+            mPruAlert.sendPruAlert(alert);
         }
 
 
