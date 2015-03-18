@@ -186,7 +186,8 @@ public class A4wpService extends Service
                     // We could be in 600mS scan state here and since charging needs to be resumed
                     // send enable power apply command to scan for short beacons */
                     mChargeComplete = false;
-                    mWipowerManager.enablePowerApply(true, true, false);
+                    if ((mState == BluetoothProfile.STATE_DISCONNECTED) && (mWipowerManager != null))
+                        mWipowerManager.enablePowerApply(true, true, false);
                 }
             }
             Log.v(LOGTAG, "onWbcEventUpdate: charge complete " +  mChargeComplete);
@@ -369,6 +370,19 @@ public class A4wpService extends Service
                 Log.v(LOGTAG, "sendPruAlert. No alerts to send");
                 return status;
             }
+
+            if (mDevice == null)
+            {
+                Log.v(LOGTAG, "sendPruAlert. mDevice is NULL");
+                return status;
+            }
+
+            if (mState != BluetoothProfile.STATE_CONNECTED)
+            {
+                Log.v(LOGTAG, "sendPruAlert. Not CONNECTED");
+                return status;
+            }
+
 
             alertVal[0] = alertValue;
             mPruAlertChar.setValue(alertVal);
@@ -587,9 +601,6 @@ public class A4wpService extends Service
                 mWipowerManager.enablePowerApply(true, true, true);
             }
             mWipowerManager.stopCharging();
-            if(SystemProperties.getBoolean("persist.a4wp.skipwakelock", false) == false) {
-                acquire_wake_lock(false);
-            }
             isChargePortSet = false;
             mOutputControl = false;
             return status;
@@ -697,10 +708,10 @@ public class A4wpService extends Service
         @Override
         public void onConnectionStateChange(BluetoothDevice device, int status, int newState) {
             WipowerState state = WipowerState.OFF;
-            mState = newState;
-            if (mState == BluetoothProfile.STATE_DISCONNECTED) {
+            if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 if (mWipowerManager != null  && device.equals(mDevice)) {
-                    Log.v(LOGTAG, "onConnectionStateChange:DISCONNECTED " + device + "charge complete " + mChargeComplete);
+                    Log.v(LOGTAG, "onConnectionStateChange:DISCONNECTED PrevState:" + " Device:" + device + " ChargeComplete:" + mChargeComplete);
+                    mState = newState;
                     mWipowerManager.enableDataNotification(false);
                     mWipowerManager.stopCharging();
                     if (mChargeComplete != true) {
@@ -713,7 +724,7 @@ public class A4wpService extends Service
                     mDevice = null;
                 }
                 isChargePortSet = false;
-            } else if (mState == BluetoothProfile.STATE_CONNECTED) {
+            } else if (newState == BluetoothProfile.STATE_CONNECTED) {
                 Log.v(LOGTAG, "onConnectionStateChange:CONNECTED");
             }
         }
@@ -828,6 +839,7 @@ public class A4wpService extends Service
                     mWipowerManager.enablePowerApply(false, false, false);
                     value = mPruStaticParam.getValue();
                     mDevice = device;
+                    mState = BluetoothProfile.STATE_CONNECTED;
                     /* Initiate a dummy connection such that on stop advertisment
                        the advetisment instances are cleared properly */
                     mBluetoothGattServer.connect(mDevice, false);
