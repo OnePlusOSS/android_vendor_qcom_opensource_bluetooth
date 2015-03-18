@@ -495,12 +495,12 @@ public class A4wpService extends Service
          public byte mPermission;
          public byte mTimeSet;
          public short mReserved;
-         public PruControl (byte[] value) {
-             mEnable = (byte)value[0];
-             mPermission = (byte)value[1];
-             mTimeSet = (byte)value[2];
-             mReserved = (short)(value[3] & 0xFF);
-             mReserved = (short)((value[4] & 0xFF) << 8);
+         public PruControl () {
+             mEnable = 0x0;
+             mPermission = 0x0;
+             mTimeSet = 0x0;
+             mReserved = 0x0;
+             mReserved = 0x0;
          }
 
          public void print() {
@@ -508,6 +508,25 @@ public class A4wpService extends Service
              Log.v(LOGTAG, "mPermission: " +  toHex(mPermission));
              Log.v(LOGTAG, "mTimeSet: " +  toHex(mTimeSet));
              Log.v(LOGTAG, "mReserved: " +  toHex(mReserved));
+         }
+
+         public void setValue(byte[] value) {
+             mEnable = (byte)value[0];
+             mPermission = (byte)value[1];
+             mTimeSet = (byte)value[2];
+             mReserved = (short)(value[3] & 0xFF);
+             mReserved = (short)((value[4] & 0xFF) << 8);
+             return;
+         }
+
+         public byte[] getValue() {
+             byte[] res = new byte[5];
+             res[0] = mEnable;
+             res[1] = mPermission;
+             res[2] = mTimeSet;
+             res[3] = (byte)(LSB_MASK & mReserved);
+             res[4] = (byte)(MSB_MASK & mReserved);;
+             return res;
          }
 
          public boolean getEnablePruOutput() {
@@ -558,6 +577,7 @@ public class A4wpService extends Service
     };
 
     private PruAlert mPruAlert;
+    private PruControl mPruControl;
     private PruStaticParam mPruStaticParam; //20 bytes
     private PtuStaticParam mPtuStaticParam; //20 bytes
     private static WipowerDynamicParam mPruDynamicParam; //20 bytes
@@ -576,15 +596,20 @@ public class A4wpService extends Service
         int status = 0;
 
         Log.v(LOGTAG, "processPruControl>");
-        PruControl control = new PruControl(value);
-        control.print();
+        if (value != null) {
+            mPruControl.setValue(value);
+        } else {
+            Log.e(LOGTAG, "control value is null");
+            return status;
+        }
+        mPruControl.print();
 
         if (mWipowerManager == null) {
             Log.e(LOGTAG, "mWipowerManager is null");
             return status;
         }
 
-        if (control.getEnablePruOutput()) {
+        if (mPruControl.getEnablePruOutput()) {
             Log.v(LOGTAG, "do Enable PruOutPut");
             /* Wake lock is enabled by default, to disbale need to set property */
             if(SystemProperties.getBoolean("persist.a4wp.skipwakelock", false) == false) {
@@ -606,13 +631,13 @@ public class A4wpService extends Service
             return status;
         }
 
-        if (control.getEnableCharger()) {
+        if (mPruControl.getEnableCharger()) {
             Log.v(LOGTAG, "do Enable Charging");
         } else {
             Log.v(LOGTAG, "do Disable Charging");
         }
 
-        PowerLevel val = control.getReducePower();
+        PowerLevel val = mPruControl.getReducePower();
         if (val == PowerLevel.POWER_LEVEL_MAXIMUM) {
             Log.v(LOGTAG, "put to Max Power");
         } else if (val == PowerLevel.POWER_LEVEL_MEDIUM){
@@ -872,10 +897,15 @@ public class A4wpService extends Service
                         value[VRECT_SET_MSB] = (byte)((MSB_MASK & VRECT_MIN_CHG_DISABLED) >> 8);
                     }
                 }
-                if (value != null)
-                {
-                     Log.v(LOGTAG, "device=" + id + "requestId=" + requestId + "status=" + status + "offset=" + offset + "value=" + value[16]);
-                     mBluetoothGattServer.sendResponse(device, requestId, status, offset, value);
+                else if (id == A4WP_PRU_CTRL_UUID) {
+                    if (mPruControl == null) {
+                         Log.e(LOGTAG, "mPruControl is NULL");
+                         return;
+                    }
+                   value = mPruControl.getValue();
+                }
+                if (mBluetoothGattServer != null) {
+                    mBluetoothGattServer.sendResponse(device, requestId, status, offset, value);
                 }
         }
 
@@ -1035,6 +1065,7 @@ public class A4wpService extends Service
         mPruStaticParam = new PruStaticParam();
         mPruDynamicParam = new WipowerDynamicParam();
         mPruAlert = new PruAlert((byte)0);
+        mPruControl = new PruControl();
 
         mWipowerManager = WipowerManager.getWipowerManger(this, mWipowerCallback);
         if (mWipowerManager != null)
