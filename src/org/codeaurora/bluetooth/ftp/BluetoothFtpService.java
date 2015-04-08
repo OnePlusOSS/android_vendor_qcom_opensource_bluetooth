@@ -414,6 +414,14 @@ public class BluetoothFtpService extends Service {
                 initSocketOK = false;
             }
             if (!initSocketOK) {
+                     // Need to break out of this loop if BT is being turned off.
+                if (mAdapter == null) break;
+                int state = mAdapter.getState();
+                if ((state != BluetoothAdapter.STATE_TURNING_ON) &&
+                        (state != BluetoothAdapter.STATE_ON)) {
+                    Log.w(TAG, "initRfcommServerSocket failed as BT is (being) turned off");
+                    break;
+                }
                 synchronized (this) {
                     try {
                         Log.v(TAG, "wait 300 ms");
