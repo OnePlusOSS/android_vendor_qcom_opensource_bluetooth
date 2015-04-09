@@ -111,6 +111,10 @@ public class HfpTestActivity extends MonkeyActivity implements IBluetoothConnect
                 mIndicatorsFragment.onConnStateChanged(state, prevState);
 
                 if (state == BluetoothProfile.STATE_CONNECTED) {
+                    Logger.v(TAG, "device " + device + " mDevice " + mDevice);
+                    if (!device.equals(mDevice)) {
+                        mDevice = device;
+                    }
                     Handler handler = new Handler();
                     handler.postDelayed(new Runnable(){
                         @Override
