@@ -1039,7 +1039,10 @@ public class BluetoothSapService extends Service {
                         IpcMsgBuffer.put(SAP_IPC_MSG_OFF_MSG_LEN + 1, TempByte);
                         try {
                             mSapdOutputStream.write(IpcMsgBuffer.array(), 0, TotalRead + SAP_IPC_HEADER_SIZE);
+                            mSapdOutputStream.flush();
                         } catch (IOException ex) {
+                            IntExit = true;
+                            if (VERBOSE) Log.v(TAG, "sapd write exception: " + ex.toString());
                             break;
                         }
                         // reset the TotalRead
@@ -1076,6 +1079,8 @@ public class BluetoothSapService extends Service {
 
             // Intimate the Settings APP about the disconnection
             handleSapDeviceStateChange(mRemoteDevice, BluetoothProfile.STATE_DISCONNECTED);
+
+            if (VERBOSE) Log.v(TAG, "IntExit = " + IntExit + "stopped = " + stopped);
 
             if (IntExit && !stopped) {
                 if (VERBOSE) Log.v(TAG, "starting the listener thread ");
@@ -1230,8 +1235,10 @@ public class BluetoothSapService extends Service {
         IpcMsgBuffer.putShort(SAP_IPC_MSG_OFF_MSG_LEN,SAP_IPC_CTRL_MSG_SIZE);
         IpcMsgBuffer.put(SAP_IPC_MSG_OFF_MSG, SAP_CRTL_MSG_DISCONNECT_REQ);
         try {
-            if (mSapdOutputStream != null)
+            if (mSapdOutputStream != null) {
                 mSapdOutputStream.write(IpcMsgBuffer.array(), 0, WriteLen);
+                mSapdOutputStream.flush();
+            }
         } catch (IOException ex) {
             if (VERBOSE) Log.v(TAG, "mSapdOutputStream wrtie exception: " + ex.toString());
         }
@@ -1259,8 +1266,10 @@ public class BluetoothSapService extends Service {
         IpcMsgBuffer.putShort(SAP_IPC_MSG_OFF_MSG_LEN,SAP_IPC_CTRL_MSG_SIZE);
         IpcMsgBuffer.put(SAP_IPC_MSG_OFF_MSG, SAP_CRTL_MSG_DISCONNECT_REQ_IMM);
         try {
-            if (mSapdOutputStream != null)
+            if (mSapdOutputStream != null) {
                 mSapdOutputStream.write(IpcMsgBuffer.array(), 0, WriteLen);
+                mSapdOutputStream.flush();
+            }
         } catch (IOException ex) {
             if (VERBOSE) Log.v(TAG, "mSapdOutputStream wrtie exception: " + ex.toString());
         }
