@@ -110,9 +110,9 @@ public class A4wpService extends Service
     private final static byte DEFAULT_HW_VERSION = 0x0007;
     private final static byte DEFAULT_FW_VERSION = 0x0006;
     private final static byte DEFAULT_MAX_POWER_DESIRED = 0x0032;  // 5Watts
-    private final static short DEFAULT_VRECT_MIN = 7000;       // 7 Volts
+    private final static short DEFAULT_VRECT_MIN = 7100;       // 7.1 Volts
     private final static short DEFAULT_VRECT_MAX = 19300;       // 19.3 Volts
-    private final static short DEFAULT_VRECT_SET = 7200;       // 7.2 Volts
+    private final static short DEFAULT_VRECT_SET = 7100;       // 7.1 Volts
     private final static short DEFAULT_DELTA_R1 = 0x0001;
     private final static int DEFAULT_RFU_VAL = 0x0000;
     private static final int MSB_MASK = 0xFF00;
@@ -789,6 +789,7 @@ public class A4wpService extends Service
                     mDevice = null;
                 }
                 isChargePortSet = false;
+                mPruDynamicParam.resetValues();
             } else if (newState == BluetoothProfile.STATE_CONNECTED) {
                 Log.v(LOGTAG, "onConnectionStateChange:CONNECTED");
             }
@@ -891,14 +892,14 @@ public class A4wpService extends Service
                     } else {
                         value[PRU_ALERT] = (byte)(value[PRU_ALERT] & (~CHARGE_COMPLETE_BIT));
                     }
+                    value[OPTIONAL_FIELDS] = (byte)OPTIONAL_FIELD_MASK;
+                    value[VRECT_MAX_LSB] = (byte)(LSB_MASK & DEFAULT_VRECT_MAX);
+                    value[VRECT_MAX_MSB] = (byte)((MSB_MASK & DEFAULT_VRECT_MAX) >> 8);
                     if ((byte)(value[PRU_ALERT] & CHARGE_PORT_MASK) == CHARGE_PORT_MASK) {
                         value[VRECT_MIN_LSB] = (byte)(LSB_MASK & DEFAULT_VRECT_SET);
                         value[VRECT_MIN_MSB] = (byte)((MSB_MASK & DEFAULT_VRECT_SET) >> 8);
                         value[VRECT_SET_LSB] = (byte)(LSB_MASK & DEFAULT_VRECT_SET);
                         value[VRECT_SET_MSB] = (byte)((MSB_MASK & DEFAULT_VRECT_SET) >> 8);
-                        value[VRECT_MAX_LSB] = (byte)(LSB_MASK & DEFAULT_VRECT_MAX);
-                        value[VRECT_MAX_MSB] = (byte)((MSB_MASK & DEFAULT_VRECT_MAX) >> 8);
-                        value[OPTIONAL_FIELDS] = (byte)OPTIONAL_FIELD_MASK;
                     } else {
                         value[VRECT_MIN_LSB] = (byte)(LSB_MASK & VRECT_MIN_CHG_DISABLED);
                         value[VRECT_MIN_MSB] = (byte)((MSB_MASK & VRECT_MIN_CHG_DISABLED) >> 8);
