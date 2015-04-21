@@ -159,12 +159,32 @@ public class A4wpService extends Service
     private static boolean isChargePortSet = false;
     static boolean mChargeComplete = true;
     static boolean mOutputControl = true;
+    private static boolean mDiscInitiated = false; // If TRUE, means A4WP app has initiated the disconnection with PTU
+    private static boolean mEnablePruAlerts = false;  // Are PRU Alerts enabled
 
     private AdvertiseSettings mAdvertiseSettings;
     private AdvertiseData mAdvertisementData;
     private BluetoothLeAdvertiser mAdvertiser;
     private AdvertiseCallback mAdvertiseCallback = new myAdvertiseCallback(1);
     ParcelUuid uuid1 = ParcelUuid.fromString("6455fffe-a146-11e2-9e96-0800200c9a67");
+
+    private synchronized void initiateDisconnection() {
+        Log.v(LOGTAG, "initiateDisconnection:" + " mDiscInitiated:" + mDiscInitiated + " mState:" + mState);
+        if ((mDiscInitiated == false) && (mState == BluetoothProfile.STATE_CONNECTED))
+        {
+            if (mBluetoothGattServer != null && mDevice != null) {
+                Log.v(LOGTAG, "initiateDisconnection:" + " dropping Connection");
+                mDiscInitiated = true;
+                mBluetoothGattServer.cancelConnection(mDevice);
+                if (mChargeComplete == true) {
+                    mWipowerManager.enablePowerApply(true, true, true);
+                } else {
+                    mWipowerManager.enablePowerApply(true, true, false);
+                }
+            }
+        }
+        return;
+    }
 
     private WbcManager.WbcEventListener mWbcCallback = new WbcManager.WbcEventListener() {
 
@@ -188,6 +208,10 @@ public class A4wpService extends Service
                     mChargeComplete = false;
                     if ((mState == BluetoothProfile.STATE_DISCONNECTED) && (mWipowerManager != null))
                         mWipowerManager.enablePowerApply(true, true, false);
+                }
+            } else if (what == WbcTypes.WBC_EVENT_TYPE_PTU_PRESENCE_STATUS) {
+                if (arg1 == WbcTypes.WBC_PTU_STATUS_NOT_PRESENT) {
+                    initiateDisconnection();
                 }
             }
             Log.v(LOGTAG, "onWbcEventUpdate: charge complete " +  mChargeComplete);
@@ -308,7 +332,6 @@ public class A4wpService extends Service
 
     private class PruAlert {
         private final int PRU_ALERT_NOTIFY_BIT = 0x0100; // Notify bit in CCCD
-        private boolean mEnablePruAlerts       = false;  // Are PRU Alerts enabled
         private byte mAlert;
 
         public PruAlert(byte value) {
@@ -616,9 +639,6 @@ public class A4wpService extends Service
                 /* Hold wake lock during connection */
                 acquire_wake_lock(true);
             }
-            if (mOutputControl == true) {
-                mWipowerManager.enableDataNotification(true);
-            }
             mOutputControl = true;
         } else {
             Log.v(LOGTAG, "do Disable PruOutPut");
@@ -686,21 +706,10 @@ public class A4wpService extends Service
 
         @Override
         public void onPowerApply(PowerApplyEvent state) {
+            Log.v(LOGTAG, "onPowerApply:" + state);
 
-            if (state == PowerApplyEvent.ON) {
-                Log.v(LOGTAG, "onPowerApply" + state);
-            } else {
-                if (mBluetoothGattServer != null && mDevice != null) {
-                    Log.v(LOGTAG, "onPowerApply " + state + "dropping Connection");
-                    mBluetoothGattServer.cancelConnection(mDevice);
-                    if (mChargeComplete == true) {
-                        mWipowerManager.enablePowerApply(true, true, true);
-                    } else {
-                        mWipowerManager.enablePowerApply(true, true, false);
-                    }
-                } else {
-                    Log.v(LOGTAG, "onPowerApply " + state + "skip dropping Connection");
-                }
+            if (state == PowerApplyEvent.OFF) {
+                initiateDisconnection();
             }
         }
 
@@ -737,7 +746,10 @@ public class A4wpService extends Service
                 if (mWipowerManager != null  && device.equals(mDevice)) {
                     Log.v(LOGTAG, "onConnectionStateChange:DISCONNECTED PrevState:" + " Device:" + device + " ChargeComplete:" + mChargeComplete);
                     mState = newState;
+                    mDiscInitiated = false;
                     mWipowerManager.enableDataNotification(false);
+                    mWipowerManager.enableAlertNotification(false);
+                    mEnablePruAlerts  = false;
                     mWipowerManager.stopCharging();
                     if (mChargeComplete != true) {
                         mWipowerManager.enablePowerApply(true, true, false);
@@ -869,6 +881,7 @@ public class A4wpService extends Service
                        the advetisment instances are cleared properly */
                     mBluetoothGattServer.connect(mDevice, false);
                     mOutputControl = true;
+                    mWipowerManager.enableDataNotification(true);
                 }
                 else if (id == A4WP_PRU_DYNAMIC_UUID) {
                     if (mPruDynamicParam == null) {
