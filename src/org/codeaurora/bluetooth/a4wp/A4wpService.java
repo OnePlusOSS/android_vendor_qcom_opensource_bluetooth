@@ -158,7 +158,7 @@ public class A4wpService extends Service
     private static boolean mWipowerBoot = false;
     private static boolean isChargePortSet = false;
     static boolean mChargeComplete = true;
-    static boolean mOutputControl = true;
+    static boolean mOutputControl = false;
     private static boolean mDiscInitiated = false; // If TRUE, means A4WP app has initiated the disconnection with PTU
     private static boolean mEnablePruAlerts = false;  // Are PRU Alerts enabled
 
@@ -167,6 +167,33 @@ public class A4wpService extends Service
     private BluetoothLeAdvertiser mAdvertiser;
     private AdvertiseCallback mAdvertiseCallback = new myAdvertiseCallback(1);
     ParcelUuid uuid1 = ParcelUuid.fromString("6455fffe-a146-11e2-9e96-0800200c9a67");
+
+    /*a> Due to bad coupling irect value drops to zero and vrect remains
+      constant would render stark to reset the CHG_OK pin, So as to
+      set this pin on coupling being recovered host delivers the charge
+      enable command to set the CHG_OK pin.
+      b> Charge port needs to be enabled only if the vrect value is greater
+      than the Vmin values */
+    private void chkDynParamsAndStartCharging(byte[] value)
+    {
+        VRECT_DYN = 0x00;
+        if (!isChargePortSet) {
+            VRECT_DYN = (short)toUnsigned(value[VRECT_LSB]);
+            VRECT_DYN |= (short)(toUnsigned(value[VRECT_MSB]) << 8);
+            if (DEFAULT_VRECT_MIN <= VRECT_DYN && mOutputControl) {
+                mWipowerManager.startCharging();
+                isChargePortSet = true;
+            }
+        }
+        if (isChargePortSet) {
+            if ((byte)(value[PRU_ALERT] & CHARGE_PORT_MASK) == CHARGE_PORT_MASK) {
+                if ((value[IRECT_LSB] <= IRECT_MASK_LSB && value[IRECT_MSB] == IRECT_MASK_MSB)
+                     && (value[VRECT_LSB] > VRECT_MASK || value[VRECT_MSB] > VRECT_MASK)) {
+                     mWipowerManager.startCharging();
+                }
+            }
+        }
+    }
 
     private synchronized void initiateDisconnection() {
         Log.v(LOGTAG, "initiateDisconnection:" + " mDiscInitiated:" + mDiscInitiated + " mState:" + mState);
@@ -724,7 +751,7 @@ public class A4wpService extends Service
         public void onWipowerData(WipowerDynamicParam data) {
             Log.v(LOGTAG, "onWipowerData Alert");
             byte[] value = data.getValue();
-
+            chkDynParamsAndStartCharging(value);
             Log.v(LOGTAG, "calling SetValue");
             mPruDynamicParam.setValue(value);
         }
@@ -747,6 +774,7 @@ public class A4wpService extends Service
                     Log.v(LOGTAG, "onConnectionStateChange:DISCONNECTED PrevState:" + " Device:" + device + " ChargeComplete:" + mChargeComplete);
                     mState = newState;
                     mDiscInitiated = false;
+                    mOutputControl = false;
                     mWipowerManager.enableDataNotification(false);
                     mWipowerManager.enableAlertNotification(false);
                     mEnablePruAlerts  = false;
@@ -835,33 +863,6 @@ public class A4wpService extends Service
                                        offset, value);
         }
 
-        /*a> Due to bad coupling irect value drops to zero and vrect remains
-          constant would render stark to reset the CHG_OK pin, So as to
-          set this pin on coupling being recovered host delivers the charge
-          enable command to set the CHG_OK pin.
-          b> Charge port needs to be enabled only if the vrect value is greater
-          than the Vmin values */
-        private void chkDynParamsAndStartCharging(byte[] value)
-        {
-            VRECT_DYN = 0x00;
-            if (!isChargePortSet) {
-                VRECT_DYN = (short)toUnsigned(value[VRECT_LSB]);
-                VRECT_DYN |= (short)(toUnsigned(value[VRECT_MSB]) << 8);
-                if (DEFAULT_VRECT_MIN <= VRECT_DYN && mOutputControl) {
-                    mWipowerManager.startCharging();
-                    isChargePortSet = true;
-                }
-            }
-            if (isChargePortSet) {
-                if ((byte)(value[PRU_ALERT] & CHARGE_PORT_MASK) == CHARGE_PORT_MASK) {
-                    if ((value[IRECT_LSB] <= IRECT_MASK_LSB && value[IRECT_MSB] == IRECT_MASK_MSB)
-                         && (value[VRECT_LSB] > VRECT_MASK || value[VRECT_MSB] > VRECT_MASK)) {
-                         mWipowerManager.startCharging();
-                    }
-                }
-            }
-        }
-
         @Override
         public void onCharacteristicReadRequest(BluetoothDevice device, int requestId,
                         int offset, BluetoothGattCharacteristic characteristic) {
@@ -871,16 +872,12 @@ public class A4wpService extends Service
                 int status = 0;
 
                 Log.v(LOGTAG, "onCharacteristicReadRequest:" + id);
-                if(id == A4WP_PRU_STATIC_UUID)
+                if(id == A4WP_PRU_STATIC_UUID && mState == BluetoothProfile.STATE_DISCONNECTED)
                 {
                     mWipowerManager.enablePowerApply(false, false, false);
                     value = mPruStaticParam.getValue();
                     mDevice = device;
                     mState = BluetoothProfile.STATE_CONNECTED;
-                    /* Initiate a dummy connection such that on stop advertisment
-                       the advetisment instances are cleared properly */
-                    mBluetoothGattServer.connect(mDevice, false);
-                    mOutputControl = true;
                     mWipowerManager.enableDataNotification(true);
                 }
                 else if (id == A4WP_PRU_DYNAMIC_UUID) {
@@ -894,7 +891,6 @@ public class A4wpService extends Service
                     } else {
                         value[PRU_ALERT] = (byte)(value[PRU_ALERT] & (~CHARGE_COMPLETE_BIT));
                     }
-                    chkDynParamsAndStartCharging(value);
                     if ((byte)(value[PRU_ALERT] & CHARGE_PORT_MASK) == CHARGE_PORT_MASK) {
                         value[VRECT_MIN_LSB] = (byte)(LSB_MASK & DEFAULT_VRECT_SET);
                         value[VRECT_MIN_MSB] = (byte)((MSB_MASK & DEFAULT_VRECT_SET) >> 8);
@@ -1102,6 +1098,8 @@ public class A4wpService extends Service
             //release wake lock during BT-OFF.
             acquire_wake_lock(false);
         }
+        mOutputControl = false;
+        isChargePortSet = false;
     }
 
     @Override
