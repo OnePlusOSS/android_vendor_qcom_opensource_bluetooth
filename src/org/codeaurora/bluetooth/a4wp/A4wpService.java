@@ -106,13 +106,13 @@ public class A4wpService extends Service
     private final static short DEFAULT_RFU = 0x0000;
     //03 if MTP, Has to be 04 for fluid.
     private final static byte DEFAULT_CATEGORY = 0x0003;
-    private final static byte DEFAULT_CAPABILITIES = 0x0010;
+    private final static byte DEFAULT_CAPABILITIES = 0x00;
     private final static byte DEFAULT_HW_VERSION = 0x0007;
     private final static byte DEFAULT_FW_VERSION = 0x0006;
     private final static byte DEFAULT_MAX_POWER_DESIRED = 0x0032;  // 5Watts
     private final static short DEFAULT_VRECT_MIN = 7100;       // 7.1 Volts
     private final static short DEFAULT_VRECT_MAX = 19300;       // 19.3 Volts
-    private final static short DEFAULT_VRECT_SET = 7100;       // 7.1 Volts
+    private final static short DEFAULT_VRECT_SET = 7200;       // 7.2 Volts
     private final static short DEFAULT_DELTA_R1 = 0x0001;
     private final static int DEFAULT_RFU_VAL = 0x0000;
     private static final int MSB_MASK = 0xFF00;
@@ -229,6 +229,8 @@ public class A4wpService extends Service
                        alert = (byte) (alert | CHARGE_COMPLETE_BIT);
                        mPruAlert.sendPruAlert(alert);
                     }
+                    if ((mState == BluetoothProfile.STATE_DISCONNECTED) && (mWipowerManager != null))
+                        mWipowerManager.enablePowerApply(true, true, true);
                 } else {
                     // We could be in 600mS scan state here and since charging needs to be resumed
                     // send enable power apply command to scan for short beacons */
@@ -612,12 +614,13 @@ public class A4wpService extends Service
                     0x81 Denied due to limited affordable power
                     0x82 Denied due to limited PTU Number of Devices
                     0x83 Denied due to limited PTU Class support
+                    All other values: RFU
           */
          public boolean getPermission() {
 
              Log.v(LOGTAG, "getPermission" + mPermission);
-             if ((mPermission&0x80) == 0x80) return false;
-             else return true;
+             if (mPermission == 0x00) return true;
+             else return false;
          }
 
          /* returns time in ms */
@@ -659,7 +662,7 @@ public class A4wpService extends Service
             return status;
         }
 
-        if (mPruControl.getEnablePruOutput()) {
+        if (mPruControl.getEnablePruOutput() && mPruControl.getPermission())  {
             Log.v(LOGTAG, "do Enable PruOutPut");
             /* Wake lock is enabled by default, to disbale need to set property */
             if(SystemProperties.getBoolean("persist.a4wp.skipwakelock", false) == false) {
@@ -669,9 +672,6 @@ public class A4wpService extends Service
             mOutputControl = true;
         } else {
             Log.v(LOGTAG, "do Disable PruOutPut");
-            if (mChargeComplete == true) {
-                mWipowerManager.enablePowerApply(true, true, true);
-            }
             mWipowerManager.stopCharging();
             isChargePortSet = false;
             mOutputControl = false;
@@ -781,6 +781,8 @@ public class A4wpService extends Service
                     mWipowerManager.stopCharging();
                     if (mChargeComplete != true) {
                         mWipowerManager.enablePowerApply(true, true, false);
+                    } else {
+                        mWipowerManager.enablePowerApply(true, true, true);
                     }
                     if(SystemProperties.getBoolean("persist.a4wp.skipwakelock", false) == false) {
                         /* Drop wake lock once the connection is dropped gracefully */
@@ -896,8 +898,8 @@ public class A4wpService extends Service
                     value[VRECT_MAX_LSB] = (byte)(LSB_MASK & DEFAULT_VRECT_MAX);
                     value[VRECT_MAX_MSB] = (byte)((MSB_MASK & DEFAULT_VRECT_MAX) >> 8);
                     if ((byte)(value[PRU_ALERT] & CHARGE_PORT_MASK) == CHARGE_PORT_MASK) {
-                        value[VRECT_MIN_LSB] = (byte)(LSB_MASK & DEFAULT_VRECT_SET);
-                        value[VRECT_MIN_MSB] = (byte)((MSB_MASK & DEFAULT_VRECT_SET) >> 8);
+                        value[VRECT_MIN_LSB] = (byte)(LSB_MASK & DEFAULT_VRECT_MIN);
+                        value[VRECT_MIN_MSB] = (byte)((MSB_MASK & DEFAULT_VRECT_MIN) >> 8);
                         value[VRECT_SET_LSB] = (byte)(LSB_MASK & DEFAULT_VRECT_SET);
                         value[VRECT_SET_MSB] = (byte)((MSB_MASK & DEFAULT_VRECT_SET) >> 8);
                     } else {
