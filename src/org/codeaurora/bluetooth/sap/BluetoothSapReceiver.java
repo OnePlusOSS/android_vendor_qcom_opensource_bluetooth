@@ -34,6 +34,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
 import android.os.SystemProperties;
+import android.os.UserHandle;
+import android.os.UserManager;
+import android.app.ActivityManager;
+import android.app.ActivityThread;
+import android.content.pm.UserInfo;
+import android.os.Binder;
+import android.os.Process;
 
 public class BluetoothSapReceiver extends BroadcastReceiver {
 
@@ -41,10 +48,42 @@ public class BluetoothSapReceiver extends BroadcastReceiver {
 
     private static final boolean V = BluetoothSapService.VERBOSE;
 
+    public static boolean checkCaller() {
+        boolean ok;
+        // Get the caller's user id then clear the calling identity
+        // which will be restored in the finally clause.
+        int callingUser = UserHandle.getCallingUserId();
+        int callingUid = Binder.getCallingUid();
+        long ident = Binder.clearCallingIdentity();
+
+        try {
+            // With calling identity cleared the current user is the foreground user.
+            int foregroundUser = ActivityManager.getCurrentUser();
+            ok = (foregroundUser == callingUser);
+            if (!ok) {
+                // Always allow SystemUI/System access.
+                int systemUiUid = ActivityThread.getPackageManager().getPackageUid(
+                        "com.android.systemui", UserHandle.USER_OWNER);
+                ok = (systemUiUid == callingUid) || (Process.SYSTEM_UID == callingUid);
+            }
+        } catch (Exception ex) {
+            Log.e(TAG, "checkIfCallerIsSelfOrForegroundUser: Exception ex=" + ex);
+            ok = false;
+        } finally {
+            Binder.restoreCallingIdentity(ident);
+        }
+        return ok;
+    }
+
     @Override
     public void onReceive(Context context, Intent intent) {
 
         if(SystemProperties.getBoolean("ro.bluetooth.sap", false) == false) {
+            return;
+        }
+
+        if (!checkCaller()) {
+            Log.w(TAG, "onReceive received for non-active user, ignoring");
             return;
         }
 
