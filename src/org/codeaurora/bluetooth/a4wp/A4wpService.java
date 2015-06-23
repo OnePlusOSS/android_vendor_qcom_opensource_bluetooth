@@ -203,6 +203,7 @@ public class A4wpService extends Service
                 Log.v(LOGTAG, "initiateDisconnection:" + " dropping Connection");
                 mDiscInitiated = true;
                 mBluetoothGattServer.cancelConnection(mDevice);
+                mWipowerManager.enablePowerApply(false, false, false);
                 if (mChargeComplete == true) {
                     mWipowerManager.enablePowerApply(true, true, true);
                 } else {
@@ -219,6 +220,7 @@ public class A4wpService extends Service
         public void onWbcEventUpdate(int what, int arg1, int arg2) {
             Log.v(LOGTAG, "onWbcEventUpdate rcvd: " + what + ", " + arg1 + ", " + arg2);
             if ((what == WbcTypes.WBC_EVENT_TYPE_CHARGING_REQUIRED_STATUS)){
+                mWipowerManager.enablePowerApply(false, false, false);
                 if ((arg1 == WbcTypes.WBC_BATTERY_STATUS_CHARGING_NOT_REQUIRED)){
                     // this will set charge complete bit in pru alert
                     // eventally leading to a possible disconnect from ptu
@@ -779,6 +781,7 @@ public class A4wpService extends Service
                     mWipowerManager.enableAlertNotification(false);
                     mEnablePruAlerts  = false;
                     mWipowerManager.stopCharging();
+                    mWipowerManager.enablePowerApply(false, false, false);
                     if (mChargeComplete != true) {
                         mWipowerManager.enablePowerApply(true, true, false);
                     } else {
