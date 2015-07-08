@@ -33,7 +33,7 @@ import android.app.ListFragment;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothHeadsetClient;
-import android.bluetooth.BluetoothMasInstance;
+import android.bluetooth.SdpMasRecord;
 import android.bluetooth.BluetoothProfile;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -126,10 +126,10 @@ public class ServicesFragment extends ListFragment {
 
             } else if (ProfileService.ACTION_MAP_CONNECTION_STATE.equals(action)) {
                 connState = intent.getBooleanExtra(ProfileService.EXTRA_CONNECTED, false);
-                BluetoothMasInstance inst = intent
-                        .getParcelableExtra(BluetoothDevice.EXTRA_MAS_INSTANCE);
+                SdpMasRecord masrec = intent
+                        .getParcelableExtra(BluetoothDevice.EXTRA_SDP_RECORD);
 
-                Service srv = new Service(Service.Type.MAP, inst);
+                Service srv = new Service(Service.Type.MAP, masrec);
                 idx = mAdapter.getItemPos(srv);
 
                 if (idx < 0) {
@@ -140,10 +140,10 @@ public class ServicesFragment extends ListFragment {
 
             } else if (ProfileService.ACTION_MAP_NOTIFICATION_STATE.equals(action)) {
                 notifState = intent.getBooleanExtra(ProfileService.EXTRA_NOTIFICATION_STATE, false);
-                BluetoothMasInstance inst = intent
-                        .getParcelableExtra(BluetoothDevice.EXTRA_MAS_INSTANCE);
+                SdpMasRecord masrec = intent
+                        .getParcelableExtra(BluetoothDevice.EXTRA_SDP_RECORD);
 
-                Service srv = new Service(Service.Type.MAP, inst);
+                Service srv = new Service(Service.Type.MAP, masrec);
                 idx = mAdapter.getItemPos(srv);
 
                 if (idx < 0) {
@@ -187,7 +187,7 @@ public class ServicesFragment extends ListFragment {
 
         final Type mType;
 
-        final BluetoothMasInstance mMasInstance;
+        final SdpMasRecord mSdpMasRecord;
 
         enum Type {
             HFP("Hands-Free Profile (AG)"),
@@ -202,9 +202,9 @@ public class ServicesFragment extends ListFragment {
             }
         }
 
-        Service(Type type, BluetoothMasInstance masInstance) {
+        Service(Type type, SdpMasRecord masRecord) {
             mType = type;
-            mMasInstance = masInstance;
+            mSdpMasRecord = masRecord;
         }
 
         @Override
@@ -214,7 +214,7 @@ public class ServicesFragment extends ListFragment {
             }
 
             if (mType.equals(Type.MAP)) {
-                return mMasInstance.equals(((Service) srv).mMasInstance);
+                return mSdpMasRecord.equals(((Service) srv).mSdpMasRecord);
             }
 
             return true;
@@ -265,7 +265,7 @@ public class ServicesFragment extends ListFragment {
 
             TextView txtTitle = (TextView) v.findViewById(R.id.service_title);
             if (srv.mType.equals(Service.Type.MAP)) {
-                txtTitle.setText(srv.mMasInstance.getName());
+                txtTitle.setText(srv.mSdpMasRecord.getServiceName());
             } else {
                 txtTitle.setText("");
             }
@@ -350,7 +350,7 @@ public class ServicesFragment extends ListFragment {
 
                     case MAP: {
                         BluetoothMasClient cli = mActivity.mProfileService
-                                .getMapClient(srv.mMasInstance.getId());
+                                .getMapClient(srv.mSdpMasRecord.getMasInstanceId());
 
                         swNotif.setEnabled(false);
 
@@ -422,8 +422,8 @@ public class ServicesFragment extends ListFragment {
             return -1;
         }
 
-        public void addService(Service.Type type, BluetoothMasInstance masInstance) {
-            Service srv = new Service(type, masInstance);
+        public void addService(Service.Type type, SdpMasRecord masRecord) {
+            Service srv = new Service(type, masRecord);
 
             if (!mServices.contains(srv)) {
                 mServices.add(srv);
@@ -478,7 +478,7 @@ public class ServicesFragment extends ListFragment {
 
                     case MAP:
                         BluetoothMasClient cli = mActivity.mProfileService
-                            .getMapClient(srv.mMasInstance.getId());
+                            .getMapClient(srv.mSdpMasRecord.getMasInstanceId());
                         if(cli != null ) {
                             if (isChecked) {
                                 if (buttonView.getId() == R.id.service_switch) {
@@ -570,7 +570,7 @@ public class ServicesFragment extends ListFragment {
 
             case MAP:
                 intent = new Intent(getActivity(), MapTestActivity.class);
-                intent.putExtra(ProfileService.EXTRA_MAP_INSTANCE_ID, srv.mMasInstance.getId());
+                intent.putExtra(ProfileService.EXTRA_MAP_INSTANCE_ID, srv.mSdpMasRecord.getMasInstanceId());
                 break;
 
             case AVRCP:
@@ -590,8 +590,8 @@ public class ServicesFragment extends ListFragment {
         startActivity(intent);
     }
 
-    public void addService(Service.Type type, BluetoothMasInstance masInstance) {
-        mAdapter.addService(type, masInstance);
+    public void addService(Service.Type type, SdpMasRecord masRecord) {
+        mAdapter.addService(type, masRecord);
     }
 
     public void removeService(Service.Type type) {
@@ -612,11 +612,14 @@ public class ServicesFragment extends ListFragment {
 
                 jsrv.put("type", srv.mType);
 
-                if (srv.mMasInstance != null) {
-                    jsrv.put("i_id", srv.mMasInstance.getId());
-                    jsrv.put("i_name", srv.mMasInstance.getName());
-                    jsrv.put("i_scn", srv.mMasInstance.getChannel());
-                    jsrv.put("i_msg", srv.mMasInstance.getMsgTypes());
+                if (srv.mSdpMasRecord != null) {
+                    jsrv.put("i_id", srv.mSdpMasRecord.getMasInstanceId());
+                    jsrv.put("i_l2capPsm", srv.mSdpMasRecord.getL2capPsm());
+                    jsrv.put("i_scn", srv.mSdpMasRecord.getRfcommCannelNumber());
+                    jsrv.put("i_version", srv.mSdpMasRecord.getProfileVersion());
+                    jsrv.put("i_supFeat", srv.mSdpMasRecord.getSupportedFeatures());
+                    jsrv.put("i_msg", srv.mSdpMasRecord.getSupportedMessageTypes());
+                    jsrv.put("i_name", srv.mSdpMasRecord.getServiceName());
                 }
 
                 json.put(jsrv);
@@ -632,8 +635,6 @@ public class ServicesFragment extends ListFragment {
     public void restoreServices() {
         String str = getActivity().getPreferences(Context.MODE_PRIVATE).getString(
                 MainActivity.PREF_SERVICES, null);
-
-        ArrayList<BluetoothMasInstance> insts = new ArrayList<BluetoothMasInstance>();
 
         if (str == null) {
             return;
@@ -653,7 +654,7 @@ public class ServicesFragment extends ListFragment {
 
                 String stype = jsrv.getString("type");
                 Service.Type type = null;
-                BluetoothMasInstance inst = null;
+                SdpMasRecord rec = null;
 
                 for (Service.Type t : Service.Type.values()) {
                     if (t.name().equals(stype)) {
@@ -667,16 +668,19 @@ public class ServicesFragment extends ListFragment {
                 }
 
                 if (type.equals(Service.Type.MAP)) {
-                    inst = new BluetoothMasInstance(jsrv.getInt("i_id"), jsrv.getString("i_name"),
-                            jsrv.getInt("i_scn"), jsrv.getInt("i_msg"));
-                    insts.add(inst);
+                    rec = new SdpMasRecord(jsrv.getInt("i_id"), jsrv.getInt("i_l2capPsm"),
+                            jsrv.getInt("i_scn"), jsrv.getInt("i_version"),
+                            jsrv.getInt("i_supFeat"), jsrv.getInt("i_msg"),
+                            jsrv.getString("i_name"));
+                    mActivity.mProfileService.setMasInstances(rec);
+
                 }
 
-                mAdapter.addService(type, inst);
+                mAdapter.addService(type, rec);
             }
         } catch (JSONException e) {
         }
 
-        mActivity.mProfileService.setMasInstances(insts);
+
     }
 }

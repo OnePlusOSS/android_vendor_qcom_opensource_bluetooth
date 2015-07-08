@@ -31,7 +31,7 @@ package org.codeaurora.bluetooth.bttestapp;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothA2dpSink;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothMasInstance;
+import android.bluetooth.SdpMasRecord;
 import android.bluetooth.BluetoothProfile;
 import android.bluetooth.BluetoothUuid;
 import android.content.BroadcastReceiver;
@@ -45,6 +45,7 @@ import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Parcelable;
+import android.os.ParcelUuid;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -114,6 +115,7 @@ public class MainActivity extends MonkeyActivity {
 
                 if (uuids != null) {
                     for (Parcelable uuid : uuids) {
+                         Log.v(TAG, "Received UUID: " + uuid.toString());
                         if (BluetoothUuid.PBAP_PSE.equals(uuid)) {
                             mServicesFragment.addService(ServicesFragment.Service.Type.PBAP, null);
                         } else if (BluetoothUuid.Handsfree_AG.equals(uuid)) {
@@ -130,30 +132,34 @@ public class MainActivity extends MonkeyActivity {
                 mServicesFragment.persistServices();
 
                 if (mDiscoveryInProgress) {
-                    Log.v(TAG, "fetching MAS instances");
-                    mDevice.fetchMasInstances();
+                    Log.v(TAG, "Searching MAS instances");
+                    mDevice.sdpSearch(BluetoothUuid.MAS);
                 }
 
-            } else if (BluetoothDevice.ACTION_MAS_INSTANCE.equals(action)) {
+            } else if (action.equals(BluetoothDevice.ACTION_SDP_RECORD)){
                 BluetoothDevice dev = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                 if (!dev.equals(mDevice)) {
                     return;
                 }
 
-                ArrayList<BluetoothMasInstance> insts = intent
-                        .getParcelableArrayListExtra(BluetoothDevice.EXTRA_MAS_INSTANCE);
+                ParcelUuid uuid = intent.getParcelableExtra(BluetoothDevice.EXTRA_UUID);
+                Log.v(TAG, "Received UUID: " + uuid.toString());
+                Log.v(TAG, "expected UUID: " +
+                        BluetoothUuid.MAS.toString());
+                Log.v(TAG, "mDiscoveryInProgress: " + mDiscoveryInProgress);
+                if(uuid.equals(BluetoothUuid.MAS)){
+                    SdpMasRecord masrec = intent.getParcelableExtra(BluetoothDevice.EXTRA_SDP_RECORD);
+                    Log.v(TAG, "masrec: " + masrec);
 
-                if (insts != null) {
-                    mProfileService.setMasInstances(insts);
-
-                    for (BluetoothMasInstance inst : insts) {
-                        mServicesFragment.addService(ServicesFragment.Service.Type.MAP, inst);
+                    if (masrec != null) {
+                        mProfileService.setMasInstances(masrec);
+                        mServicesFragment.addService(ServicesFragment.Service.Type.MAP, masrec);
                     }
+
+                    mServicesFragment.persistServices();
+
+                    mDiscoveryInProgress = false;
                 }
-
-                mServicesFragment.persistServices();
-
-                mDiscoveryInProgress = false;
             }
         }
     };
@@ -218,7 +224,7 @@ public class MainActivity extends MonkeyActivity {
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(BluetoothDevice.ACTION_UUID);
-        filter.addAction(BluetoothDevice.ACTION_MAS_INSTANCE);
+        filter.addAction(BluetoothDevice.ACTION_SDP_RECORD);
         registerReceiver(mReceiver, filter);
 
         if (BluetoothAdapter.getDefaultAdapter().isEnabled() == false) {

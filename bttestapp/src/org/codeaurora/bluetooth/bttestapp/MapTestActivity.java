@@ -35,7 +35,7 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.DialogFragment;
 import android.app.FragmentTransaction;
-import android.bluetooth.BluetoothMasInstance;
+import android.bluetooth.SdpMasRecord;
 import android.content.ComponentName;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -210,9 +210,9 @@ public class MapTestActivity extends MonkeyActivity implements GetTextDialogList
             if(mProfileService != null) {
                 BluetoothMasClient cli = mProfileService.getMapClient(mMasInstanceId);
                 if (cli != null) {
-                    BluetoothMasInstance inst = cli.getInstanceData();
-                    if(inst != null)
-                      MapTestActivity.this.getActionBar().setSubtitle(inst.getName());
+                    SdpMasRecord masrec = cli.getInstanceData();
+                    if(masrec != null)
+                      MapTestActivity.this.getActionBar().setSubtitle(masrec.getServiceName());
                     }
             }
             mProfileService.setMapCallback(mMasInstanceId, new IMapServiceCallback() {

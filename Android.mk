@@ -20,7 +20,6 @@ LOCAL_SRC_FILES := \
 LOCAL_PACKAGE_NAME := BluetoothExt
 LOCAL_CERTIFICATE := platform
 LOCAL_JAVA_LIBRARIES := javax.obex
-LOCAL_JAVA_LIBRARIES += mms-common
 LOCAL_JAVA_LIBRARIES += telephony-common
 ifeq ($(BOARD_USES_WIPOWER),true)
 LOCAL_JAVA_LIBRARIES += com.quicinc.wbc

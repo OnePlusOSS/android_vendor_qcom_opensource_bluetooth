@@ -36,7 +36,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothHeadsetClient;
 import android.bluetooth.BluetoothAvrcpController;
-import android.bluetooth.BluetoothMasInstance;
+import android.bluetooth.SdpMasRecord;
 import android.bluetooth.BluetoothProfile;
 import android.bluetooth.BluetoothProfile.ServiceListener;
 import android.content.BroadcastReceiver;
@@ -254,15 +254,15 @@ public class ProfileService extends Service {
 
             if (msg.what == BluetoothMasClient.EVENT_CONNECT) {
                 Intent intent = new Intent(ACTION_MAP_CONNECTION_STATE);
-                intent.putExtra(BluetoothDevice.EXTRA_MAS_INSTANCE, new BluetoothMasInstance(
-                        msg.arg2, null, 0, 0));
+                intent.putExtra(BluetoothDevice.EXTRA_SDP_RECORD, new SdpMasRecord(
+                        msg.arg2, 0, 0, 0, 0, 0, null));
                 intent.putExtra(EXTRA_CONNECTED, success);
 
                 ProfileService.this.sendBroadcast(intent);
             } else if (msg.what == BluetoothMasClient.EVENT_SET_NOTIFICATION_REGISTRATION) {
                 Intent intent = new Intent(ACTION_MAP_NOTIFICATION_STATE);
-                intent.putExtra(BluetoothDevice.EXTRA_MAS_INSTANCE, new BluetoothMasInstance(
-                        msg.arg2, null, 0, 0));
+                intent.putExtra(BluetoothDevice.EXTRA_SDP_RECORD, new SdpMasRecord(
+                    msg.arg2, 0, 0, 0, 0, 0, null));
                 intent.putExtra(EXTRA_NOTIFICATION_STATE, ((Integer) msg.obj).intValue() != 0);
 
                 ProfileService.this.sendBroadcast(intent);
@@ -842,16 +842,14 @@ public class ProfileService extends Service {
         return mPbapSessionData;
     }
 
-    public void setMasInstances(ArrayList<BluetoothMasInstance> instances) {
-        for (BluetoothMasInstance inst : instances) {
+    public void setMasInstances(SdpMasRecord masrec) {
             // no need to recreate already existing MAS client
-            if (mMapClients.containsKey(inst.getId())) {
-                continue;
+            if (mMapClients.containsKey(masrec.getMasInstanceId())) {
+               return;
             }
 
-            BluetoothMasClient client = new BluetoothMasClient(mDevice, inst, mMapHandler);
-            mMapClients.put(inst.getId(), client);
-        }
+            BluetoothMasClient client = new BluetoothMasClient(mDevice, masrec, mMapHandler);
+            mMapClients.put(masrec.getMasInstanceId(), client);
     }
 
     public BluetoothMasClient getMapClient(int id) {
