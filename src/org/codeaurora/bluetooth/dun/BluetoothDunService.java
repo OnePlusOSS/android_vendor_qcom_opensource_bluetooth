@@ -64,6 +64,7 @@ import android.text.TextUtils;
 import android.content.ComponentName;
 import android.os.RemoteException;
 import org.codeaurora.bluetooth.R;
+import android.content.SharedPreferences;
 
 /**
  * Provides Bluetooth Dun profile, as a service in the BluetoothExt APK.
@@ -274,11 +275,17 @@ public class BluetoothDunService extends Service {
     private static final String ACCESS_AUTHORITY_CLASS =
         "com.android.settings.bluetooth.BluetoothPermissionRequest";
 
+    private static final String DUN_ACCESS_PERMISSION_PREFERENCE_FILE =
+            "dun_access_permission";
+
     private static final String BLUETOOTH_ADMIN_PERM =
                     android.Manifest.permission.BLUETOOTH_ADMIN;
 
     private static final String BLUETOOTH_PERM =
                     android.Manifest.permission.BLUETOOTH;
+
+    private static final String BLUETOOTH_PRIVILEGED =
+                    android.Manifest.permission.BLUETOOTH_PRIVILEGED;;
 
     @Override
     public void onCreate() {
@@ -494,10 +501,13 @@ public class BluetoothDunService extends Service {
 
             if (intent.getBooleanExtra(BluetoothDunService.DUN_EXTRA_ALWAYS_ALLOWED, false) == true) {
                   if(mRemoteDevice != null) {
-                     mRemoteDevice.setTrust(true);
-                     Log.v(TAG, "setTrust() TRUE " + mRemoteDevice.getName());
+                     setDunAccessPermission(mRemoteDevice,
+                        BluetoothDevice.ACCESS_ALLOWED);
+                     Log.v(TAG, "setDunAccessPermission() ACCESS_ALLOWED " +
+                        mRemoteDevice.getName());
                   }
             }
+
             /* start the uplink thread */
             startUplinkThread();
 
@@ -514,14 +524,12 @@ public class BluetoothDunService extends Service {
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                 if(device != null)
                     Log.d(TAG,"device: "+ device.getName());
-                if(mRemoteDevice != null)
-                    Log.d(TAG," Remtedevie: "+mRemoteDevice.getName());
-               if ((device != null) && (mRemoteDevice != null) && (device.equals(mRemoteDevice)) &&
-                    (mRemoteDevice.getTrustState()) && (intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE,
-                               BluetoothDevice.BOND_NONE) == BluetoothDevice.BOND_NONE)) {
 
-                   Log.d(TAG,"BOND_STATE_CHANGED REFRESH trustDevices"+ device.getName());
-                   mRemoteDevice.setTrust(false);
+               if ((device != null) &&
+                (intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE,
+                               BluetoothDevice.BOND_NONE) == BluetoothDevice.BOND_NONE)) {
+                   Log.d(TAG,"BOND_STATE_CHANGED REFRESH trustDevices "+ device.getName());
+                   setDunAccessPermission(device, BluetoothDevice.ACCESS_UNKNOWN);
                }
             }
 
@@ -874,15 +882,16 @@ public class BluetoothDunService extends Service {
                         Log.i(TAG, "getRemoteDevice() = null");
                         break;
                     }
-                    boolean trust = false;
-                    if (mRemoteDevice != null)
-                        trust = mRemoteDevice.getTrustState();
-                    if (VERBOSE) Log.v(TAG, "GetTrustState() = " + trust);
+                    int trust = BluetoothDevice.ACCESS_UNKNOWN;
 
-                    if (trust) {
+                    if (mRemoteDevice != null)
+                        trust = getDunAccessPermission(mRemoteDevice);
+                    if (VERBOSE) Log.v(TAG, "getDunAccessPermission() = " + trust);
+
+                    if (trust == BluetoothDevice.ACCESS_ALLOWED) {
                         /* start the uplink thread */
                         startUplinkThread();
-                    } else {
+                    } else if (trust == BluetoothDevice.ACCESS_UNKNOWN) {
                         createDunNotification(mRemoteDevice);
 
                         if (VERBOSE) Log.v(TAG, "incoming connection accepted from: "+ mRemoteDevice);
@@ -1300,6 +1309,31 @@ public class BluetoothDunService extends Service {
             Log.e(TAG, "Handled mDundOutputStream write exception: " + ex.toString());
         }
         return true;
+    }
+
+    int getDunAccessPermission(BluetoothDevice device) {
+        enforceCallingOrSelfPermission(BLUETOOTH_PERM, "Need BLUETOOTH permission");
+        SharedPreferences pref = getSharedPreferences(DUN_ACCESS_PERMISSION_PREFERENCE_FILE,
+                Context.MODE_PRIVATE);
+        if (!pref.contains(device.getAddress())) {
+            return BluetoothDevice.ACCESS_UNKNOWN;
+        }
+        return pref.getBoolean(device.getAddress(), false)
+                ? BluetoothDevice.ACCESS_ALLOWED : BluetoothDevice.ACCESS_REJECTED;
+    }
+
+    boolean setDunAccessPermission(BluetoothDevice device, int value) {
+        enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED,
+                                       "Need BLUETOOTH PRIVILEGED permission");
+        SharedPreferences pref = getSharedPreferences(DUN_ACCESS_PERMISSION_PREFERENCE_FILE,
+                Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = pref.edit();
+        if (value == BluetoothDevice.ACCESS_UNKNOWN) {
+            editor.remove(device.getAddress());
+        } else {
+            editor.putBoolean(device.getAddress(), value == BluetoothDevice.ACCESS_ALLOWED);
+        }
+        return editor.commit();
     }
 
     int getConnectionState(BluetoothDevice device) {

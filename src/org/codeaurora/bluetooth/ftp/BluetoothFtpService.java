@@ -60,7 +60,7 @@ import android.os.RemoteException;
 import android.provider.MediaStore;
 import javax.obex.ObexHelper;
 import android.bluetooth.BluetoothUuid;
-
+import android.content.SharedPreferences;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -144,7 +144,12 @@ public class BluetoothFtpService extends Service {
      */
     public static final String EXTRA_SESSION_KEY = "org.codeaurora.bluetooth.ftp.sessionkey";
 
+    private static final String FTP_ACCESS_PERMISSION_PREFERENCE_FILE =
+            "ftp_access_permission";
+
     private static final String BLUETOOTH_PERM = android.Manifest.permission.BLUETOOTH;
+
+    private static final String BLUETOOTH_PRIVILEGED = android.Manifest.permission.BLUETOOTH_PRIVILEGED;;
 
     private static final String BLUETOOTH_ADMIN_PERM = android.Manifest.permission.BLUETOOTH_ADMIN;
 
@@ -318,10 +323,11 @@ public class BluetoothFtpService extends Service {
 
             if (intent.getBooleanExtra(BluetoothFtpService.EXTRA_ALWAYS_ALLOWED, false)) {
                 if(mRemoteDevice != null) {
-                   mRemoteDevice.setTrust(true);
-                   Log.v(TAG, "setTrust() TRUE " + mRemoteDevice.getName());
+                   setFtpAccessPermission(mRemoteDevice, BluetoothDevice.ACCESS_ALLOWED);
+                   Log.v(TAG, "setFtpAccessPermission() ACCESS_ALLOWED " + mRemoteDevice.getName());
                 }
             }
+
             try {
                 if (mConnSocket != null) {
                     startObexServerSession();
@@ -356,6 +362,20 @@ public class BluetoothFtpService extends Service {
                 removeFtpNotification(NOTIFICATION_ID_ACCESS);
                 isWaitingAuthorization = false;
                 stopObexServerSession();
+            }
+        } else if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
+
+            if (intent.hasExtra(BluetoothDevice.EXTRA_DEVICE)) {
+                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                if(device != null)
+                    Log.d(TAG,"device: "+ device.getName());
+
+               if ((device != null) &&
+                (intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE,
+                               BluetoothDevice.BOND_NONE) == BluetoothDevice.BOND_NONE)) {
+                   Log.d(TAG,"BOND_STATE_CHANGED REFRESH trustDevices "+ device.getName());
+                   setFtpAccessPermission(device, BluetoothDevice.ACCESS_UNKNOWN);
+               }
             }
         } else {
             removeTimeoutMsg = false;
@@ -648,13 +668,14 @@ public class BluetoothFtpService extends Service {
                     }
                     mSessionStatusHandler.sendMessage(mSessionStatusHandler
                            .obtainMessage(MSG_INTERNAL_OBEX_RFCOMM_SESSION_UP));
-                        boolean trust = false;
+                    int trust = BluetoothDevice.ACCESS_UNKNOWN;
+
                     if (mRemoteDevice != null)
-                       trust = mRemoteDevice.getTrustState();
+                       trust = getFtpAccessPermission(mRemoteDevice);
 
-                    Log.v(RTAG, "GetTrustState() = " + trust);
+                    Log.v(RTAG, "getFtpAccessPermission() = " + trust);
 
-                    if (trust) {
+                    if (trust == BluetoothDevice.ACCESS_ALLOWED) {
                         try {
                             Log.i(RTAG, "incomming connection accepted from: "
                                 + sRemoteDeviceName + " automatically as trusted device");
@@ -663,7 +684,7 @@ public class BluetoothFtpService extends Service {
                             Log.e(RTAG, "catch exception starting obex server session"
                                     + ex.toString());
                         }
-                    } else {
+                    } else if (trust == BluetoothDevice.ACCESS_UNKNOWN) {
                         isWaitingAuthorization = true;
                         createFtpNotification(ACCESS_REQUEST_ACTION);
                         Log.i(RTAG, "waiting for authorization for connection from: "
@@ -770,6 +791,32 @@ public class BluetoothFtpService extends Service {
             }
         }
     };
+
+    int getFtpAccessPermission(BluetoothDevice device) {
+        enforceCallingOrSelfPermission(BLUETOOTH_PERM, "Need BLUETOOTH permission");
+        SharedPreferences pref = getSharedPreferences(FTP_ACCESS_PERMISSION_PREFERENCE_FILE,
+                Context.MODE_PRIVATE);
+        if (!pref.contains(device.getAddress())) {
+            return BluetoothDevice.ACCESS_UNKNOWN;
+        }
+        return pref.getBoolean(device.getAddress(), false)
+                ? BluetoothDevice.ACCESS_ALLOWED : BluetoothDevice.ACCESS_REJECTED;
+    }
+
+    boolean setFtpAccessPermission(BluetoothDevice device, int value) {
+        enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED,
+                                       "Need BLUETOOTH PRIVILEGED permission");
+        SharedPreferences pref = getSharedPreferences(FTP_ACCESS_PERMISSION_PREFERENCE_FILE,
+                Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = pref.edit();
+        if (value == BluetoothDevice.ACCESS_UNKNOWN) {
+            editor.remove(device.getAddress());
+        } else {
+            editor.putBoolean(device.getAddress(), value == BluetoothDevice.ACCESS_ALLOWED);
+        }
+        return editor.commit();
+    }
+
     private void createFtpNotification(String action) {
 
         NotificationManager nm = (NotificationManager)

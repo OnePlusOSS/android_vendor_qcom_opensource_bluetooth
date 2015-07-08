@@ -103,6 +103,19 @@ public class BluetoothFtpTransport implements ObexTransport {
     public boolean isSrmCapable() {
         return mType == TYPE_L2CAP;
     }
+
+    public int getMaxTransmitPacketSize() {
+        return -1;
+    }
+
+    public int getMaxReceivePacketSize() {
+        return -1;
+    }
+
+    public boolean isSrmSupported() {
+        return false;
+    }
+
 /*
     public boolean setDesiredAmpPolicy(int policy) {
         if (mSocket == null || mType != TYPE_L2CAP)

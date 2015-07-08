@@ -83,4 +83,15 @@ public class BluetoothFtpRfcommTransport implements ObexTransport {
         return true;
     }
 
+    public int getMaxTransmitPacketSize() {
+        return -1;
+    }
+
+    public int getMaxReceivePacketSize() {
+        return -1;
+    }
+
+    public boolean isSrmSupported() {
+        return false;
+    }
 }
