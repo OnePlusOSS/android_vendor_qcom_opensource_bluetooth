@@ -7,7 +7,6 @@ LOCAL_MODULE_TAGS := optional
 src_dirs:= src/org/codeaurora/bluetooth/btcservice \
            src/org/codeaurora/bluetooth/ftp \
            src/org/codeaurora/bluetooth/dun \
-           src/org/codeaurora/bluetooth/sap \
            src/org/codeaurora/bluetooth/pxpservice
 
 ifeq ($(BOARD_USES_WIPOWER),true)
