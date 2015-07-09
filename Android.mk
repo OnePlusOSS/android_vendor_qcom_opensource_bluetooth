@@ -1,4 +1,4 @@
-ifneq ($(TARGET_USES_AOSP),true)
+ifeq ($(TARGET_USES_AOSP),true)
 
 LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
