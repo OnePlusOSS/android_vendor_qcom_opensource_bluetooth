@@ -825,8 +825,24 @@ public class MapTestActivity extends MonkeyActivity implements GetTextDialogList
     }
 
     public void onClickGetFolderListing(View view) {
-        int count = Integer.parseInt(mEditTextMaxListCountFolders.getText().toString());
-        int offset = Integer.parseInt(mEditTextListStartOffsetFolders.getText().toString());
+        int count = 0;
+        int offset = 0;
+
+        try {
+            count = Integer.parseInt(mEditTextMaxListCountFolders.getText().toString());
+        } catch (NumberFormatException e) {
+            Toast.makeText(this,
+                   "Incorrect maxListCount. Default will be used",
+                         Toast.LENGTH_LONG).show();
+        }
+
+        try {
+            offset = Integer.parseInt(mEditTextListStartOffsetFolders.getText().toString());
+        } catch (NumberFormatException e) {
+            Toast.makeText(this,
+                   "Incorrect listStartOffset. Default will be used",
+                         Toast.LENGTH_LONG).show();
+        }
 
         if(mProfileService != null && (mProfileService.getMapClient(mMasInstanceId)) != null ){
             try {
