@@ -398,6 +398,8 @@ public class ProfileService extends Service {
 
         public final int MESSAGE_SHIFT_NOTIFICATION_ID = 20008;
 
+        public final int READ_STATUS_CHANGED_NOTIFICATION_ID = 20009;
+
         private final NotificationManager mNotificationManager;
 
         MapNotificationSender() {
@@ -432,6 +434,9 @@ public class ProfileService extends Service {
                     break;
                 case MESSAGE_SHIFT:
                     notifyMessageShift(eventReport);
+                    break;
+                case READ_STATUS_CHANGED:
+                    notifyReadStatusChanged(eventReport);
                     break;
                 default:
                     Log.e(TAG, "Unknown MAP report type (" + eventReport.getType().toString()
@@ -469,12 +474,25 @@ public class ProfileService extends Service {
             click.putExtra(EXTRA_MAP_INSTANCE_ID, instanceId);
             click.putExtra(EXTRA_MAP_MESSAGE_HANDLE, eventReport.getHandle());
 
-            send(NEW_MESSAGE_NOTIFICATION_ID,
-                    String.format(getString(R.string.map_report_notif_received, eventReport
-                            .getMsgType().toString())),
-                    String.format(getString(R.string.map_report_notif_handle,
-                            eventReport.getHandle())),
-                    click);
+            if (eventReport.getVersion() != null && eventReport.getVersion()
+                .equals(BluetoothMapEventReport.EXTENDED_EVENT_REPORT_1_1)) {
+
+                send(NEW_MESSAGE_NOTIFICATION_ID,
+                        String.format(getString(R.string.map_report_notif_received,
+                        eventReport.getMsgType().toString())),
+                        String.format(getString(R.string.map_report11_notif_received_param,
+                        eventReport.getSenderName(), eventReport.getPriority(),
+                        eventReport.getHandle())),
+                        click);
+            } else {
+                send(NEW_MESSAGE_NOTIFICATION_ID,
+                       String.format(getString(R.string.map_report_notif_received,
+                       eventReport.getMsgType().toString())),
+                       String.format(getString(R.string.map_report_notif_handle,
+                       eventReport.getHandle())),
+                       click);
+
+            }
         }
 
         private void notifyDeliverySuccess(BluetoothMapEventReport eventReport) {
@@ -530,6 +548,13 @@ public class ProfileService extends Service {
                             eventReport.getHandle())),
                     String.format(getString(R.string.map_report_notif_fromto,
                             eventReport.getOldFolder(), eventReport.getFolder())));
+        }
+
+        private void notifyReadStatusChanged(BluetoothMapEventReport eventReport) {
+                send(READ_STATUS_CHANGED_NOTIFICATION_ID,
+                        getString(R.string.map_report_notif_title_read_status_changed),
+                        String.format(getString(R.string.map_report_notif_handle,
+                                eventReport.getHandle())));
         }
     }
 
@@ -843,9 +868,10 @@ public class ProfileService extends Service {
     }
 
     public void setMasInstances(SdpMasRecord masrec) {
-            // no need to recreate already existing MAS client
+            // SDP records might be changed while discovery, hence remove already
+            // existing MAS client & recreate the new one
             if (mMapClients.containsKey(masrec.getMasInstanceId())) {
-               return;
+               mMapClients.remove(masrec.getMasInstanceId());
             }
 
             BluetoothMasClient client = new BluetoothMasClient(mDevice, masrec, mMapHandler);
