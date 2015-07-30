@@ -1,32 +1,33 @@
 /*
- * Copyright (c) 2013-2014, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2015, The Linux Foundation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *        * Redistributions of source code must retain the above copyright
- *            notice, this list of conditions and the following disclaimer.
- *        * Redistributions in binary form must reproduce the above copyright
- *            notice, this list of conditions and the following disclaimer in the
- *            documentation and/or other materials provided with the distribution.
- *        * Neither the name of The Linux Foundation nor
- *            the names of its contributors may be used to endorse or promote
- *            products derived from this software without specific prior written
- *            permission.
+ * modification, are permitted provided that the following conditions are
+ * met:
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above
+ *     copyright notice, this list of conditions and the following
+ *     disclaimer in the documentation and/or other materials provided
+ *     with the distribution.
+ *   * Neither the name of The Linux Foundation nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NON-INFRINGEMENT ARE DISCLAIMED.    IN NO EVENT SHALL THE COPYRIGHT OWNER OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
- * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
- * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
- * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+ * BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+ * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+ * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.codeaurora.bluetooth.a4wp;
+package org.codeaurora.bt_wipower.a4wp;
 
 import java.util.UUID;
 
@@ -106,13 +107,13 @@ public class A4wpService extends Service
     private final static short DEFAULT_RFU = 0x0000;
     //03 if MTP, Has to be 04 for fluid.
     private final static byte DEFAULT_CATEGORY = 0x0003;
-    private final static byte DEFAULT_CAPABILITIES = 0x00;
+    private final static byte DEFAULT_CAPABILITIES = 0x0010;
     private final static byte DEFAULT_HW_VERSION = 0x0007;
     private final static byte DEFAULT_FW_VERSION = 0x0006;
     private final static byte DEFAULT_MAX_POWER_DESIRED = 0x0032;  // 5Watts
     private final static short DEFAULT_VRECT_MIN = 7100;       // 7.1 Volts
     private final static short DEFAULT_VRECT_MAX = 19300;       // 19.3 Volts
-    private final static short DEFAULT_VRECT_SET = 7200;       // 7.2 Volts
+    private final static short DEFAULT_VRECT_SET = 7100;       // 7.1 Volts
     private final static short DEFAULT_DELTA_R1 = 0x0001;
     private final static int DEFAULT_RFU_VAL = 0x0000;
     private static final int MSB_MASK = 0xFF00;
@@ -203,7 +204,6 @@ public class A4wpService extends Service
                 Log.v(LOGTAG, "initiateDisconnection:" + " dropping Connection");
                 mDiscInitiated = true;
                 mBluetoothGattServer.cancelConnection(mDevice);
-                mWipowerManager.enablePowerApply(false, false, false);
                 if (mChargeComplete == true) {
                     mWipowerManager.enablePowerApply(true, true, true);
                 } else {
@@ -220,7 +220,6 @@ public class A4wpService extends Service
         public void onWbcEventUpdate(int what, int arg1, int arg2) {
             Log.v(LOGTAG, "onWbcEventUpdate rcvd: " + what + ", " + arg1 + ", " + arg2);
             if ((what == WbcTypes.WBC_EVENT_TYPE_CHARGING_REQUIRED_STATUS)){
-                mWipowerManager.enablePowerApply(false, false, false);
                 if ((arg1 == WbcTypes.WBC_BATTERY_STATUS_CHARGING_NOT_REQUIRED)){
                     // this will set charge complete bit in pru alert
                     // eventally leading to a possible disconnect from ptu
@@ -231,8 +230,6 @@ public class A4wpService extends Service
                        alert = (byte) (alert | CHARGE_COMPLETE_BIT);
                        mPruAlert.sendPruAlert(alert);
                     }
-                    if ((mState == BluetoothProfile.STATE_DISCONNECTED) && (mWipowerManager != null))
-                        mWipowerManager.enablePowerApply(true, true, true);
                 } else {
                     // We could be in 600mS scan state here and since charging needs to be resumed
                     // send enable power apply command to scan for short beacons */
@@ -616,13 +613,12 @@ public class A4wpService extends Service
                     0x81 Denied due to limited affordable power
                     0x82 Denied due to limited PTU Number of Devices
                     0x83 Denied due to limited PTU Class support
-                    All other values: RFU
           */
          public boolean getPermission() {
 
              Log.v(LOGTAG, "getPermission" + mPermission);
-             if (mPermission == 0x00) return true;
-             else return false;
+             if ((mPermission&0x80) == 0x80) return false;
+             else return true;
          }
 
          /* returns time in ms */
@@ -664,7 +660,7 @@ public class A4wpService extends Service
             return status;
         }
 
-        if (mPruControl.getEnablePruOutput() && mPruControl.getPermission())  {
+        if (mPruControl.getEnablePruOutput()) {
             Log.v(LOGTAG, "do Enable PruOutPut");
             /* Wake lock is enabled by default, to disbale need to set property */
             if(SystemProperties.getBoolean("persist.a4wp.skipwakelock", false) == false) {
@@ -674,6 +670,9 @@ public class A4wpService extends Service
             mOutputControl = true;
         } else {
             Log.v(LOGTAG, "do Disable PruOutPut");
+            if (mChargeComplete == true) {
+                mWipowerManager.enablePowerApply(true, true, true);
+            }
             mWipowerManager.stopCharging();
             isChargePortSet = false;
             mOutputControl = false;
@@ -781,11 +780,8 @@ public class A4wpService extends Service
                     mWipowerManager.enableAlertNotification(false);
                     mEnablePruAlerts  = false;
                     mWipowerManager.stopCharging();
-                    mWipowerManager.enablePowerApply(false, false, false);
                     if (mChargeComplete != true) {
                         mWipowerManager.enablePowerApply(true, true, false);
-                    } else {
-                        mWipowerManager.enablePowerApply(true, true, true);
                     }
                     if(SystemProperties.getBoolean("persist.a4wp.skipwakelock", false) == false) {
                         /* Drop wake lock once the connection is dropped gracefully */
@@ -901,8 +897,8 @@ public class A4wpService extends Service
                     value[VRECT_MAX_LSB] = (byte)(LSB_MASK & DEFAULT_VRECT_MAX);
                     value[VRECT_MAX_MSB] = (byte)((MSB_MASK & DEFAULT_VRECT_MAX) >> 8);
                     if ((byte)(value[PRU_ALERT] & CHARGE_PORT_MASK) == CHARGE_PORT_MASK) {
-                        value[VRECT_MIN_LSB] = (byte)(LSB_MASK & DEFAULT_VRECT_MIN);
-                        value[VRECT_MIN_MSB] = (byte)((MSB_MASK & DEFAULT_VRECT_MIN) >> 8);
+                        value[VRECT_MIN_LSB] = (byte)(LSB_MASK & DEFAULT_VRECT_SET);
+                        value[VRECT_MIN_MSB] = (byte)((MSB_MASK & DEFAULT_VRECT_SET) >> 8);
                         value[VRECT_SET_LSB] = (byte)(LSB_MASK & DEFAULT_VRECT_SET);
                         value[VRECT_SET_MSB] = (byte)((MSB_MASK & DEFAULT_VRECT_SET) >> 8);
                     } else {

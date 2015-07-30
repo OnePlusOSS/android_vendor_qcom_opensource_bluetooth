@@ -186,6 +186,5 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 <action android:name="org.codeaurora.bluetooth.pxpservice.PxpMonitorService" />
             </intent-filter>
         </service>
-
     </application>
 </manifest>
