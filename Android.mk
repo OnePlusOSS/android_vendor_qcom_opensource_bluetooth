@@ -10,7 +10,7 @@ src_dirs:= src/org/codeaurora/bluetooth/btcservice \
            #src/org/codeaurora/bluetooth/pxpservice
 
 ifeq ($(BOARD_USES_WIPOWER),true)
-           src_dirs += src/org/codeaurora/bluetooth/a4wp
+#           src_dirs += src/org/codeaurora/bluetooth/a4wp
 endif
 
 LOCAL_SRC_FILES := \
@@ -22,7 +22,7 @@ LOCAL_CERTIFICATE := platform
 LOCAL_JAVA_LIBRARIES := javax.obex
 LOCAL_JAVA_LIBRARIES += telephony-common
 ifeq ($(BOARD_USES_WIPOWER),true)
-LOCAL_JAVA_LIBRARIES += com.quicinc.wbc
+#LOCAL_JAVA_LIBRARIES += com.quicinc.wbc
 endif
 
 LOCAL_STATIC_JAVA_LIBRARIES := com.android.vcard
