@@ -95,11 +95,11 @@ static void setLogging(JNIEnv* env, jclass clazz,jstring jlog_layer, jint log_le
                 ALOGE("Error loading Stack Log Interface");
         }
         else{
+            uint8_t values[7] = {0x00,0x01,0x02,0x03,0x04,0x05,0x06};
             const char *log_layer = env->GetStringUTFChars(jlog_layer, 0);
             if ( module == 3 )
             {
                 ALOGD("Setting SOC log levels.");
-                uint8_t values[7] = {0x00,0x01,0x02,0x03,0x04,0x05,0x06};
                 uint8_t set_level = 0x00;
                 int index = log_layer[0]-'0';
                 if (log_level == 0)
@@ -113,24 +113,27 @@ static void setLogging(JNIEnv* env, jclass clazz,jstring jlog_layer, jint log_le
             else if( module == 4)
             {
                 ALOGD("Setting all SOC log levels.");
-                const char *log_level = env->GetStringUTFChars(jlog_layer,0);
-                uint8_t values[7] = {0x00,0x01,0x02,0x03,0x04,0x05,0x06};
-                if (log_level[0] == 'F')/* Setting All Levels to Off.*/
+                uint8_t enable_SOC[5] = {0x10,0x03,0x00,0x00,0x01};
+                uint8_t disable_SOC[5] = {0x10,0x02,0x00,0x00,0x01};
+                const char *all_log_levels = env->GetStringUTFChars(jlog_layer,0);
+                if (all_log_levels[0] == 'F')/* Setting All Levels to Off.*/
                 {
-                   uint8_t param[5] = {0x10,0x02,0x00,0x00,0x01};
-                   sBluetoothInterface->hci_cmd_send(HCI_OPCODE_PACK(0x3F,0x17),param,5);
+                   sBluetoothInterface->hci_cmd_send(HCI_OPCODE_PACK(0x3F,0x17),disable_SOC,5);
                 }
-                else{
-                    /* Setting each SOC Layer */
+                else
+                {
+                    /* Enable SOC Logs */
+                    sBluetoothInterface->hci_cmd_send(HCI_OPCODE_PACK(0x3F,0x17),enable_SOC,5);
                     int index[7];
                     uint8_t param[15];
                     param[0]= 0x11;
                     for(int i=0;i<7;i++){
-                        index[i]=log_level[i]-'0';
                         param[2*i+1] = values[i];
+                        index[i]=all_log_levels[i]-'0';
                         if (index[i] == 0)
                             param[2*i+2] = 0xF;
-                        param[2*i+2] = values[index[i]];
+                        else
+                            param[2*i+2] = values[index[i]-1];
                     }
                     sBluetoothInterface->hci_cmd_send(HCI_OPCODE_PACK(0x3F,0x17),param,15);
                 }

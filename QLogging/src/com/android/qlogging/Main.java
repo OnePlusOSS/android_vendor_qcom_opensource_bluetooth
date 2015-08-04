@@ -44,7 +44,12 @@ import android.view.View;
 import android.widget.Toast;
 import android.widget.Switch;
 import android.widget.CompoundButton;
-
+import android.content.pm.PackageManager;
+import android.content.ComponentName;
+import android.widget.TextView;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.Spinner;
 public class Main extends Activity {
 /*
 Class to handle the Main activity
@@ -52,18 +57,31 @@ Class to handle the Main activity
     public final static String TAG = "QLoggingDebug";
     public static boolean isLogging=false;
     private Menu menu;
-    public static boolean stack_set_all=false;
-    public static boolean bt_log_filter=false;
-    public static boolean soc_log_enabled = true;
-    public final static int PROFILE_MODULE_ID=1;
-    public final static int STACK_MODULE_ID=2;
-    public final static int SOC_MODULE_ID=3;
-    public final static int SOC_ALL_MODULE_ID=4;
+    public static boolean stack_set_all = false;
+    public static boolean bt_log_filter = false;
+    public static boolean soc_log_enabled = false;
+    public final static int PROFILE_MODULE_ID = 1;
+    public final static int STACK_MODULE_ID = 2;
+    public final static int SOC_MODULE_ID = 3;
+    public final static int SOC_ALL_MODULE_ID = 4;
+    public static int log_file_size = 100;
+    public static int size_pos = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        if(!Utils.isAppRunning(getApplicationContext(),"org.codeaurora.bluetooth.btlogsave")){
+            Log.d(TAG,"Opening BtLogSave app");
+            Intent nextIntent = new Intent(Intent.ACTION_MAIN);
+            nextIntent.setComponent(new ComponentName("org.codeaurora.bluetooth.btlogsave","org.codeaurora.bluetooth.btlogsave.Main"));
+            startActivity(nextIntent);
+            Intent intent = new Intent();
+            intent.setAction("BTLogSaveIntent");
+            intent.putExtra(Intent.EXTRA_TEXT, "LOG_FILE_SIZE");
+            intent.putExtra("FILE_SIZE", String.valueOf(log_file_size));
+            sendBroadcast(intent);
+        }
         //If the app isnt already installed, create the default settings files
         //with the default log levels.
         SharedPreferences ratePrefs = getSharedPreferences("First Update", 0);
@@ -114,6 +132,44 @@ Class to handle the Main activity
             }
         });
         log_filter_switch.setChecked(bt_log_filter);*/
+
+        MenuItem menuItem_log_file_title = menu.findItem(R.id.action_log_file_title);
+        menuItem_log_file_title.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+
+        TextView log_file_title = (TextView) menuItem_log_file_title.getActionView();
+        log_file_title.setText("Size(MB):");
+
+        MenuItem menuItem_log_file_size = menu.findItem(R.id.action_log_file_size);
+        menuItem_log_file_size.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+
+        Spinner spinner = (Spinner) menuItem_log_file_size.getActionView();
+
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(getApplicationContext(), R.array.log_file_size_options, R.layout.spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+
+        spinner.setAdapter(adapter);
+
+        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                Intent intent = new Intent();
+                intent.setAction("BTLogSaveIntent");
+                intent.putExtra(Intent.EXTRA_TEXT, "LOG_FILE_SIZE");
+                intent.putExtra("FILE_SIZE", parent.getItemAtPosition(position).toString());
+                getApplicationContext().sendBroadcast(intent);
+                log_file_size = Integer.valueOf(parent.getItemAtPosition(position).toString());
+                size_pos = position;
+                Utils.saveGlobalState(getApplicationContext());
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
+            }
+        });
+
+        spinner.setSelection(size_pos);
+
 
         this.menu=menu;
         return true;

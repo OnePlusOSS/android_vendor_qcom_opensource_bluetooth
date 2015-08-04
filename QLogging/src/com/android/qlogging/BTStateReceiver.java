@@ -43,193 +43,103 @@ import android.widget.Space;
 import android.widget.Spinner;
 import android.widget.Toast;
 import android.widget.ToggleButton;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+import android.view.View;
+import android.view.ViewGroup;
+import android.os.Handler;
 
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.StringWriter;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.lang.ProcessBuilder;
+import java.lang.Exception;
+import java.util.Scanner;
+import java.io.FileOutputStream;
+import java.io.PrintWriter;
+import java.lang.reflect.Field;
+import java.lang.Runnable;
 
 import android.content.pm.PackageManager;
 
 public class BTStateReceiver extends BroadcastReceiver{
-
     @Override
     public void onReceive(Context context, Intent intent) {
         final String action = intent.getAction();
         Toast toast;
-        if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
-            final int btstate = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
-            switch (btstate) {
-                case BluetoothAdapter.STATE_OFF:
-                    break;
-                case BluetoothAdapter.STATE_TURNING_OFF:
-                    //Utils.saveCurrentState(context);
-                    break;
-                case BluetoothAdapter.STATE_ON:
-                    Map map;
-                    int counter = 0;
 
-                    String[] profile_tags = context.getResources().getStringArray(R.array.profile_list_tags);
-                    String[] stack_list_names = context.getResources().getStringArray(R.array.stack_list_names);
-                    String[] stack_list_tags = context.getResources().getStringArray(R.array.stack_list_tags);
-                    String[] soc_list_names = context.getResources().getStringArray(R.array.soc_list_names);
-                    String[] soc_list_tags = context.getResources().getStringArray(R.array.soc_list_tags);
-
-                    switch (getSecondoryOptions.selected) {
-                        case 0:
-                            Log.d(Main.TAG,"In Main activity,and BT turned on");
-                            /*map = Utils.getPreviousSettings(context, Main.PROFILE_MODULE_ID);
-                            if (!map.isEmpty()) {
-                                for (String profile : profile_tags) {
-                                    String state = map.get(profile).toString();
-                                    int presState = Character.getNumericValue(state.charAt(1));
-                                    sendIntent.transmitIntent(context, presState, profile, getSecondoryOptions.selected);
-                                }
-                            }*/ //TODO:send profiles states
-                            map = Utils.getPreviousSettings(context, Main.STACK_MODULE_ID);
-                            counter = 0;
-                            if (!map.isEmpty()) {
-                                for (String stack : stack_list_names) {
-                                    Object state_obj = map.get(stack);
-                                    if (state_obj != null) {
-                                        String state = state_obj.toString();
-                                        int presState = Character.getNumericValue(state.charAt(2));
-                                        sendIntent.transmitIntent(context, presState, stack_list_tags[counter], Main.STACK_MODULE_ID);
-                                        counter++;
-                                    }
-                                }
-                            }
-                            map = Utils.getPreviousSettings(context, Main.SOC_MODULE_ID);
-                            counter = 0;
-                            getSecondoryOptions.SOC_levels="";
-                            if (!map.isEmpty()) {
-                                for (String soc : soc_list_names) {
-                                    Object state_obj = map.get(soc);
-                                    if (state_obj != null) {
-                                        String state = state_obj.toString();
-                                        int presState = Character.getNumericValue(state.charAt(2));
-                                        getSecondoryOptions.SOC_levels+=String.valueOf(presState);
-                                        counter++;
-                                    }else{
-                                        getSecondoryOptions.SOC_levels+=String.valueOf(0);
-                                    }
-                                }
-                                sendIntent.transmitIntent(context, Main.SOC_ALL_MODULE_ID, getSecondoryOptions.SOC_levels, Main.SOC_ALL_MODULE_ID);
-                            }else{
-                                  Log.d(Main.TAG,"Map empty for SOC");
-                            }
-                            break;
-                        case Main.PROFILE_MODULE_ID:
-                            /*Log.d(Main.TAG,"In Main activity,and BT turned on");
-                            for (String profile : profile_tags) {
-                                ProfileOptionsView profileOptionsView = (ProfileOptionsView) getSecondoryOptions.lv.findViewWithTag(profile);
-                                int presState = profileOptionsView.state;
-                                sendIntent.transmitIntent(context, presState, profile, getSecondoryOptions.selected);
-                            }*///TODO:Sending Profiles state
-                            map = Utils.getPreviousSettings(context, Main.STACK_MODULE_ID);
-                            counter = 0;
-                            if (!map.isEmpty()) {
-                                for (String stack : stack_list_names) {
-                                    Object state_obj = map.get(stack);
-                                    if (state_obj != null) {
-                                        String state = state_obj.toString();
-                                        int presState = Character.getNumericValue(state.charAt(2));
-                                        sendIntent.transmitIntent(context, presState, stack_list_tags[counter], Main.STACK_MODULE_ID);
-                                        counter++;
-                                    }
-                                }
-                            }
-                            map = Utils.getPreviousSettings(context, Main.SOC_MODULE_ID);
-                            counter = 0;
-                            getSecondoryOptions.SOC_levels="";
-                            if (!map.isEmpty()) {
-                                for (String soc : soc_list_names) {
-                                    Object state_obj = map.get(soc);
-                                    if (state_obj != null) {
-                                        String state = state_obj.toString();
-                                        int presState = Character.getNumericValue(state.charAt(2));
-                                        getSecondoryOptions.SOC_levels+=String.valueOf(presState);
-                                        counter++;
-                                    }else{
-                                        getSecondoryOptions.SOC_levels+=String.valueOf(0);
-                                    }
-                                }
-                                sendIntent.transmitIntent(context, Main.SOC_ALL_MODULE_ID, getSecondoryOptions.SOC_levels, Main.SOC_ALL_MODULE_ID);
-                            }
-                            break;
-                        case Main.STACK_MODULE_ID:
-                            /*Log.d(Main.TAG,"In Main activity,and BT turned on");
-                            map = Utils.getPreviousSettings(context, Main.PROFILE_MODULE_ID);
-                            if (!map.isEmpty()) {
-                                for (String profile : profile_tags) {
-                                    String state = map.get(profile).toString();
-                                    int presState = Character.getNumericValue(state.charAt(1));
-                                    sendIntent.transmitIntent(context, presState, profile, getSecondoryOptions.selected);
-                                }
-                            }*///TODO:Sending Profiles state
-                            counter = 0;
-                            for (String stack : stack_list_names) {
-                                StackOptionsView stackOptionsView = (StackOptionsView) getSecondoryOptions.lv.findViewWithTag(stack_list_tags[counter]);
-                                int presState = stackOptionsView.state;
-                                sendIntent.transmitIntent(context, presState, stack_list_tags[counter], Main.STACK_MODULE_ID);
-                                counter++;
-                            }
-                            map = Utils.getPreviousSettings(context, Main.SOC_MODULE_ID);
-                            counter = 0;
-                            getSecondoryOptions.SOC_levels="";
-                            if (!map.isEmpty()) {
-                                for (String soc : soc_list_names) {
-                                    Object state_obj = map.get(soc);
-                                    if (state_obj != null) {
-                                        String state = state_obj.toString();
-                                        int presState = Character.getNumericValue(state.charAt(2));
-                                        getSecondoryOptions.SOC_levels+=String.valueOf(presState);
-                                        counter++;
-                                    }else{
-                                        getSecondoryOptions.SOC_levels+=String.valueOf(0);
-                                    }
-                                }
-                                sendIntent.transmitIntent(context, Main.SOC_ALL_MODULE_ID, getSecondoryOptions.SOC_levels, Main.SOC_ALL_MODULE_ID);
-                            }
-                            break;
-                        case Main.SOC_MODULE_ID:
-                            /*Log.d(Main.TAG,"In Main activity,and BT turned on");
-                            map = Utils.getPreviousSettings(context, Main.PROFILE_MODULE_ID);
-                            if (!map.isEmpty()) {
-                                for (String profile : profile_tags) {
-                                    if (map.get(profile)) {
-                                        String state = map.get(profile).toString();
-                                        int presState = Character.getNumericValue(state.charAt(1));
-                                        sendIntent.transmitIntent(context, presState, profile, getSecondoryOptions.selected);
-                                    }
-                                }
-                            }*///TODO:Sending Profile State
-                            map = Utils.getPreviousSettings(context, Main.STACK_MODULE_ID);
-                            counter = 0;
-                            if (!map.isEmpty()) {
-                                for (String stack : stack_list_names) {
-                                    Object state_obj = map.get(stack);
-                                    if (state_obj != null) {
-                                        String state = state_obj.toString();
-                                        int presState = Character.getNumericValue(state.charAt(2));
-                                        sendIntent.transmitIntent(context, presState, stack_list_tags[counter], Main.STACK_MODULE_ID);
-                                        counter++;
-                                    }
-                                }
-                            }
-                            counter = 0;
-                            getSecondoryOptions.SOC_levels="";
-                            for (String soc : soc_list_names) {
-                                StackOptionsView stackOptionsView = (StackOptionsView) getSecondoryOptions.lv.findViewWithTag(soc_list_tags[counter]);
-                                int presState = stackOptionsView.state;
-                                getSecondoryOptions.SOC_levels=String.valueOf(presState);
-                                counter++;
-                            }
-                            sendIntent.transmitIntent(context, Main.SOC_ALL_MODULE_ID, getSecondoryOptions.SOC_levels, Main.SOC_ALL_MODULE_ID);
-                            break;
+        final int btstate = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
+        switch (btstate) {
+            case BluetoothAdapter.STATE_OFF:
+                break;
+            case BluetoothAdapter.STATE_TURNING_OFF:
+                break;
+            case BluetoothAdapter.STATE_ON:
+                Map map;
+                int counter = 0;
+                Utils.setGlobalSettings(context);
+                String[] profile_tags = context.getResources().getStringArray(R.array.profile_list_tags);
+                String[] stack_list_names = context.getResources().getStringArray(R.array.stack_list_names);
+                String[] stack_list_tags = context.getResources().getStringArray(R.array.stack_list_tags);
+                String[] soc_list_names = context.getResources().getStringArray(R.array.soc_list_names);
+                String[] soc_list_tags = context.getResources().getStringArray(R.array.soc_list_tags);
+                map = Utils.getPreviousSettings(context, Main.STACK_MODULE_ID);
+                if (!map.isEmpty()) {
+                    for (String stack : stack_list_names) {
+                        Object state_obj = map.get(stack);
+                        if (state_obj != null) {
+                            String state = state_obj.toString();
+                            int presState = Character.getNumericValue(state.charAt(2));
+                            sendIntent.transmitIntent(context, presState, stack_list_tags[counter], Main.STACK_MODULE_ID);
+                            counter++;
+                        }
                     }
-                    break;
-                case BluetoothAdapter.STATE_TURNING_ON:
-                    break;
-            }
+                }
+                else
+                    Log.d(Main.TAG,"Map empty for Stack");
+
+                map = Utils.getPreviousSettings(context, Main.SOC_MODULE_ID);
+                if (!Main.soc_log_enabled)
+                {
+                    sendIntent.transmitIntent(context, 0, "F", Main.SOC_ALL_MODULE_ID);
+                }
+                else
+                {
+                    getSecondoryOptions.SOC_levels="";
+                    counter = 0;
+                    if (!map.isEmpty())
+                    {
+                        for (String soc : soc_list_names)
+                        {
+                            Object state_obj = map.get(soc);
+                            if (state_obj != null)
+                            {
+                                String state = state_obj.toString();
+                                int presState = Character.getNumericValue(state.charAt(2));
+                                getSecondoryOptions.SOC_levels+=String.valueOf(presState);
+                                counter++;
+                            }else{
+                                getSecondoryOptions.SOC_levels+=String.valueOf(0);
+                            }
+                        }
+                        sendIntent.transmitIntent(context, Main.SOC_ALL_MODULE_ID, getSecondoryOptions.SOC_levels, Main.SOC_ALL_MODULE_ID);
+                    }
+                    else
+                        Log.d(Main.TAG,"Map empty for SOC");
+                }
+                break;
+            case BluetoothAdapter.STATE_TURNING_ON:
+                break;
         }
     }
 }

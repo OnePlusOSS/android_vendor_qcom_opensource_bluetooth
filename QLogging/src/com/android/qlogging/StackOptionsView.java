@@ -122,16 +122,15 @@ public class StackOptionsView extends LinearLayout {
         checkBox.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
+                getSecondoryOptions.init_soc = 0;
                 if (!checkBox.isChecked()) {
                     prevState = state;
                     state = 0;
                     spinner.setSelection(0);
-                    sendIntent.transmitIntent(getContext(), state, getTag().toString(), optionSelected);
                 } else {
                     //state = spinner.getSelectedItemPosition() + 1;
                     state = prevState;
                     spinner.setSelection(state);
-                    sendIntent.transmitIntent(getContext(), state, getTag().toString(), optionSelected);
                 }
             }
         });
@@ -144,9 +143,10 @@ public class StackOptionsView extends LinearLayout {
                         prevState=state;
                         checkBox.setChecked(false);
                     }
-                    state = position;
-                    sendIntent.transmitIntent(getContext(), state, getTag().toString(), optionSelected);
                 }
+                    state = position;
+                    if (getSecondoryOptions.init_soc == 0)
+                        sendIntent.transmitIntent(getContext(), state, getTag().toString(), optionSelected);
             }
 
             @Override

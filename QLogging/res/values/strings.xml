@@ -130,7 +130,7 @@
         <item>TRC_BTM</item>
         <item>TRC_HCI</item>
         <item>TRC_L2CAP</item>
-        <item>TRC_RFCOMM></item>
+        <item>TRC_RFCOMM</item>
         <item>TRC_AVCT</item>
         <item>TRC_AVDT</item>
         <item>TRC_AVRC</item>
@@ -192,6 +192,12 @@
         <item>2</item>
         <item>2</item>
         <item>2</item>
+    </string-array>
+
+    <string-array name="log_file_size_options">
+        <item>20</item>
+        <item>100</item>
+        <item>500</item>
     </string-array>
 
 </resources>

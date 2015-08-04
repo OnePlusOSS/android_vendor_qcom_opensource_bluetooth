@@ -59,7 +59,9 @@ public class getSecondoryOptions extends Activity{
 */
     private Menu menu;
     public static int selected=0;
+    public static int init_soc = 0;
     public static LinearLayout lv;
+    public static ScrollView sv;
     public static String SOC_levels="";
 
     @Override
@@ -67,12 +69,13 @@ public class getSecondoryOptions extends Activity{
         super.onCreate(savedInstanceState);
 
         Intent intent = getIntent();
-        String titlebarHeading = "Noting yet";
+        String titlebarHeading = "Nothing yet";
         selected = intent.getFlags();
 
         setContentView(R.layout.activity_get_secondory_options);
 
         lv = (LinearLayout) findViewById(R.id.outer_box);
+        sv = (ScrollView) findViewById(R.id.outer_scroll_box);
         lv.setTag(selected);
         lv.removeAllViews();
 
@@ -91,7 +94,7 @@ public class getSecondoryOptions extends Activity{
                 int counter=0;
                 for (String profile:profile_list) {
                     ProfileOptionsView profileOptionsView = new ProfileOptionsView(this);
-                    profileOptionsView.setTag(profile_tags[counter]);
+                   profileOptionsView.setTag(profile_tags[counter]);
                     CheckBox checkBox = (CheckBox) profileOptionsView.getChildAt(0);
                     checkBox.setText(profile);
                     if(!map.isEmpty()) {
@@ -139,12 +142,11 @@ public class getSecondoryOptions extends Activity{
                         if (state_obj != null)
                         {
                             String state= state_obj.toString();
+                            init_soc = 1;
                             stackOptionsView.setState(state);
+                            init_soc = 0;
                             int presState = Character.getNumericValue(state.charAt(2));
-                            Log.d(Main.TAG,"Sending present state in stack/SOC");
-                            if(selected==Main.STACK_MODULE_ID){
-                                sendIntent.transmitIntent(this, presState, list_tags[counter], selected);
-                            }else{
+                            if(selected==Main.SOC_MODULE_ID){
                                 SOC_levels+=String.valueOf(presState);
                             }
                         }
@@ -160,7 +162,6 @@ public class getSecondoryOptions extends Activity{
                 }else if(selected==Main.SOC_MODULE_ID){
                     if(Main.soc_log_enabled){
                         lv.setVisibility(View.VISIBLE);
-                        sendIntent.transmitIntent(this, 0, SOC_levels, Main.SOC_ALL_MODULE_ID);
                     }else{
                         lv.setVisibility(View.GONE);
                         sendIntent.transmitIntent(this, 0, "F", Main.SOC_ALL_MODULE_ID);
@@ -205,21 +206,26 @@ public class getSecondoryOptions extends Activity{
             Switch soc_switch = (Switch) menuItem_soc_enable.getActionView();
             soc_switch.setTextOn("On");
             soc_switch.setTextOff("Off");
+            final TextView tv = new TextView(getApplicationContext());
+            tv.setText("Enable SOC logging for options");
+            tv.setTextSize(getResources().getDimension(R.dimen.textsize_large));
             soc_switch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
                 @Override
                 public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                    TextView textView;
+                    sv.removeAllViews();
                     if(isChecked){
                         lv.setVisibility(View.VISIBLE);
+                        sv.addView(lv);
                         Main.soc_log_enabled=true;
                         Utils.saveGlobalState(getApplicationContext());
                         Toast.makeText(getApplicationContext(), "SOC logging turned on", Toast.LENGTH_SHORT).show();
                         sendIntent.transmitIntent(getApplicationContext(), 0, SOC_levels, Main.SOC_ALL_MODULE_ID);
+                        init_soc = 1;
                     }else{
                         Utils.saveCurrentState(getApplicationContext());
-                        textView = new TextView(getApplicationContext());
-                        textView.setText("SOC Logging is disabled, enable to see the log options");
                         lv.setVisibility(View.GONE);
+                        sv.addView(tv);
+                        tv.setVisibility(View.VISIBLE);
                         Main.soc_log_enabled=false;
                         Utils.saveGlobalState(getApplicationContext());
                         sendIntent.transmitIntent(getApplicationContext(), 0, "F", Main.SOC_ALL_MODULE_ID);
@@ -227,6 +233,10 @@ public class getSecondoryOptions extends Activity{
                 }
             });
             soc_switch.setChecked(Main.soc_log_enabled);
+            if(!Main.soc_log_enabled){
+                sv.removeAllViews();
+                sv.addView(tv);
+            }
         }else{
             menuItem_soc_enable.setVisible(false);
         }
@@ -243,7 +253,6 @@ public class getSecondoryOptions extends Activity{
 
         this.menu=menu;
         return super.onCreateOptionsMenu(menu);
-        //return true;
     }
 
     @Override
@@ -288,8 +297,6 @@ public class getSecondoryOptions extends Activity{
                         checkBox.setChecked(true);
                         spinner.setSelection(stackOptionsView.state);
                     }
-                    sendIntent.transmitIntent(this, stackOptionsView.state, stack, selected);
-                    Log.v(Main.TAG, "Revert----" + stack + String.valueOf(stackOptionsView.prevState) + String.valueOf(stackOptionsView.prevState2) + String.valueOf(stackOptionsView.state));
                 }
                 Main.stack_set_all=false;
                 Utils.saveGlobalState(getApplicationContext());
@@ -304,8 +311,6 @@ public class getSecondoryOptions extends Activity{
                     Spinner spinner = (Spinner) stackOptionsView.getChildAt(2);
                     checkBox.setChecked(true);
                     spinner.setSelection(6);
-                    sendIntent.transmitIntent(this, stackOptionsView.state, stack, selected);
-                    Log.v(Main.TAG, "Verbose----" + stack + String.valueOf(stackOptionsView.prevState) + String.valueOf(stackOptionsView.prevState2) + String.valueOf(stackOptionsView.state));
                 }
                 Main.stack_set_all=true;
                 Utils.saveGlobalState(getApplicationContext());
@@ -321,6 +326,13 @@ public class getSecondoryOptions extends Activity{
         super.onBackPressed();
         Utils.saveCurrentState(getApplicationContext());
         selected=0;
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        Log.d(Main.TAG, "In getSecondaryOptions ONPAUSE");
+        Utils.saveCurrentState(getApplicationContext());
     }
 }
 

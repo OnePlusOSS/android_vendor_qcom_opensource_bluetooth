@@ -69,6 +69,9 @@
             <intent-filter>
                 <action android:name="android.bluetooth.adapter.action.STATE_CHANGED" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="BTLogSaveIntent" />
+            </intent-filter>
         </receiver>
     </application>
 

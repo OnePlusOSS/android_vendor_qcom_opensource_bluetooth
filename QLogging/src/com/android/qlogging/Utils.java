@@ -39,6 +39,7 @@ import android.util.Xml;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 import android.view.View;
+import android.content.Intent;
 
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
@@ -70,32 +71,16 @@ public class Utils {
     private static String pid;
     private static String timestamp;
     private static String filesDir;
+    private static Intent intent;
 
     public static void startLogging(Context context){
+
     //Called when the start logging button is clicked
-        try{
-            filesDir = context.getFilesDir().getAbsolutePath();
-            String cmd_clear[] = {"/system/bin/sh", "-c", "logcat -c"};
-            p = Runtime.getRuntime().exec(cmd_clear);
-            p.waitFor();
-            p.destroy();
-            if(Main.bt_log_filter){
-                int bt_id = android.os.Process.myPid();
-                //String cmd_start[] = {"/system/bin/sh", "-c", "logcat -v threadtime | grep "+String.valueOf(bt_id)+" | dd of="+filesDir+"/log.txt"};
-                //p = Runtime.getRuntime().exec(cmd_start);
-                //ProcessBuilder builder = new ProcessBuilder("/system/bin/sh", "-c", "logcat -v threadtime | grep "+String.valueOf(bt_id)+" | dd of="+filesDir+"/log.txt");
-                ProcessBuilder builder = new ProcessBuilder("/system/bin/sh", "-c", "logcat -v threadtime | grep "+String.valueOf(bt_id)+" > "+filesDir+"/log.txt");
-                p = builder.start();
-                Toast.makeText(context,String.valueOf(getPid(p)),Toast.LENGTH_LONG).show();
-            }else{
-                String cmd_start[] = {"/system/bin/sh", "-c", "logcat -v threadtime -f "+filesDir+"/log.txt"};
-                p = Runtime.getRuntime().exec(cmd_start);
-            }
-        }catch(IOException e){
-            Log.e(Main.TAG,e.toString());
-        }catch(InterruptedException e){
-            Log.e(Main.TAG,e.toString());
-        }
+
+        intent = new Intent();
+        intent.setAction("BTLogSaveIntent");
+        intent.putExtra(Intent.EXTRA_TEXT, "START");
+        context.sendBroadcast(intent);
     }
 
     public static int getPid(Process process) {
@@ -110,47 +95,13 @@ public class Utils {
     }
 
     public static void stopLogging(Context context){
+
     //Called when the stop logging button is clicked
-        try{
-            filesDir = context.getFilesDir().getAbsolutePath();
-            if(p!=null){
-                p.destroy();
-                Toast toast = Toast.makeText(context,"Log stored in "+filesDir,Toast.LENGTH_LONG);
-                toast.show();
-            }
-            Calendar cal = Calendar.getInstance();
-            DateFormat df = new SimpleDateFormat("MM-dd-HH-mm-ss-SSS");
-            cal.setTimeInMillis(System.currentTimeMillis());
-            timestamp = df.format(cal.getTime());
-            process = Runtime.getRuntime().exec("mv "+filesDir+"/log.txt "+filesDir+"/"+timestamp+"_log.txt");
-            process.waitFor();
-            process.destroy();
-            /*if(Main.bt_log_filter){
-                int bt_id = android.os.Process.myPid();
-                Toast toast = Toast.makeText(context,String.valueOf(bt_id),Toast.LENGTH_SHORT);
-                toast.show();
-                Scanner scanner = new Scanner(filesDir+"/"+timestamp+"_log.txt");
-                File filtered_file = new File(filesDir,timestamp+"_log_filtered.txt");
-                FileOutputStream f = new FileOutputStream(filtered_file);
-                PrintWriter pw = new PrintWriter(f);
-                while(scanner.hasNextLine()){
-                    String newLine = scanner.nextLine();
-                    Log.e(Main.TAG,newLine);
-                    if(newLine.contains(String.valueOf(bt_id))){
-                        pw.println(newLine);
-                    }
-                }
-                pw.flush();
-                pw.close();
-                f.close();
-            }*/
-        }catch (FileNotFoundException e) {
-            Log.e(Main.TAG,e.toString());
-        }catch(IOException e){
-            Log.e(Main.TAG,e.toString());
-        }catch(InterruptedException e){
-            Log.e(Main.TAG,e.toString());
-        }
+
+        intent = new Intent();
+        intent.setAction("BTLogSaveIntent");
+        intent.putExtra(Intent.EXTRA_TEXT, "STOP");
+        context.sendBroadcast(intent);
     }
 
     public static Map<String, String> parseXML(XmlPullParser parser) throws XmlPullParserException, IOException {
@@ -163,7 +114,6 @@ public class Utils {
 
             switch (eventType) {
                 case XmlPullParser.START_DOCUMENT:
-                    Log.v(Main.TAG, "Start of the document");
                     break;
                 case XmlPullParser.START_TAG:
                     name = parser.getName();
@@ -174,7 +124,7 @@ public class Utils {
                             prevState = parser.nextText();
                         } else if (name.equalsIgnoreCase("prevState2")) {
                             prevState2 = parser.nextText();
-                            Log.v(Main.TAG, title + presState + prevState);
+                            //Log.v(Main.TAG, title + presState + prevState);
                             map.put(title, prevState + prevState2 + presState);
                         } else {
                             title = name;
@@ -183,7 +133,6 @@ public class Utils {
                     break;
                 case XmlPullParser.END_TAG:
                     name = parser.getName();
-                    Log.d(Main.TAG, "Reading document over");
             }
             eventType = parser.next();
         }
@@ -273,7 +222,7 @@ public class Utils {
                     } else {
                         xmlSerializer.startTag(null, list_names[counter]);
                         stackOptionsView = (StackOptionsView) lv.findViewWithTag(list_tags[counter]);
-                        Log.v(Main.TAG, "XML----" + list_names[counter] + String.valueOf(stackOptionsView.prevState) + String.valueOf(stackOptionsView.prevState2) + String.valueOf(stackOptionsView.state));
+                        //Log.v(Main.TAG, "XML----" + list_names[counter] + String.valueOf(stackOptionsView.prevState) + String.valueOf(stackOptionsView.prevState2) + String.valueOf(stackOptionsView.state));
                         xmlSerializer.startTag(null, "presentState");
                         xmlSerializer.text(String.valueOf(stackOptionsView.state));
                         xmlSerializer.endTag(null, "presentState");
@@ -340,6 +289,9 @@ public class Utils {
             xmlSerializer.startTag(null,"Stack_all");
             xmlSerializer.text(String.valueOf(Main.stack_set_all));
             xmlSerializer.endTag(null,"Stack_all");
+            xmlSerializer.startTag(null,"log_file_size_pos");
+            xmlSerializer.text(String.valueOf(Main.size_pos));
+            xmlSerializer.endTag(null,"log_file_size_pos");
             xmlSerializer.startTag(null,"bt_log_filter");
             xmlSerializer.text(String.valueOf(Main.bt_log_filter));
             xmlSerializer.endTag(null,"bt_log_filter");
@@ -371,17 +323,13 @@ public class Utils {
         }
     }
 
-    public static boolean isAppRunning(Context context) {
-        String activity = Main.class.getName();
-        ActivityManager activityManager = (ActivityManager) context.
-                getSystemService(Context.ACTIVITY_SERVICE);
+    public static boolean isAppRunning(Context context, String appName) {
+        ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+        List<ActivityManager.RunningAppProcessInfo> runningAppProcessInfo = am.getRunningAppProcesses();
 
-        List<ActivityManager.RunningTaskInfo> tasks = activityManager.
-                getRunningTasks(Integer.MAX_VALUE);
-
-        for (ActivityManager.RunningTaskInfo task : tasks) {
-            if (activity.equals(task.baseActivity.getClassName())) {
-                return true;
+        for (int i = 0; i < runningAppProcessInfo.size(); i++) {
+            if(runningAppProcessInfo.get(i).processName.equals(appName)) {
+              return true;
             }
         }
         return false;
@@ -416,6 +364,8 @@ public class Utils {
                                 Main.bt_log_filter = Boolean.valueOf(parser.nextText());
                             } else if (name.equalsIgnoreCase("Stack_all")) {
                                 Main.stack_set_all = Boolean.valueOf(parser.nextText());
+                            } else if (name.equalsIgnoreCase("log_file_size_pos")) {
+                                Main.size_pos = Integer.valueOf(parser.nextText());
                             }
                         }
                         break;

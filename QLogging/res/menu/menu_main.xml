@@ -33,21 +33,29 @@
 
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools" tools:context=".Main">
+xmlns:tools="http://schemas.android.com/tools" tools:context=".Main">
     <item
-        android:id="@+id/action_save_log_btn_start"
-        android:icon="@android:drawable/ic_media_play"
-        android:title="@string/log_save_start"/>
+    android:id="@+id/action_save_log_btn_start"
+    android:icon="@android:drawable/ic_media_play"
+    android:title="@string/log_save_start"/>
     <item
-        android:id="@+id/action_save_log_btn_stop"
-        android:icon="@android:drawable/ic_media_pause"
-        android:title="@string/log_save_stop"/>
-<!--    <item
-        android:id="@+id/action_btlog_filter"
-        android:actionViewClass="android.widget.Switch"
+    android:id="@+id/action_save_log_btn_stop"
+    android:icon="@android:drawable/ic_media_pause"
+    android:title="@string/log_save_stop"/>
+    <item
+        android:id="@+id/action_log_file_title"
+        android:showAsAction="always"
+        android:actionViewClass="android.widget.TextView"/>
+    <item
+        android:id="@+id/action_log_file_size"
+        android:showAsAction="always"
+        android:actionViewClass="android.widget.Spinner"/>
+    <!--    <item
+    android:id="@+id/action_btlog_filter"
+    android:actionViewClass="android.widget.Switch"
     />-->
     <item android:id="@+id/action_settings"
-        android:title="@string/action_settings"
-        android:orderInCategory="100" />
-<!--app:showAsAction="never" />-->
-</menu>
+    android:title="@string/action_settings"
+    android:orderInCategory="100" />
+    <!--app:showAsAction="never" />-->
+    </menu>
