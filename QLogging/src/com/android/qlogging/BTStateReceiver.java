@@ -114,8 +114,7 @@ public class BTStateReceiver extends BroadcastReceiver{
                                 }
                                 sendIntent.transmitIntent(context, Main.SOC_ALL_MODULE_ID, getSecondoryOptions.SOC_levels, Main.SOC_ALL_MODULE_ID);
                             }else{
-                                toast = Toast.makeText(context, "Map empty for SOC", Toast.LENGTH_SHORT);
-                                toast.show();
+                                  Log.d(Main.TAG,"Map empty for SOC");
                             }
                             break;
                         case Main.PROFILE_MODULE_ID:
@@ -227,8 +226,6 @@ public class BTStateReceiver extends BroadcastReceiver{
                             sendIntent.transmitIntent(context, Main.SOC_ALL_MODULE_ID, getSecondoryOptions.SOC_levels, Main.SOC_ALL_MODULE_ID);
                             break;
                     }
-                    toast = Toast.makeText(context, "Present Log levels set", Toast.LENGTH_SHORT);
-                    toast.show();
                     break;
                 case BluetoothAdapter.STATE_TURNING_ON:
                     break;
