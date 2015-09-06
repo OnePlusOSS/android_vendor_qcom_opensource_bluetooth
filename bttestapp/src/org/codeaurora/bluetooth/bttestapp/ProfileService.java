@@ -799,6 +799,7 @@ public class ProfileService extends Service {
         unregisterReceiver(mReceiver);
 
         if (mPbapClient != null) {
+            mPbapClient.removeSdp();
             mPbapClient.disconnect();
         }
 
@@ -833,6 +834,9 @@ public class ProfileService extends Service {
         } else {
             Log.v(TAG, "Current device: none");
         }
+
+        if (mPbapClient != null)
+            mPbapClient.removeSdp();
 
         mPbapClient = null;
         mMapClients = new HashMap<Integer, BluetoothMasClient>();
