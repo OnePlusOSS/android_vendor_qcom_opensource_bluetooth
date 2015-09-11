@@ -52,6 +52,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.Shader;
 import java.util.Map;
+import android.os.SystemProperties;
 
 public class getSecondoryOptions extends Activity{
 /*
@@ -63,7 +64,8 @@ public class getSecondoryOptions extends Activity{
     public static LinearLayout lv;
     public static ScrollView sv;
     public static String SOC_levels="";
-
+    String mRome ="rome";
+    String bt_soc_type = SystemProperties.get("qcom.bluetooth.soc");
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -164,7 +166,13 @@ public class getSecondoryOptions extends Activity{
                         lv.setVisibility(View.VISIBLE);
                     }else{
                         lv.setVisibility(View.GONE);
-                        sendIntent.transmitIntent(this, 0, "F", Main.SOC_ALL_MODULE_ID);
+                        if (bt_soc_type.equals(mRome))
+                            Log.d(Main.TAG,"soc type is rome dont enable SOC logging");
+                        else
+                        {
+                            sendIntent.transmitIntent(this, 0, "F", Main.SOC_ALL_MODULE_ID);
+                            Log.d(Main.TAG,"soc type is not rome enable SOC logging");
+                        }
                     }
                     titlebarHeading = "SOC log levels";
                 }
@@ -219,7 +227,13 @@ public class getSecondoryOptions extends Activity{
                         Main.soc_log_enabled=true;
                         Utils.saveGlobalState(getApplicationContext());
                         Toast.makeText(getApplicationContext(), "SOC logging turned on", Toast.LENGTH_SHORT).show();
-                        sendIntent.transmitIntent(getApplicationContext(), 0, SOC_levels, Main.SOC_ALL_MODULE_ID);
+                        if (bt_soc_type.equals(mRome))
+                            Log.d(Main.TAG,"soc type is rome dont enable SOC logging");
+                        else
+                        {
+                            sendIntent.transmitIntent(getApplicationContext(), 0, SOC_levels, Main.SOC_ALL_MODULE_ID);
+                            Log.d(Main.TAG,"soc type is not rome enable SOC logging");
+                        }
                         init_soc = 1;
                     }else{
                         Utils.saveCurrentState(getApplicationContext());
@@ -228,7 +242,13 @@ public class getSecondoryOptions extends Activity{
                         tv.setVisibility(View.VISIBLE);
                         Main.soc_log_enabled=false;
                         Utils.saveGlobalState(getApplicationContext());
-                        sendIntent.transmitIntent(getApplicationContext(), 0, "F", Main.SOC_ALL_MODULE_ID);
+                        if (bt_soc_type.equals(mRome))
+                            Log.d(Main.TAG,"soc type is rome dont enable SOC logging");
+                        else
+                        {
+                            sendIntent.transmitIntent(getApplicationContext(), 0, "F", Main.SOC_ALL_MODULE_ID);
+                            Log.d(Main.TAG,"soc type is not rome enable SOC logging");
+                        }
                     }
                 }
             });

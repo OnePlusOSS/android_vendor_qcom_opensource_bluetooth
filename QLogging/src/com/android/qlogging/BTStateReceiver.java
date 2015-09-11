@@ -69,7 +69,7 @@ import java.io.FileOutputStream;
 import java.io.PrintWriter;
 import java.lang.reflect.Field;
 import java.lang.Runnable;
-
+import android.os.SystemProperties;
 import android.content.pm.PackageManager;
 
 public class BTStateReceiver extends BroadcastReceiver{
@@ -77,6 +77,8 @@ public class BTStateReceiver extends BroadcastReceiver{
     public void onReceive(Context context, Intent intent) {
         final String action = intent.getAction();
         Toast toast;
+        String mRome ="rome";
+        String bt_soc_type;
 
         final int btstate = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
         switch (btstate) {
@@ -87,6 +89,7 @@ public class BTStateReceiver extends BroadcastReceiver{
             case BluetoothAdapter.STATE_ON:
                 Map map;
                 int counter = 0;
+                bt_soc_type = SystemProperties.get("qcom.bluetooth.soc");
                 Utils.setGlobalSettings(context);
                 String[] profile_tags = context.getResources().getStringArray(R.array.profile_list_tags);
                 String[] stack_list_names = context.getResources().getStringArray(R.array.stack_list_names);
@@ -106,12 +109,18 @@ public class BTStateReceiver extends BroadcastReceiver{
                     }
                 }
                 else
-                    Log.d(Main.TAG,"Map empty for Stack");
+                    Log.d(Main.TAG,"Map empty for Stack"+ bt_soc_type);
 
                 map = Utils.getPreviousSettings(context, Main.SOC_MODULE_ID);
                 if (!Main.soc_log_enabled)
                 {
-                    sendIntent.transmitIntent(context, 0, "F", Main.SOC_ALL_MODULE_ID);
+                    if (bt_soc_type.equals(mRome))
+                        Log.d(Main.TAG,"soc type is rome dont enable SOC logging");
+                    else
+                    {
+                        sendIntent.transmitIntent(context, 0, "F", Main.SOC_ALL_MODULE_ID);
+                        Log.d(Main.TAG,"soc type is not rome enable SOC logging");
+                    }
                 }
                 else
                 {
@@ -132,7 +141,13 @@ public class BTStateReceiver extends BroadcastReceiver{
                                 getSecondoryOptions.SOC_levels+=String.valueOf(0);
                             }
                         }
-                        sendIntent.transmitIntent(context, Main.SOC_ALL_MODULE_ID, getSecondoryOptions.SOC_levels, Main.SOC_ALL_MODULE_ID);
+                        if (bt_soc_type.equals(mRome))
+                            Log.d(Main.TAG,"soc type is rome dont enable SOC logging");
+                        else
+                        {
+                            Log.d(Main.TAG,"soc type is not rome enable SOC logging");
+                            sendIntent.transmitIntent(context, Main.SOC_ALL_MODULE_ID, getSecondoryOptions.SOC_levels, Main.SOC_ALL_MODULE_ID);
+                        }
                     }
                     else
                         Log.d(Main.TAG,"Map empty for SOC");
