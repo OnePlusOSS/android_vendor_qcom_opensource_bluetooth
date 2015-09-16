@@ -127,7 +127,8 @@ static void wipower_power_cb(unsigned char alert_data) {
 
 static void callback_thread_event(bt_cb_thread_evt event) {
     JavaVM* vm = AndroidRuntime::getJavaVM();
-    ALOGE("Kiran: Callback thread attached: %d", event);
+    if (DBG)
+        ALOGV("Callback thread attached: %d", event);
     if (event  == ASSOCIATE_JVM) {
         JavaVMAttachArgs args;
         char name[] = "wipower Service Callback Thread";
@@ -135,10 +136,11 @@ static void callback_thread_event(bt_cb_thread_evt event) {
         args.name = name;
         args.group = NULL;
         vm->AttachCurrentThread(&sCallbackEnv, &args);
-        ALOGE("Kiran: Callback thread attached: %p", sCallbackEnv);
+        if (DBG)
+            ALOGV("Callback thread attached: %p", sCallbackEnv);
     } else if (event == DISASSOCIATE_JVM) {
         if (!checkCallbackThread()) {
-            ALOGE("Kiran: Callback: '%s' is not called on the correct thread", __FUNCTION__);
+            ALOGE("Callback: '%s' is not called on the correct thread", __FUNCTION__);
             return;
         }
         vm->DetachCurrentThread();
@@ -402,7 +404,7 @@ int register_android_hardware_wipower(JNIEnv* env)
 {
 
     ALOGV("%s: >\n", __func__);
-    return jniRegisterNativeMethods(env, "org/codeaurora/bt_wipower/wipower/WipowerService", gMethods, NELEM(gMethods));
+    return jniRegisterNativeMethods(env, "org/codeaurora/bt_wipowersdk/wipower/WipowerService", gMethods, NELEM(gMethods));
 }
 }
 

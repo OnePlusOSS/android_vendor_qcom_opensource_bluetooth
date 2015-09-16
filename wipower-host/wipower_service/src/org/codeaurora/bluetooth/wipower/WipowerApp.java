@@ -31,7 +31,7 @@
  * @hide
  */
 
-package  org.codeaurora.bt_wipower.wipower;
+package  org.codeaurora.bt_wipowersdk.wipower;
 
 import android.app.Application;
 import android.util.Log;

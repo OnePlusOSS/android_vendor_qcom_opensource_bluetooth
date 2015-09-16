@@ -29,10 +29,10 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-  package="org.codeaurora.bt_wipower"
+  package="org.codeaurora.bt_wipowersdk"
   android:sharedUserId="android.uid.bluetooth">
 
-    <original-package android:name="org.codeaurora.bt_wipower" />
+    <original-package android:name="org.codeaurora.bt_wipowersdk" />
 
     <uses-permission android:name="android.permission.ACCESS_BLUETOOTH_SHARE" />
     <uses-permission android:name="android.permission.BLUETOOTH" />
@@ -41,25 +41,28 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <uses-permission android:name="android.permission.BLUETOOTH_STACK" />
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
     <application android:process="com.android.bluetooth"
+        android:name=".wipower.WipowerApp"
         android:persistent="false"
         android:supportsRtl="true">
-        <uses-library android:name="com.quicinc.wbc"
-            android:required="false" />
         <uses-library android:name="android.wipower"
             android:required="false" />
-        <service
-            android:process="com.android.bluetooth"
-            android:exported="true"
-            android:name = ".a4wp.A4wpService">
-        </service>
         <receiver
-            android:process="com.android.bluetooth"
-            android:exported="true"
-            android:name=".a4wp.BTEventHandler">
+           android:name=".wipower.BTEventHandler"
+           android:exported="true"
+           android:enabled="true"
+           android:process="com.android.bluetooth">
             <intent-filter>
                 <action android:name="android.bluetooth.adapter.action.STATE_CHANGED" />
             </intent-filter>
         </receiver>
-
+        <service
+           android:name = ".wipower.WipowerService"
+           android:exported="true"
+           android:enabled="true"
+           android:process="com.android.bluetooth">
+            <intent-filter>
+                <action android:name="android.wipower.IWipower" />
+            </intent-filter>
+        </service>
     </application>
 </manifest>

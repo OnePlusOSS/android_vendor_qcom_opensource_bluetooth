@@ -2,14 +2,13 @@ LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE_TAGS := optional
-src_dirs:= src/org/codeaurora/bluetooth/a4wp_app
+src_dirs:= src/org/codeaurora/bluetooth/wipower
 
 LOCAL_SRC_FILES := \
         $(call all-java-files-under, $(src_dirs))
 
-LOCAL_PACKAGE_NAME := a4wpservice
+LOCAL_PACKAGE_NAME := wipowerservice
 LOCAL_CERTIFICATE := platform
-LOCAL_JAVA_LIBRARIES += com.quicinc.wbc
 LOCAL_JAVA_LIBRARIES += android.wipower
 
 LOCAL_REQUIRED_MODULES := bluetooth.default

@@ -27,7 +27,7 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.codeaurora.bt_wipower.wipower;
+package org.codeaurora.bt_wipowersdk.wipower;
 
 import java.util.UUID;
 import android.bluetooth.BluetoothManager;
