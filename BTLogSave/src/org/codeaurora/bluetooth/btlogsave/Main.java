@@ -46,6 +46,10 @@ import android.view.MenuItem;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
+import android.util.Log;
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.os.Build;
 
 public class Main extends Activity{
 
@@ -53,11 +57,39 @@ public class Main extends Activity{
     public static int log_file_size = 100;
     public static LinearLayout lv;
     public static int size_pos = 0;
+    private static int MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE = 1;
+    public static boolean mHasCriticalPermissions = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
+        checkPermissions();
         finish();
+    }
+
+    private void checkPermissions() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            Log.v(TAG, "not running on M, skipping permission checks" + Build.VERSION.SDK_INT);
+            return;
+        }
+        if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE);
+        } else {
+            Log.d(Main.TAG,"Permission Already granted.");
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        if (MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE == requestCode) {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                mHasCriticalPermissions = true;
+                Log.d(Main.TAG,"Permission granted");
+            } else {
+                mHasCriticalPermissions = false;
+                Log.d(Main.TAG,"Permission not granted");
+            }
+        }
     }
 
 }

@@ -65,7 +65,10 @@ import java.lang.Runnable;
 public class Utils{
 
     static {
-        new File("/sdcard/BtLogKit").mkdir();
+        if (Main.mHasCriticalPermissions)
+            new File("/sdcard/BtLogKit").mkdir();
+        else
+            Log.d(Main.TAG,"Don't have sdcard permission.");
     }
 
     private static Process process_logcat_start,process_logcat_clear,process_logcat_move;
