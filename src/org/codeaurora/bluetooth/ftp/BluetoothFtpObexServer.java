@@ -63,6 +63,8 @@ import javax.obex.Operation;
 import javax.obex.HeaderSet;
 import javax.obex.ObexHelper;
 import android.os.Environment;
+import android.os.storage.StorageManager;
+import android.os.storage.StorageVolume;
 
 public class BluetoothFtpObexServer extends ServerRequestHandler {
 
@@ -109,6 +111,7 @@ public class BluetoothFtpObexServer extends ServerRequestHandler {
     public static final String ENV_SECONDARY_EXTERNAL_STORAGE = "SECONDARY_STORAGE";
     private String rootPrimaryStoragePath = null;
     private String rootSecondaryStoragePath = null;
+    private StorageManager mStorageManager;
     public static final String PRIMARY_INTERNAL_FOLDERNAME = "PHONE_MEMORY";
     public static final String SECONDARY_EXTERNAL_FOLDERNAME = "EXTERNAL_MEMORY";
     private static final String FOLDER_NAME_DOT = ".";
@@ -209,9 +212,22 @@ public class BluetoothFtpObexServer extends ServerRequestHandler {
         Message msg = Message.obtain(mCallback);
         msg.what = BluetoothFtpService.MSG_SESSION_ESTABLISHED;
         msg.sendToTarget();
-        /*Initialize the internal, external storage root paths from Enivronment*/
-        rootPrimaryStoragePath = Environment.getExternalStorageDirectory().getPath();
-        rootSecondaryStoragePath = System.getenv(ENV_SECONDARY_EXTERNAL_STORAGE);
+        mStorageManager = StorageManager.from(mContext);
+        StorageVolume[] volumes = mStorageManager.getVolumeList();
+        for (int i = 0; i < volumes.length; i++) {
+            String path = volumes[i].getPath();
+            if(V) Log.v(TAG, "Fetch storageManager volumeList : " + path + " :: isRemovable= " +
+                volumes[i].isRemovable() + ", getDescription= " + volumes[i]
+                    .getDescription(mContext.getApplicationContext()) + " , isEmulated= " +
+                        volumes[i].isEmulated()+ ", isPrimary=" + volumes[i].isPrimary());
+            /*Initialize the internal, external storage root paths from Enivronment*/
+            if ( rootPrimaryStoragePath == null && volumes[i].isPrimary()) {
+                rootPrimaryStoragePath = path;
+            } else if (rootSecondaryStoragePath == null && volumes[i].isRemovable()) {
+               //TODO: Support only first external SDCARD in list , in case of multiple
+               rootSecondaryStoragePath = path;
+            }
+        }
         /*Initialize mCurrentPath to null to show Internal and External memory options*/
         mCurrentPath = null;
         if(D) Log.d(TAG,"ENV:  PRIMARY:  "+ rootPrimaryStoragePath +
