@@ -404,12 +404,6 @@ public class BluetoothFtpService extends Service {
         VERBOSE = Log.isLoggable(BluetoothFtpService.LOG_TAG, Log.VERBOSE) ? true : false;
         Log.v(TAG, "Ftp Service startRfcommSocketListener");
 
-        if (mRfcommServerSocket == null) {
-            if (!initRfcommSocket()) {
-                closeService();
-                return;
-            }
-        }
         if (mRfcommAcceptThread == null) {
             mRfcommAcceptThread = new RfcommSocketAcceptThread();
             mRfcommAcceptThread.setName("BluetoothFtpRfcommAcceptThread");
@@ -425,7 +419,7 @@ public class BluetoothFtpService extends Service {
         // It's possible that create will fail in some cases. retry for 10 times
         for (int i = 0; i < CREATE_RETRY_TIME && !mInterrupted; i++) {
             try {
-                // It is mandatory for PSE to support initiation of bonding and
+                // It is mandatory for FTP to support initiation of bonding and
                 // encryption.
                 mRfcommServerSocket = mAdapter.listenUsingRfcommWithServiceRecord("OBEX File Transfer", FileTransfer.getUuid());
                 initSocketOK = true;
@@ -645,6 +639,14 @@ public class BluetoothFtpService extends Service {
 
         @Override
         public void run() {
+
+            if (mRfcommServerSocket == null) {
+                 if (!initRfcommSocket()) {
+                     closeService();
+                     return;
+                 }
+             }
+
             while (!stopped && mRfcommServerSocket != null) {
                 try {
                     Log.v(RTAG,"Run Accept thread");
