@@ -64,6 +64,7 @@ Class to handle the Main activity
     public final static int STACK_MODULE_ID = 2;
     public final static int SOC_MODULE_ID = 3;
     public final static int SOC_ALL_MODULE_ID = 4;
+    public final static int VSC_MODULE_ID = 5;
     public static int log_file_size = 100;
     public static int size_pos = 1;
 
@@ -214,16 +215,20 @@ Class to handle the Main activity
         switch (view.getId()) {
 
             case R.id.profile_button:
-                selected=PROFILE_MODULE_ID;
+                selected = PROFILE_MODULE_ID;
                 Log.v(TAG,"Profile button clicked");
                 break;
             case R.id.stack_button:
-                selected=STACK_MODULE_ID;
+                selected = STACK_MODULE_ID;
                 Log.v(TAG,"Stack button clicked");
                 break;
             case R.id.java_button:
-                selected=SOC_MODULE_ID;
+                selected = SOC_MODULE_ID;
                 Log.v(TAG,"SOC button clicked");
+                break;
+            case R.id.m_vsc_button:
+                selected = VSC_MODULE_ID;
+                Log.v(TAG,"VSC button clicked");
                 break;
         }
         intent.addFlags(selected);

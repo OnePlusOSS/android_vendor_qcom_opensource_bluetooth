@@ -42,6 +42,7 @@ import android.view.MenuItem;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.Space;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -62,6 +63,7 @@ public class getSecondoryOptions extends Activity{
     public static int selected=0;
     public static int init_soc = 0;
     public static LinearLayout lv;
+    public static RelativeLayout rl;
     public static ScrollView sv;
     public static String SOC_levels="";
     String mRome ="rome";
@@ -177,6 +179,13 @@ public class getSecondoryOptions extends Activity{
                     titlebarHeading = "SOC log levels";
                 }
                 break;
+
+            case Main.VSC_MODULE_ID:
+                Log.d(Main.TAG, "VSC button clicked");
+                titlebarHeading = "Send VS Command";
+                VendorOptionView vendorOptionView = new VendorOptionView (this);
+                lv.addView(vendorOptionView);
+            break;
         }
 
         try{

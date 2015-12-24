@@ -74,5 +74,15 @@
         android:text="@string/soc_text"
         android:padding="15dip"/>
 
+    <Button
+        android:id="@+id/m_vsc_button"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:layout_weight="1"
+        android:onClick="getOptions"
+        android:background="@drawable/border"
+        android:text="@string/m_vsc_text"
+        android:padding="15dip"/>
+
 </LinearLayout>
 
