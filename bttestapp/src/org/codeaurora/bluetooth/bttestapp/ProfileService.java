@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013,2015, The Linux Foundation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -37,6 +37,7 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothHeadsetClient;
 import android.bluetooth.BluetoothAvrcpController;
 import android.bluetooth.SdpMasRecord;
+import android.bluetooth.SdpPseRecord;
 import android.bluetooth.BluetoothProfile;
 import android.bluetooth.BluetoothProfile.ServiceListener;
 import android.content.BroadcastReceiver;
@@ -856,10 +857,6 @@ public class ProfileService extends Service {
             return null;
         }
 
-        if (mPbapClient == null) {
-            mPbapClient = new BluetoothPbapClient(mDevice, mPbapHandler);
-        }
-
         return mPbapClient;
     }
 
@@ -880,6 +877,18 @@ public class ProfileService extends Service {
 
             BluetoothMasClient client = new BluetoothMasClient(mDevice, masrec, mMapHandler);
             mMapClients.put(masrec.getMasInstanceId(), client);
+    }
+
+    public void setPseClient(SdpPseRecord pserec) {
+            if (mDevice == null) {
+                return ;
+            }
+            if (mPbapClient == null) {
+                Log.d(TAG,"calling pbapClient with psm " +pserec.getL2capPsm());
+                mPbapClient = new BluetoothPbapClient(mDevice, mPbapHandler, pserec);
+            } else {
+                mPbapClient.setPseRec(pserec);
+            }
     }
 
     public BluetoothMasClient getMapClient(int id) {
