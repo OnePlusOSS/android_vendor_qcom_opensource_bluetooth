@@ -48,6 +48,8 @@
 #define HCI_GRP_HOST_CONT_BASEBAND_CMDS (0x03 << 10)
 #define HCI_OPCODE_PACK(ogf, ocf) (unsigned short int)((ocf & 0x03ff)|(ogf << 10))
 #define HCI_RESET                       (0x0003 | HCI_GRP_HOST_CONT_BASEBAND_CMDS)
+#define PAYLOAD_DATA_SIZE               765
+#define PAYLOAD_LENGTH                  255
 
 namespace android{
 
@@ -55,10 +57,10 @@ static const bt_interface_t *sBluetoothInterface = NULL;
 static const btstacklog_interface_t *sBluetoothLogInterface = NULL;
 
 jint HAL_Load(){
-	jint err;
-	hw_module_t* BT_HW_module;
+        jint err;
+        hw_module_t* BT_HW_module;
 
-	err = hw_get_module(BT_HARDWARE_MODULE_ID,(hw_module_t const**)&BT_HW_module);
+        err = hw_get_module(BT_HARDWARE_MODULE_ID,(hw_module_t const**)&BT_HW_module);
 
         if (err == 0) {
             hw_device_t* stack;
@@ -97,6 +99,7 @@ static void setLogging(JNIEnv* env, jclass clazz,jstring jlog_layer, jint log_le
         else{
             uint8_t values[7] = {0x00,0x01,0x02,0x03,0x04,0x05,0x06};
             const char *log_layer = env->GetStringUTFChars(jlog_layer, 0);
+            const char *vsc_data = env->GetStringUTFChars(jlog_layer, 0);
             if ( module == 3 )
             {
                 ALOGD("Setting SOC log levels.");
@@ -138,17 +141,35 @@ static void setLogging(JNIEnv* env, jclass clazz,jstring jlog_layer, jint log_le
                     sBluetoothInterface->hci_cmd_send(HCI_OPCODE_PACK(0x3F,0x17),param,15);
                 }
             }
+            else if (module == 5)
+            {
+                ALOGD("Sending VS Commands.");
+                uint8_t vsc_data_t[PAYLOAD_LENGTH] = {0};
+                char str[PAYLOAD_DATA_SIZE] = {NULL};
+                strlcpy(str,vsc_data,strlen(vsc_data)+1);
+                int count_t = 0;
+                char* token_pointer;
+                token_pointer = strtok(str, ",");
+                while ((NULL != token_pointer) && (count_t < PAYLOAD_LENGTH))
+                {
+                    vsc_data_t[count_t] = (uint8_t)strtol(token_pointer,NULL,16);
+                    token_pointer = strtok(NULL, ",");
+                    count_t++;
+                }
+                ALOGD("Total count:%d ",count_t );
+                sBluetoothInterface->hci_cmd_send(HCI_OPCODE_PACK(0x3F,log_level),vsc_data_t,count_t);
+            }
             else
             {
                 ALOGD("Setting stack log levels.");
-	        sBluetoothLogInterface->setLog(log_layer,log_level);
+                sBluetoothLogInterface->setLog(log_layer,log_level);
             }
         }
     }
 }
 
 static JNINativeMethod sMethods[] = {
-	{"setLogging", "(Ljava/lang/String;II)V", (void *) setLogging}
+    {"setLogging", "(Ljava/lang/String;II)V", (void *) setLogging}
 };
 
 int register_com_android_qlogging_sendIntent(JNIEnv* env)

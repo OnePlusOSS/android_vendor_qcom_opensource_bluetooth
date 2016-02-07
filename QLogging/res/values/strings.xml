@@ -40,6 +40,12 @@
     <string name="profile_text">Profiles</string>
     <string name="stack_text">Stack</string>
     <string name="soc_text">SOC</string>
+    <string name="m_vsc_text">Vendor Specific Command</string>
+    <string name="raw_cmd">SEND VS CMD</string>
+    <string name="reset_cmd">Reset</string>
+    <string name="data_input">DATA: 0x (Enter comma seprated value)</string>
+    <string name="ocf_input">OCF: 0x</string>
+    <string name="ogf_input">OGF: 0x3F</string>
 
     <string name="D">D</string>
     <string name="V">V</string>
