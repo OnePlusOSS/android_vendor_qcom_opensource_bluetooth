@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013,2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013, The Linux Foundation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -56,7 +56,7 @@ import android.widget.TextView;
 import android.bluetooth.BluetoothA2dpSink;
 import android.bluetooth.BluetoothAvrcpController;
 import android.bluetooth.client.map.BluetoothMasClient;
-import android.bluetooth.client.pbap.BluetoothPbapClient;
+//import android.bluetooth.client.pbap.BluetoothPbapClient;
 import org.codeaurora.bluetooth.bttestapp.R;
 
 import org.json.JSONArray;
@@ -317,7 +317,7 @@ public class ServicesFragment extends ListFragment {
                         break;
                     }
 
-                    case PBAP: {
+                 /*   case PBAP: {
                         BluetoothPbapClient cli = mActivity.mProfileService.getPbapClient();
 
                         if (cli == null || bluetoothOn == false) {
@@ -346,7 +346,7 @@ public class ServicesFragment extends ListFragment {
                         }
 
                         break;
-                    }
+                    } */
 
                     case MAP: {
                         BluetoothMasClient cli = mActivity.mProfileService
@@ -464,7 +464,7 @@ public class ServicesFragment extends ListFragment {
                         }
                         break;
 
-                    case PBAP:
+                   /* case PBAP:
                         if (isChecked) {
                             if (mActivity.mProfileService.getPbapClient()!= null)
                                 mActivity.mProfileService.getPbapClient().connect();
@@ -475,7 +475,7 @@ public class ServicesFragment extends ListFragment {
                             buttonView.setEnabled(false);
                         }
                         break;
-
+                     */
                     case MAP:
                         BluetoothMasClient cli = mActivity.mProfileService
                             .getMapClient(srv.mSdpMasRecord.getMasInstanceId());
@@ -555,10 +555,10 @@ public class ServicesFragment extends ListFragment {
         if (BluetoothAdapter.getDefaultAdapter().isEnabled() == false) return;
 
         switch (srv.mType) {
-            case PBAP:
+            /*case PBAP:
                 intent = new Intent(getActivity(), PbapTestActivity.class);
                 break;
-
+             */
             case HFP:
                 if (mActivity.mProfileService.getHfpClient() != null)
                     intent = new Intent(getActivity(), HfpTestActivity.class);

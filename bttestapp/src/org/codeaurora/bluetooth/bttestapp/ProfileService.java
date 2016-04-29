@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013,2015, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013, The Linux Foundation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -37,7 +37,6 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothHeadsetClient;
 import android.bluetooth.BluetoothAvrcpController;
 import android.bluetooth.SdpMasRecord;
-import android.bluetooth.SdpPseRecord;
 import android.bluetooth.BluetoothProfile;
 import android.bluetooth.BluetoothProfile.ServiceListener;
 import android.content.BroadcastReceiver;
@@ -55,12 +54,12 @@ import android.bluetooth.client.map.BluetoothMapBmessage;
 import android.bluetooth.client.map.BluetoothMapEventReport;
 import android.bluetooth.client.map.BluetoothMapMessage;
 import android.bluetooth.client.map.BluetoothMasClient;
-import android.bluetooth.client.pbap.BluetoothPbapCard;
+/*import android.bluetooth.client.pbap.BluetoothPbapCard;
 import android.bluetooth.client.pbap.BluetoothPbapClient;
+import org.codeaurora.bluetooth.bttestapp.services.IPbapServiceCallback;
+import org.codeaurora.bluetooth.bttestapp.services.PbapAuthActivity; */
 import org.codeaurora.bluetooth.bttestapp.R;
 import org.codeaurora.bluetooth.bttestapp.services.IMapServiceCallback;
-import org.codeaurora.bluetooth.bttestapp.services.IPbapServiceCallback;
-import org.codeaurora.bluetooth.bttestapp.services.PbapAuthActivity;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -109,12 +108,12 @@ public class ProfileService extends Service {
 
     private BluetoothAvrcpController mAvrcpController = null;
 
-    private BluetoothPbapClient mPbapClient = null;
+  /*  private BluetoothPbapClient mPbapClient = null;
 
     private IPbapServiceCallback mPbapCallback = null;
 
     private final PbapSessionData mPbapSessionData = new PbapSessionData();
-
+*/
     private HashMap<Integer, BluetoothMasClient> mMapClients = null;
 
     private HashMap<Integer, IMapServiceCallback> mMapCallbacks = null;
@@ -127,12 +126,12 @@ public class ProfileService extends Service {
 
     private final IBinder mBinder = new LocalBinder();
 
-    class PbapSessionData {
+/*    class PbapSessionData {
         ArrayList<VCardEntry> pullPhoneBook = null;
         ArrayList<BluetoothPbapCard> pullVcardListing = null;
         VCardEntry pullVcardEntry = null;
     }
-
+*/
     class MapSessionData {
         ArrayList<String> getFolderListing;
         ArrayList<BluetoothMapMessage> getMessagesListing;
@@ -144,7 +143,7 @@ public class ProfileService extends Service {
             return ProfileService.this;
         }
     }
-
+/*
     private final Handler mPbapHandler = new Handler() {
 
         @Override
@@ -240,7 +239,7 @@ public class ProfileService extends Service {
             }
         }
     };
-
+*/
     private final Handler mMapHandler = new Handler() {
 
         @SuppressWarnings("unchecked")
@@ -399,8 +398,6 @@ public class ProfileService extends Service {
 
         public final int MESSAGE_SHIFT_NOTIFICATION_ID = 20008;
 
-        public final int READ_STATUS_CHANGED_NOTIFICATION_ID = 20009;
-
         private final NotificationManager mNotificationManager;
 
         MapNotificationSender() {
@@ -435,9 +432,6 @@ public class ProfileService extends Service {
                     break;
                 case MESSAGE_SHIFT:
                     notifyMessageShift(eventReport);
-                    break;
-                case READ_STATUS_CHANGED:
-                    notifyReadStatusChanged(eventReport);
                     break;
                 default:
                     Log.e(TAG, "Unknown MAP report type (" + eventReport.getType().toString()
@@ -475,25 +469,12 @@ public class ProfileService extends Service {
             click.putExtra(EXTRA_MAP_INSTANCE_ID, instanceId);
             click.putExtra(EXTRA_MAP_MESSAGE_HANDLE, eventReport.getHandle());
 
-            if (eventReport.getVersion() != null && eventReport.getVersion()
-                .equals(BluetoothMapEventReport.EXTENDED_EVENT_REPORT_1_1)) {
-
-                send(NEW_MESSAGE_NOTIFICATION_ID,
-                        String.format(getString(R.string.map_report_notif_received,
-                        eventReport.getMsgType().toString())),
-                        String.format(getString(R.string.map_report11_notif_received_param,
-                        eventReport.getSenderName(), eventReport.getPriority(),
-                        eventReport.getHandle())),
-                        click);
-            } else {
-                send(NEW_MESSAGE_NOTIFICATION_ID,
-                       String.format(getString(R.string.map_report_notif_received,
-                       eventReport.getMsgType().toString())),
-                       String.format(getString(R.string.map_report_notif_handle,
-                       eventReport.getHandle())),
-                       click);
-
-            }
+            send(NEW_MESSAGE_NOTIFICATION_ID,
+                    String.format(getString(R.string.map_report_notif_received, eventReport
+                            .getMsgType().toString())),
+                    String.format(getString(R.string.map_report_notif_handle,
+                            eventReport.getHandle())),
+                    click);
         }
 
         private void notifyDeliverySuccess(BluetoothMapEventReport eventReport) {
@@ -550,13 +531,6 @@ public class ProfileService extends Service {
                     String.format(getString(R.string.map_report_notif_fromto,
                             eventReport.getOldFolder(), eventReport.getFolder())));
         }
-
-        private void notifyReadStatusChanged(BluetoothMapEventReport eventReport) {
-                send(READ_STATUS_CHANGED_NOTIFICATION_ID,
-                        getString(R.string.map_report_notif_title_read_status_changed),
-                        String.format(getString(R.string.map_report_notif_handle,
-                                eventReport.getHandle())));
-        }
     }
 
     BroadcastReceiver mReceiver = new BroadcastReceiver() {
@@ -599,18 +573,18 @@ public class ProfileService extends Service {
                 } else {
                     Log.d(TAG,"AVRCP connection state change not updated");
                 }
-            } else if (PBAP_AUTH_ACTION_RESPONSE.equals(action)) {
+            }/* else if (PBAP_AUTH_ACTION_RESPONSE.equals(action)) {
                 String key = intent.getStringExtra(PBAP_AUTH_EXTRA_KEY);
                 mPbapClient.setAuthResponse(key);
             } else if (PBAP_AUTH_ACTION_CANCEL.equals(action)) {
                 mPbapClient.setAuthResponse(null);
-            } else if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)) {
+            } */else if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)) {
                 BluetoothDevice dev = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
 
                 if (dev.equals(mDevice)) {
-                    if (mPbapClient != null) {
+                /*    if (mPbapClient != null) {
                         mPbapClient.disconnect();
-                    }
+                    }*/
 
                     for (BluetoothMasClient cli : mMapClients.values()) {
                         cli.disconnect();
@@ -621,9 +595,9 @@ public class ProfileService extends Service {
             } else if (BluetoothAdapter.ACTION_STATE_CHANGED.equals(action)) {
                 int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
                 if (state == BluetoothAdapter.STATE_TURNING_OFF) {
-                    if (mPbapClient != null) {
+                    /*if (mPbapClient != null) {
                         mPbapClient.disconnect();
-                    }
+                    }*/
 
                     for (BluetoothMasClient cli : mMapClients.values()) {
                         cli.disconnect();
@@ -667,7 +641,7 @@ public class ProfileService extends Service {
         }
     };
 
-    private void createPbapAuthNotification() {
+/*    private void createPbapAuthNotification() {
         NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
         Intent click = new Intent(this, PbapAuthActivity.class);
@@ -701,7 +675,7 @@ public class ProfileService extends Service {
         Intent intent = new Intent(PBAP_AUTH_ACTION_TIMEOUT);
         sendBroadcast(intent);
     }
-
+*/
     private void checkAndStop(boolean unbind, boolean disconnect) {
         boolean canStop = true;
 
@@ -713,10 +687,10 @@ public class ProfileService extends Service {
                 canStop = false;
             }
 
-            if (mPbapClient != null
+            /*if (mPbapClient != null
                     && mPbapClient.getState() != BluetoothPbapClient.ConnectionState.DISCONNECTED) {
                 canStop = false;
-            }
+            }*/
 
             for (BluetoothMasClient cli : mMapClients.values()) {
                 if (cli.getState() != BluetoothMasClient.ConnectionState.DISCONNECTED) {
@@ -799,11 +773,10 @@ public class ProfileService extends Service {
 
         unregisterReceiver(mReceiver);
 
-        if (mPbapClient != null) {
-            mPbapClient.removeSdp();
+/*        if (mPbapClient != null) {
             mPbapClient.disconnect();
         }
-
+*/
         for (BluetoothMasClient cli : mMapClients.values()) {
             cli.disconnect();
         }
@@ -818,10 +791,10 @@ public class ProfileService extends Service {
             mHfpClient.disconnect(mDevice);
         }
 
-        if (mPbapClient != null) {
+/*        if (mPbapClient != null) {
             mPbapClient.disconnect();
         }
-
+*/
         for (BluetoothMasClient cli : mMapClients.values()) {
             cli.disconnect();
         }
@@ -836,10 +809,7 @@ public class ProfileService extends Service {
             Log.v(TAG, "Current device: none");
         }
 
-        if (mPbapClient != null)
-            mPbapClient.removeSdp();
-
-        mPbapClient = null;
+ //       mPbapClient = null;
         mMapClients = new HashMap<Integer, BluetoothMasClient>();
         mMapSessionData = new HashMap<Integer, MapSessionData>();
     }
@@ -852,9 +822,13 @@ public class ProfileService extends Service {
         return mAvrcpController;
     }
 
-    public BluetoothPbapClient getPbapClient() {
+/*    public BluetoothPbapClient getPbapClient() {
         if (mDevice == null) {
             return null;
+        }
+
+        if (mPbapClient == null) {
+            mPbapClient = new BluetoothPbapClient(mDevice, null, mPbapHandler);
         }
 
         return mPbapClient;
@@ -867,28 +841,15 @@ public class ProfileService extends Service {
     public PbapSessionData getPbapSessionData() {
         return mPbapSessionData;
     }
-
+*/
     public void setMasInstances(SdpMasRecord masrec) {
-            // SDP records might be changed while discovery, hence remove already
-            // existing MAS client & recreate the new one
+            // no need to recreate already existing MAS client
             if (mMapClients.containsKey(masrec.getMasInstanceId())) {
-               mMapClients.remove(masrec.getMasInstanceId());
+               return;
             }
 
             BluetoothMasClient client = new BluetoothMasClient(mDevice, masrec, mMapHandler);
             mMapClients.put(masrec.getMasInstanceId(), client);
-    }
-
-    public void setPseClient(SdpPseRecord pserec) {
-            if (mDevice == null) {
-                return ;
-            }
-            if (mPbapClient == null) {
-                Log.d(TAG,"calling pbapClient with psm " +pserec.getL2capPsm());
-                mPbapClient = new BluetoothPbapClient(mDevice, mPbapHandler, pserec);
-            } else {
-                mPbapClient.setPseRec(pserec);
-            }
     }
 
     public BluetoothMasClient getMapClient(int id) {

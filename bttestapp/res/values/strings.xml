@@ -214,12 +214,10 @@
     <string name="map_report_notif_title_memory_full">Memory full</string>
     <string name="map_report_notif_title_memory_available">Memory available</string>
     <string name="map_report_notif_title_message_deleted">Message deleted</string>
-    <string name="map_report_notif_title_read_status_changed">Read Status Changed</string>
     <string name="map_report_notif_received">Received new %1$s message</string>
     <string name="map_report_notif_handle">Handle: %1$s</string>
     <string name="map_report_notif_shifted">Message %1$s shifted</string>
     <string name="map_report_notif_fromto">From %1$s to %2$s</string>
-    <string name="map_report11_notif_received_param">From: %1$s Priority: %2$s Handle: %3$s</string>
 
     <string-array name="map_message_type_array">
         <item>SMS_GSM</item>
