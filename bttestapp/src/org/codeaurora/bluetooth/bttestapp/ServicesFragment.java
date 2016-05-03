@@ -54,7 +54,6 @@ import android.widget.Switch;
 import android.widget.TextView;
 
 import android.bluetooth.BluetoothA2dpSink;
-import android.bluetooth.BluetoothAvrcpController;
 import android.bluetooth.client.map.BluetoothMasClient;
 //import android.bluetooth.client.pbap.BluetoothPbapClient;
 import org.codeaurora.bluetooth.bttestapp.R;
@@ -99,19 +98,6 @@ public class ServicesFragment extends ListFragment {
                 }
 
                 connEvent = true;
-
-            } else if (ProfileService.ACTION_AVRCP_CONNECTION_STATE.equals(action)) {
-                connState = intent.getBooleanExtra(ProfileService.EXTRA_CONNECTED, false);
-
-                Service srv = new Service(Service.Type.AVRCP, null);
-                idx = mAdapter.getItemPos(srv);
-
-                if (idx < 0) {
-                    Log.w(TAG, "Cannot find AVRCP service item");
-                }
-                Log.v(TAG, "idx: " + idx + " connection state: " + connState);
-                connEvent = true;
-
             } else if (ProfileService.ACTION_PBAP_CONNECTION_STATE.equals(action)) {
                 connState = intent.getBooleanExtra(ProfileService.EXTRA_CONNECTED, false);
 
@@ -166,12 +152,7 @@ public class ServicesFragment extends ListFragment {
                 if (connEvent) {
                     swSrv.setChecked(connState);
                     Service srv = (Service)mAdapter.getItem(idx);
-                    if (srv.mType.equals(Service.Type.AVRCP)) {
-                        Log.w(TAG, "not enabling checkbox as it is AVRCP");
-                        swSrv.setEnabled(false);
-                    } else {
-                        swSrv.setEnabled(true);
-                    }
+                    swSrv.setEnabled(true);
                     swNotif.setEnabled(connState);
                     swNotif.setChecked(false);
                 }
@@ -384,28 +365,6 @@ public class ServicesFragment extends ListFragment {
 
                         break;
                     }
-
-                    case AVRCP: {
-                        Log.v(TAG, "getView: AVRCP");
-                        BluetoothAvrcpController cli = mActivity.mProfileService.getAvrcpController();
-
-                        if (cli == null || bluetoothOn == false) {
-                            swSrv.setChecked(false);
-                            swSrv.setEnabled(false);
-                            break;
-                        }
-
-                        if (cli.getConnectionState(mActivity.mDevice) != BluetoothProfile.STATE_DISCONNECTED) {
-                            Log.v(TAG, "AVRCP Connected: setChecked to True");
-                            swSrv.setChecked(true);
-                            swSrv.setEnabled(false);
-                        } else {
-                            Log.v(TAG, "AVRCP Not Connected: setChecked to False");
-                            swSrv.setChecked(false);
-                            swSrv.setEnabled(false);
-                        }
-                        break;
-                    }
                 }
             }
 
@@ -497,9 +456,6 @@ public class ServicesFragment extends ListFragment {
                             }
                         }
                         break;
-                    case AVRCP:
-                        // not to be handled
-                        break;
                 }
             }
         }
@@ -572,16 +528,6 @@ public class ServicesFragment extends ListFragment {
                 intent = new Intent(getActivity(), MapTestActivity.class);
                 intent.putExtra(ProfileService.EXTRA_MAP_INSTANCE_ID, srv.mSdpMasRecord.getMasInstanceId());
                 break;
-
-            case AVRCP:
-                if (mActivity.mProfileService.getAvrcpController() != null)
-                    intent = new Intent(getActivity(), AvrcpTestActivity.class);
-                else {
-                    Log.e(TAG, "AVRCP is not connected");
-                    return;
-                }
-                break;
-
             default:
                 // this should never happen!
                 throw new IllegalArgumentException();
