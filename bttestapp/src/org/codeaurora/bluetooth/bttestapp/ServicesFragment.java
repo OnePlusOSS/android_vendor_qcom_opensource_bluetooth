@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013,2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013, The Linux Foundation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -54,9 +54,8 @@ import android.widget.Switch;
 import android.widget.TextView;
 
 import android.bluetooth.BluetoothA2dpSink;
-import android.bluetooth.BluetoothAvrcpController;
 import android.bluetooth.client.map.BluetoothMasClient;
-import android.bluetooth.client.pbap.BluetoothPbapClient;
+//import android.bluetooth.client.pbap.BluetoothPbapClient;
 import org.codeaurora.bluetooth.bttestapp.R;
 
 import org.json.JSONArray;
@@ -99,19 +98,6 @@ public class ServicesFragment extends ListFragment {
                 }
 
                 connEvent = true;
-
-            } else if (ProfileService.ACTION_AVRCP_CONNECTION_STATE.equals(action)) {
-                connState = intent.getBooleanExtra(ProfileService.EXTRA_CONNECTED, false);
-
-                Service srv = new Service(Service.Type.AVRCP, null);
-                idx = mAdapter.getItemPos(srv);
-
-                if (idx < 0) {
-                    Log.w(TAG, "Cannot find AVRCP service item");
-                }
-                Log.v(TAG, "idx: " + idx + " connection state: " + connState);
-                connEvent = true;
-
             } else if (ProfileService.ACTION_PBAP_CONNECTION_STATE.equals(action)) {
                 connState = intent.getBooleanExtra(ProfileService.EXTRA_CONNECTED, false);
 
@@ -166,12 +152,7 @@ public class ServicesFragment extends ListFragment {
                 if (connEvent) {
                     swSrv.setChecked(connState);
                     Service srv = (Service)mAdapter.getItem(idx);
-                    if (srv.mType.equals(Service.Type.AVRCP)) {
-                        Log.w(TAG, "not enabling checkbox as it is AVRCP");
-                        swSrv.setEnabled(false);
-                    } else {
-                        swSrv.setEnabled(true);
-                    }
+                    swSrv.setEnabled(true);
                     swNotif.setEnabled(connState);
                     swNotif.setChecked(false);
                 }
@@ -317,7 +298,7 @@ public class ServicesFragment extends ListFragment {
                         break;
                     }
 
-                    case PBAP: {
+                 /*   case PBAP: {
                         BluetoothPbapClient cli = mActivity.mProfileService.getPbapClient();
 
                         if (cli == null || bluetoothOn == false) {
@@ -346,7 +327,7 @@ public class ServicesFragment extends ListFragment {
                         }
 
                         break;
-                    }
+                    } */
 
                     case MAP: {
                         BluetoothMasClient cli = mActivity.mProfileService
@@ -382,28 +363,6 @@ public class ServicesFragment extends ListFragment {
 
                         swNotif.setChecked(cli.getNotificationRegistration());
 
-                        break;
-                    }
-
-                    case AVRCP: {
-                        Log.v(TAG, "getView: AVRCP");
-                        BluetoothAvrcpController cli = mActivity.mProfileService.getAvrcpController();
-
-                        if (cli == null || bluetoothOn == false) {
-                            swSrv.setChecked(false);
-                            swSrv.setEnabled(false);
-                            break;
-                        }
-
-                        if (cli.getConnectionState(mActivity.mDevice) != BluetoothProfile.STATE_DISCONNECTED) {
-                            Log.v(TAG, "AVRCP Connected: setChecked to True");
-                            swSrv.setChecked(true);
-                            swSrv.setEnabled(false);
-                        } else {
-                            Log.v(TAG, "AVRCP Not Connected: setChecked to False");
-                            swSrv.setChecked(false);
-                            swSrv.setEnabled(false);
-                        }
                         break;
                     }
                 }
@@ -464,7 +423,7 @@ public class ServicesFragment extends ListFragment {
                         }
                         break;
 
-                    case PBAP:
+                   /* case PBAP:
                         if (isChecked) {
                             if (mActivity.mProfileService.getPbapClient()!= null)
                                 mActivity.mProfileService.getPbapClient().connect();
@@ -475,7 +434,7 @@ public class ServicesFragment extends ListFragment {
                             buttonView.setEnabled(false);
                         }
                         break;
-
+                     */
                     case MAP:
                         BluetoothMasClient cli = mActivity.mProfileService
                             .getMapClient(srv.mSdpMasRecord.getMasInstanceId());
@@ -496,9 +455,6 @@ public class ServicesFragment extends ListFragment {
                                 buttonView.setEnabled(false);
                             }
                         }
-                        break;
-                    case AVRCP:
-                        // not to be handled
                         break;
                 }
             }
@@ -555,10 +511,10 @@ public class ServicesFragment extends ListFragment {
         if (BluetoothAdapter.getDefaultAdapter().isEnabled() == false) return;
 
         switch (srv.mType) {
-            case PBAP:
+            /*case PBAP:
                 intent = new Intent(getActivity(), PbapTestActivity.class);
                 break;
-
+             */
             case HFP:
                 if (mActivity.mProfileService.getHfpClient() != null)
                     intent = new Intent(getActivity(), HfpTestActivity.class);
@@ -572,16 +528,6 @@ public class ServicesFragment extends ListFragment {
                 intent = new Intent(getActivity(), MapTestActivity.class);
                 intent.putExtra(ProfileService.EXTRA_MAP_INSTANCE_ID, srv.mSdpMasRecord.getMasInstanceId());
                 break;
-
-            case AVRCP:
-                if (mActivity.mProfileService.getAvrcpController() != null)
-                    intent = new Intent(getActivity(), AvrcpTestActivity.class);
-                else {
-                    Log.e(TAG, "AVRCP is not connected");
-                    return;
-                }
-                break;
-
             default:
                 // this should never happen!
                 throw new IllegalArgumentException();

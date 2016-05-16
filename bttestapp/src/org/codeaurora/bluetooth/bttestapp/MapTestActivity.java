@@ -1517,7 +1517,7 @@ public class MapTestActivity extends MonkeyActivity implements GetTextDialogList
             return false;
         }
 
-        if (!cli.getMessage(handle, charset, attachments)) {
+        if (!cli.getMessage(handle, attachments)) {
             return false;
         }
 

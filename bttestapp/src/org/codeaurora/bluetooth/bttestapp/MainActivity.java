@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013,2015, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013, The Linux Foundation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -32,7 +32,6 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothA2dpSink;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.SdpMasRecord;
-import android.bluetooth.SdpPseRecord;
 import android.bluetooth.BluetoothProfile;
 import android.bluetooth.BluetoothUuid;
 import android.content.BroadcastReceiver;
@@ -117,9 +116,9 @@ public class MainActivity extends MonkeyActivity {
                 if (uuids != null) {
                     for (Parcelable uuid : uuids) {
                          Log.v(TAG, "Received UUID: " + uuid.toString());
-                        if (BluetoothUuid.PBAP_PSE.equals(uuid)) {
+                       /* if (BluetoothUuid.PBAP_PSE.equals(uuid)) {
                             mServicesFragment.addService(ServicesFragment.Service.Type.PBAP, null);
-                        } else if (BluetoothUuid.Handsfree_AG.equals(uuid)) {
+                        } else */if (BluetoothUuid.Handsfree_AG.equals(uuid)) {
                             mServicesFragment.addService(ServicesFragment.Service.Type.HFP, null);
                         } else if (BluetoothUuid.AvrcpTarget.equals(uuid) ||
                                     BluetoothUuid.AudioSource.equals(uuid) ||
@@ -133,11 +132,8 @@ public class MainActivity extends MonkeyActivity {
                 mServicesFragment.persistServices();
 
                 if (mDiscoveryInProgress) {
-                    Log.v(TAG, "Searching for PSE instances");
-                    mDevice.sdpSearch(BluetoothUuid.PBAP_PSE);
                     Log.v(TAG, "Searching MAS instances");
                     mDevice.sdpSearch(BluetoothUuid.MAS);
-
                 }
 
             } else if (action.equals(BluetoothDevice.ACTION_SDP_RECORD)){
@@ -148,28 +144,16 @@ public class MainActivity extends MonkeyActivity {
 
                 ParcelUuid uuid = intent.getParcelableExtra(BluetoothDevice.EXTRA_UUID);
                 Log.v(TAG, "Received UUID: " + uuid.toString());
+                Log.v(TAG, "expected UUID: " +
+                        BluetoothUuid.MAS.toString());
                 Log.v(TAG, "mDiscoveryInProgress: " + mDiscoveryInProgress);
                 if(uuid.equals(BluetoothUuid.MAS)){
-                    Log.v(TAG, "Received MAS UUID: " + uuid.toString());
                     SdpMasRecord masrec = intent.getParcelableExtra(BluetoothDevice.EXTRA_SDP_RECORD);
                     Log.v(TAG, "masrec: " + masrec);
 
                     if (masrec != null) {
                         mProfileService.setMasInstances(masrec);
                         mServicesFragment.addService(ServicesFragment.Service.Type.MAP, masrec);
-                    }
-
-                    mServicesFragment.persistServices();
-
-                    mDiscoveryInProgress = false;
-                } else if(uuid.equals(BluetoothUuid.PBAP_PSE)){
-                    Log.v(TAG, "Received PSE UUID: " + uuid.toString());
-                    SdpPseRecord pserec = intent.getParcelableExtra(BluetoothDevice.
-                                                 EXTRA_SDP_RECORD);
-                    Log.v(TAG, "pserec: " + pserec);
-
-                    if (pserec != null) {
-                        mProfileService.setPseClient(pserec);
                     }
 
                     mServicesFragment.persistServices();

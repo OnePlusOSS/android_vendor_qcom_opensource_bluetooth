@@ -1,11 +1,11 @@
 LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
-ifeq (0,1)   # dependency on system/bt/include logging.h change
+#ifeq (0,1)   # dependency on system/bt/include logging.h change
 LOCAL_MODULE_TAGS := optional
 src_dirs:= src/org/codeaurora/bluetooth/btcservice \
            src/org/codeaurora/bluetooth/ftp \
-           src/org/codeaurora/bluetooth/dun \
+           #src/org/codeaurora/bluetooth/dun \
            #src/org/codeaurora/bluetooth/pxpservice
 
 LOCAL_SRC_FILES := \
@@ -30,4 +30,4 @@ include $(BUILD_PACKAGE)
 
 
 include $(call all-makefiles-under,$(LOCAL_PATH))
-endif
+#endif
