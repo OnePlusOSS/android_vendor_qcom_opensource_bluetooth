@@ -220,7 +220,8 @@ public class BluetoothDunPermissionActivity extends AlertActivity implements
         }
         Intent i = getIntent();
         if (i.hasExtra(BluetoothDunService.EXTRA_BLUETOOTH_DEVICE)) {
-            intent.putExtra(BluetoothDunService.EXTRA_BLUETOOTH_DEVICE, i.getParcelableExtra(BluetoothDunService.EXTRA_BLUETOOTH_DEVICE));
+            intent.putExtra(BluetoothDunService.EXTRA_BLUETOOTH_DEVICE,
+                (BluetoothDevice)i.getParcelableExtra(BluetoothDunService.EXTRA_BLUETOOTH_DEVICE));
         }
         sendBroadcast(intent);
     }
