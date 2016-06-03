@@ -19,6 +19,6 @@ LOCAL_PROGUARD_ENABLED := disabled
 LOCAL_MULTILIB := 32
 LOCAL_JNI_SHARED_LIBRARIES := libwipower_jni
 
-include $(BUILD_PACKAGE)
+#include $(BUILD_PACKAGE)
 
 include $(call all-makefiles-under,$(LOCAL_PATH))
