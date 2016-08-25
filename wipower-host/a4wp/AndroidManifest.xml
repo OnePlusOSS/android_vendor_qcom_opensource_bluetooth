@@ -34,6 +34,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     <original-package android:name="org.codeaurora.bt_wipower" />
 
+    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
+    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" />
     <uses-permission android:name="android.permission.ACCESS_BLUETOOTH_SHARE" />
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
@@ -57,6 +59,12 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             android:process="com.android.bluetooth"
             android:exported="true"
             android:name=".a4wp.BTEventHandler">
+            <intent-filter>
+               <action android:name="com.quicinc.wbc.action.ACTION_PTU_PRESENT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.bluetooth.adapter.action.BLE_STATE_CHANGED" />
+            </intent-filter>
             <intent-filter>
                 <action android:name="android.bluetooth.adapter.action.STATE_CHANGED" />
             </intent-filter>
