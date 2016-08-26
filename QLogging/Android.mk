@@ -2,7 +2,6 @@
 LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
-ifeq (0,1)   # dependency on system/bt/include logging.h change
 LOCAL_MODULE_TAGS := optional
 
 LOCAL_SRC_FILES := \
@@ -21,5 +20,4 @@ LOCAL_PROGUARD_ENABLED := disabled
 ifeq ($(TARGET_BUILD_VARIANT),userdebug)
     include $(BUILD_PACKAGE)
     include $(call all-makefiles-under,$(LOCAL_PATH))
-endif
 endif
