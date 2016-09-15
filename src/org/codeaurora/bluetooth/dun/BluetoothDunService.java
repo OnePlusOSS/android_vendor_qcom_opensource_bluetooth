@@ -38,6 +38,8 @@ import android.bluetooth.IBluetoothDun;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
 import java.util.ArrayList;
@@ -267,6 +269,8 @@ public class BluetoothDunService extends Service {
 
     private BluetoothAdapter mAdapter;
 
+    private DunServiceMessageHandler mDunHandler;
+
     /**
      * package and class name to which we send intent to check DUN profile
      * access permission
@@ -298,6 +302,11 @@ public class BluetoothDunService extends Service {
 
         mAdapter = BluetoothAdapter.getDefaultAdapter();
         mDunBinder = initBinder();
+
+        HandlerThread thread = new HandlerThread("BluetoothDunHandler");
+        thread.start();
+        Looper looper = thread.getLooper();
+        mDunHandler = new DunServiceMessageHandler(looper);
     }
 
     @Override
@@ -330,6 +339,14 @@ public class BluetoothDunService extends Service {
         closeDunService();
         if(mDunHandler != null) {
             mDunHandler.removeCallbacksAndMessages(null);
+            Looper looper = mDunHandler.getLooper();
+            if (looper != null) {
+                looper.quit();
+                Log.i(TAG, "Quit looper");
+            }
+
+            mDunHandler = null;
+            Log.i(TAG, "Remove Handler");
         }
     }
 
@@ -343,38 +360,45 @@ public class BluetoothDunService extends Service {
         return new BluetoothDunBinder(this);
     }
 
-    private final Handler mDunHandler = new Handler() {
+    private final class DunServiceMessageHandler extends Handler {
+        private DunServiceMessageHandler(Looper looper) {
+            super(looper);
+        }
+
         @Override
-            public void handleMessage(Message msg) {
-                switch (msg.what) {
-                    case MESSAGE_START_LISTENER:
-                        if (mAdapter.isEnabled()) {
-                            startRfcommListenerThread();
+        public void handleMessage(Message msg) {
+            Log.i(TAG, "DunServiceMessageHandler: " +  msg.what);
+            switch (msg.what) {
+                case MESSAGE_START_LISTENER:
+                    if (mAdapter.isEnabled()) {
+                        startRfcommListenerThread();
+                    }
+                    break;
+                case MESSAGE_DUN_USER_TIMEOUT:
+                    synchronized(mAuthLock) {
+                        if (!mIsWaitingAuthorization) {
+                            // already handled, ignore it
+                            break;
                         }
-                        break;
-                    case MESSAGE_DUN_USER_TIMEOUT:
-                        {
-                            synchronized(mAuthLock) {
-                                if (!mIsWaitingAuthorization) {
-                                    // already handled, ignore it
-                                    break;
-                                }
 
-                                mIsWaitingAuthorization = false;
-                            }
-                            Intent intent = new Intent(USER_CONFIRM_TIMEOUT_ACTION);
-                            intent.putExtra(BluetoothDevice.EXTRA_DEVICE, mRemoteDevice);
-                            sendBroadcast(intent);
-                            removeDunNotification(DUN_NOTIFICATION_ID_ACCESS);
-                            /* close the rfcomm socket and restart the listener thread */
-                            closeRfcommSocket();
-                            startRfcommListenerThread();
+                        mIsWaitingAuthorization = false;
+                    }
+                    Intent intent = new Intent(USER_CONFIRM_TIMEOUT_ACTION);
+                    intent.putExtra(BluetoothDevice.EXTRA_DEVICE, mRemoteDevice);
+                    sendBroadcast(intent);
+                    removeDunNotification(DUN_NOTIFICATION_ID_ACCESS);
+                    /* close the rfcomm socket and restart the listener thread */
+                    closeRfcommSocket();
+                    startRfcommListenerThread();
 
-                            if (VERBOSE) Log.v(TAG, "DUN user Authorization Timeout");
-                        }
-                        break;
-                }
+                    if (VERBOSE) Log.v(TAG, "DUN user Authorization Timeout");
+                    break;
+                 default:
+                    if (VERBOSE)
+                        Log.v(TAG, "DunServiceMessageHandler: " +  msg.what + " not handled");
+                    break;
             }
+        }
     };
 
     // process the intent from DUN receiver
@@ -517,7 +541,10 @@ public class BluetoothDunService extends Service {
 
             mIsWaitingAuthorization = false;
             closeRfcommSocket();
-            startRfcommListenerThread();
+
+            if (mDunHandler != null) {
+                mDunHandler.sendMessage(mDunHandler.obtainMessage(MESSAGE_START_LISTENER));
+            }
         } else if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
 
             if (intent.hasExtra(BluetoothDevice.EXTRA_DEVICE)) {
@@ -543,7 +570,7 @@ public class BluetoothDunService extends Service {
     }
 
     private void startRfcommListenerThread() {
-        if (VERBOSE) Log.v(TAG, "DUN Service startRfcommListenerThread");
+        Log.i(TAG, "startRfcommListenerThread " + mAcceptThread);
 
         synchronized(mAcceptLock) {
             // if it is already running,close it
@@ -901,7 +928,7 @@ public class BluetoothDunService extends Service {
                                  USER_CONFIRM_TIMEOUT_VALUE);
                     }
                     stopped = true; // job done ,close this thread;
-                    if (VERBOSE) Log.v(TAG, "SocketAcceptThread stopped ");
+                    Log.i(TAG, "SocketAcceptThread stopped ");
                 } catch (IOException ex) {
                     stopped=true;
                     Log.w(TAG, "Handled Accept thread exception: " + ex.toString());
