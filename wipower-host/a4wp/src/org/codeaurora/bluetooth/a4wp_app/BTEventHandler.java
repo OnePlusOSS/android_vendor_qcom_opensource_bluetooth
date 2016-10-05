@@ -68,8 +68,8 @@ public class BTEventHandler extends BroadcastReceiver {
                     Log.e(TAG, "Could Not Start A4wp Service");
                     return;
                 }
-            } else if (BluetoothAdapter.STATE_OFF == state) {
-                if (V) Log.v(TAG, "Received BLUETOOTH_STATE_OFF");
+            } else if (BluetoothAdapter.STATE_TURNING_OFF == state) {
+                if (V) Log.v(TAG, "Received BLUETOOTH_STATE_TURNING_OFF");
                 context.stopService(new Intent(context, A4wpService.class));
 
            }
