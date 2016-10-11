@@ -149,11 +149,12 @@ static void setLogging(JNIEnv* env, jclass clazz,jstring jlog_layer, jint log_le
                 strlcpy(str,vsc_data,strlen(vsc_data)+1);
                 int count_t = 0;
                 char* token_pointer;
-                token_pointer = strtok(str, ",");
+                char *tmp_token = NULL;
+                token_pointer = strtok_r(str, ",", &tmp_token);
                 while ((NULL != token_pointer) && (count_t < PAYLOAD_LENGTH))
                 {
                     vsc_data_t[count_t] = (uint8_t)strtol(token_pointer,NULL,16);
-                    token_pointer = strtok(NULL, ",");
+                    token_pointer = strtok_r(NULL, ",", &tmp_token);
                     count_t++;
                 }
                 ALOGD("Total count:%d ",count_t );
