@@ -7,7 +7,7 @@ src_dirs:= src/org/codeaurora/bluetooth/hidtestapp \
 LOCAL_SRC_FILES := \
         $(call all-java-files-under, $(src_dirs)) \
 
-LOCAL_PACKAGE_NAME := hid
+LOCAL_PACKAGE_NAME := HidTestApp
 LOCAL_CERTIFICATE := platform
 
 LOCAL_PROGUARD_ENABLED := disabled
