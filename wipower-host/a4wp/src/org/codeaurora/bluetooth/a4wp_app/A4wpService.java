@@ -920,7 +920,7 @@ public class A4wpService extends Service
                     }
                    value = mPruControl.getValue();
                 }
-                if (mBluetoothGattServer != null) {
+                if (mBluetoothGattServer != null && mDiscInitiated != true) {
                     mBluetoothGattServer.sendResponse(device, requestId, status, offset, value);
                 }
         }

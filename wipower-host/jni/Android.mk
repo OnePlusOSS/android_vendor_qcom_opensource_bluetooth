@@ -8,7 +8,8 @@ LOCAL_SRC_FILES:= \
 
 LOCAL_C_INCLUDES += \
     $(JNI_H_INCLUDE) \
-        packages/apps/Bluetooth/jni
+        packages/apps/Bluetooth/jni \
+		vendor/qcom/opensource/bluetooth/hal/include
 
 
 LOCAL_REQUIRED_MODULES := bluetooth.default

@@ -39,6 +39,7 @@
 #include <sys/ioctl.h>
 #include "android_hardware_wipower.h"
 #include "com_android_bluetooth.h"
+#include <hardware/vendor.h>
 
 #define CHECK_CALLBACK_ENV                                                      \
    if (!checkCallbackThread()) {                                                \
@@ -210,7 +211,7 @@ static void android_wipower_wipowerJNI_initNative (JNIEnv* env, jobject obj) {
 
 
     //Get WiPower Interface
-    sWipowerInterface = (const wipower_interface_t*)btInf->get_profile_interface(WIPOWER_PROFILE_ID);
+    sWipowerInterface = (const wipower_interface_t*)btInf->get_profile_interface(BT_PROFILE_WIPOWER_VENDOR_ID);
     if (sWipowerInterface == NULL) {
         ALOGE("%s: Get wipower interface: %x",__FUNCTION__, (unsigned int)sWipowerInterface);
         return;
