@@ -70,8 +70,8 @@ public class BTEventHandler extends BroadcastReceiver {
                 }
 
 
-            } else if (BluetoothAdapter.STATE_OFF == state) {
-                if (V) Log.v(TAG, "Received BLUETOOTH_STATE_OFF");
+            } else if (BluetoothAdapter.STATE_TURNING_OFF == state) {
+                if (V) Log.v(TAG, "Received BLUETOOTH_STATE_TURNING_OFF");
                 context.stopService(new Intent(context, WipowerService.class));
            }
         }

@@ -28,6 +28,7 @@
 
 package org.codeaurora.bluetooth.dun;
 
+import android.app.Service;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -35,12 +36,14 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothDun;
 import android.bluetooth.BluetoothProfile;
 import android.bluetooth.IBluetoothDun;
+import android.net.ConnectivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
+import android.os.ServiceManager;
 import android.util.Log;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -67,6 +70,8 @@ import android.content.ComponentName;
 import android.os.RemoteException;
 import org.codeaurora.bluetooth.R;
 import android.content.SharedPreferences;
+import android.telephony.TelephonyManager;
+import com.android.internal.telephony.ITelephony;
 
 /**
  * Provides Bluetooth Dun profile, as a service in the BluetoothExt APK.
@@ -271,6 +276,8 @@ public class BluetoothDunService extends Service {
 
     private DunServiceMessageHandler mDunHandler;
 
+    private ITelephony mTelephonyService;
+
     /**
      * package and class name to which we send intent to check DUN profile
      * access permission
@@ -307,6 +314,13 @@ public class BluetoothDunService extends Service {
         thread.start();
         Looper looper = thread.getLooper();
         mDunHandler = new DunServiceMessageHandler(looper);
+
+        mTelephonyService = ITelephony.Stub.asInterface(ServiceManager.getService("phone"));
+        if (mTelephonyService == null) {
+            Log.e(TAG, "Failed to get Telephony Service interface");
+        } else {
+            Log.i(TAG, "Telephony Service interface got Successfully");
+        }
     }
 
     @Override
@@ -843,18 +857,23 @@ public class BluetoothDunService extends Service {
         }
 
         deleteIntent.setAction(DUN_ACCESS_DISALLOWED_ACTION);
-        notification = new Notification(android.R.drawable.stat_sys_data_bluetooth,
-            getString(R.string.dun_notif_ticker), System.currentTimeMillis());
-        notification.setLatestEventInfo(this, getString(R.string.dun_notif_ticker),
-                getString(R.string.dun_notif_message, name), PendingIntent
-                        .getActivity(this, 0, clickIntent, 0));
 
-        notification.flags |= Notification.FLAG_AUTO_CANCEL;
-        notification.flags |= Notification.FLAG_ONLY_ALERT_ONCE;
-        notification.defaults = Notification.DEFAULT_SOUND;
-        notification.deleteIntent = PendingIntent.getBroadcast(this, 0, deleteIntent, 0);
+        notification = new Notification.Builder(this)
+                .setContentTitle(getString(R.string.dun_notif_ticker))
+                .setTicker(getString(R.string.dun_notif_ticker))
+                .setContentText(getString(R.string.dun_notif_message, name))
+                .setSmallIcon(android.R.drawable.stat_sys_data_bluetooth)
+                .setAutoCancel(true)
+                .setPriority(Notification.PRIORITY_MAX)
+                .setOnlyAlertOnce(true)
+                .setDefaults(Notification.DEFAULT_SOUND)
+                .setContentIntent(PendingIntent.getActivity(this, 0, clickIntent, 0))
+                .setDeleteIntent(PendingIntent.getBroadcast(this, 0, deleteIntent, 0))
+                .setColor(this.getColor(
+                        com.android.internal.R.color.system_notification_accent_color))
+                .build();
+        notification.flags |= Notification.FLAG_NO_CLEAR; // Cannot be set with the builder.
         nm.notify(DUN_NOTIFICATION_ID_ACCESS, notification);
-
 
         if (VERBOSE) Log.v(TAG, "Awaiting Authorization : DUN Connection : " + device.getName());
 
@@ -952,6 +971,8 @@ public class BluetoothDunService extends Service {
 
         private boolean stopped = false;
         private boolean IntExit = false;
+        private boolean mIsATDReceived = false;
+        private boolean mDunArbitrationStarted = false;
         private OutputStream mDundOutputStream = null;
         private InputStream mRfcommInputStream = null;
         ByteBuffer IpcMsgBuffer = ByteBuffer.allocate(DUN_MAX_IPC_MSG_LEN);
@@ -1001,7 +1022,7 @@ public class BluetoothDunService extends Service {
             while (!stopped) {
                 try {
                     if (VERBOSE)
-                        Log.v(TAG, "Reading the DUN requests from Rfcomm channel");
+                        Log.v(TAG, "Reading the DUN request from Rfcomm channel");
                     /* Read the DUN request from Rfcomm channel */
                     NumRead = mRfcommInputStream.read(IpcMsgBuffer.array(), DUN_IPC_MSG_OFF_MSG,
                                                                                 DUN_MAX_MSG_LEN);
@@ -1009,6 +1030,24 @@ public class BluetoothDunService extends Service {
                         IntExit = true;
                         break;
                     } else if (NumRead != 0) {
+
+                        if (mIsATDReceived == false && isATDCommand(IpcMsgBuffer)) {
+                            mIsATDReceived = true;
+                            ConnectivityManager cm = (ConnectivityManager)
+                                    getSystemService(Context.CONNECTIVITY_SERVICE);
+                            // Disable Mobile data call
+                            if (cm != null) {
+                                if (cm.getMobileDataEnabled()) {
+                                    mDunArbitrationStarted = enableDataConnectivity(false);
+                                } else {
+                                    mDunArbitrationStarted = false;
+                                    Log.i(TAG, "Embedded data call was already disabled");
+                                }
+                            } else {
+                                Log.e(TAG, "ConnectivityManager service interface is null");
+                            }
+                        }
+
                         /* Write the same DUN request to the DUN server socket with
                            some additional parameters */
                         IpcMsgBuffer.put(DUN_IPC_MSG_OFF_MSG_TYPE, DUN_IPC_MSG_DUN_REQUEST);
@@ -1071,6 +1110,10 @@ public class BluetoothDunService extends Service {
                 }
             }
 
+            if (mDunArbitrationStarted) {
+                mDunArbitrationStarted = enableDataConnectivity(true);
+            }
+
             if (IntExit && !stopped) {
                 if (VERBOSE) Log.v(TAG, "starting the listener thread ");
                 /* start the listener thread */
@@ -1084,6 +1127,70 @@ public class BluetoothDunService extends Service {
         void shutdown() {
             stopped = true;
             interrupt();
+        }
+
+        private boolean isATDCommand(ByteBuffer rfcommData) {
+            String[] atdCommands = {"ATDT*98#", "ATDT*99#", "ATDT#777#", "ATD*98#", "ATD*99#",
+                    "ATD#777#"};
+            String temp =   new String(rfcommData.array(),
+                    rfcommData.arrayOffset() + DUN_IPC_MSG_OFF_MSG,
+                    rfcommData.remaining()-DUN_IPC_MSG_OFF_MSG);
+
+            Log.i(TAG, "rfcomm data: " + temp);
+            if (temp != null) {
+                for (int i = 0; i < atdCommands.length; i++) {
+                    if (temp.contains(atdCommands[i])) {
+                        Log.w(TAG, "ATD Received");
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        private boolean enableDataConnectivity(boolean value) {
+            boolean result = false;
+            int RETRY_COUNT = 3;
+
+            if (mTelephonyService == null) {
+                Log.e(TAG, "Telephony Service interface is null");
+                return result;
+            }
+
+            if (value == true) {
+                try {
+                    int retry_count = RETRY_COUNT;
+                    while (retry_count > 0) {
+                        result = mTelephonyService.enableDataConnectivity();
+                        if (result == true) {
+                            Log.i(TAG, "Success: enableDataConnectivity");
+                            break;
+                        } else {
+                            Log.i(TAG, "Failure: enableDataConnectivity");
+                            retry_count--;
+                        }
+                    }
+                } catch (RemoteException e) {
+                    Log.e(TAG, "Exception - Data Call Not Enabled");
+                }
+            } else if (value == false) {
+                try {
+                    int retry_count = RETRY_COUNT;
+                    while (retry_count > 0) {
+                        result = mTelephonyService.disableDataConnectivity();
+                        if (result == true) {
+                            Log.i(TAG, "Success: disableDataConnectivity");
+                            break;
+                        } else {
+                            Log.i(TAG, "Failure: disableDataConnectivity");
+                            retry_count--;
+                        }
+                    }
+                } catch (RemoteException e) {
+                    Log.e(TAG, "Exception - Data Call Not Disabled");
+                }
+           }
+           return result;
         }
     }
 

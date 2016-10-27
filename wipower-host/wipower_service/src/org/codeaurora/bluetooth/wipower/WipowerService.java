@@ -69,59 +69,78 @@ public class WipowerService extends Service
     private static final Object mLock = new Object();
     private int mState = BluetoothProfile.STATE_DISCONNECTED;
 
+
+    private static final String BLUETOOTH_PRIVILEGED =
+        android.Manifest.permission.BLUETOOTH_PRIVILEGED;
+    private void enforcePrivilegedPermission() {
+        enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED,
+           "Need BLUETOOTH_PRIVILEGED permission");
+    }
+
     public boolean startCharging() {
+        enforcePrivilegedPermission();
         int ret = enableNative(true);
         return (ret==0) ? true : false;
     }
 
     public boolean stopCharging() {
+        enforcePrivilegedPermission();
         int ret = enableNative(false);
         return (ret==0) ? true : false;
     }
 
     public int getState() {
+        enforcePrivilegedPermission();
         int ret = getStateNative();
         return ret;
     }
 
     public boolean setCurrentLimit(byte value) {
+        enforcePrivilegedPermission();
         int ret = setCurrentLimitNative(value);
         return (ret==0) ? true : false;
     }
 
     public byte getCurrentLimit() {
+        enforcePrivilegedPermission();
         byte ret = getCurrentLimitNative();
         return ret;
     }
 
     public boolean enableAlert(boolean enable) {
+        enforcePrivilegedPermission();
         int ret = enableAlertNative(enable);
         return (ret==0) ? true : false;
     }
 
     public boolean enableData(boolean enable) {
+        enforcePrivilegedPermission();
         int ret = enableDataNative(enable);
         return (ret==0) ? true : false;
     }
 
     public boolean enablePowerApply(boolean enable, boolean on, boolean time_flag) {
+        enforcePrivilegedPermission();
         Log.v(LOGTAG, "enablePowerApply: Calling Native enablei: " + enable + " on: " + on);
         int ret = enablePowerApplyNative(enable, on, time_flag);
         return (ret==0) ? true : false;
     }
 
     public void registerCallback(IWipowerManagerCallback callback) {
+        enforcePrivilegedPermission();
         mCallbacks.register(callback);
     }
 
     public void unregisterCallback(IWipowerManagerCallback callback) {
+        enforcePrivilegedPermission();
         mCallbacks.unregister(callback);
     }
 
-    private static class WipowerBinder extends IWipower.Stub {
+    private class WipowerBinder extends IWipower.Stub {
         private WipowerService mService;
 
          public WipowerBinder(WipowerService svc) {
+             enforcePrivilegedPermission();
              Log.e(LOGTAG, ">In Constructor");
              mService = svc;
          }
@@ -218,6 +237,7 @@ public class WipowerService extends Service
 
 
         public void registerCallback(IWipowerManagerCallback callback) {
+            enforcePrivilegedPermission();
             if (mService == null) {
                 Log.e(LOGTAG, "registerCallback:Service not found");
             } else {
@@ -227,7 +247,8 @@ public class WipowerService extends Service
         }
 
         public void unregisterCallback(IWipowerManagerCallback callback) {
-           if (mService == null) {
+            enforcePrivilegedPermission();
+            if (mService == null) {
                 Log.e(LOGTAG, "unregisterCallback:Service not found");
             } else {
                 mService.unregisterCallback(callback);
@@ -241,7 +262,6 @@ public class WipowerService extends Service
 
     public WipowerService() {
         Log.v(LOGTAG, "WipowerService");
-
     }
 
     private boolean isAvailable() {
@@ -257,6 +277,7 @@ public class WipowerService extends Service
         Log.v(LOGTAG, "onCreate");
         super.onCreate();
 
+        enforcePrivilegedPermission();
         mCallbacks = new RemoteCallbackList<IWipowerManagerCallback>();
         mBinder = new WipowerBinder(this);
         Log.v(LOGTAG, "onCreate>>");
@@ -265,17 +286,20 @@ public class WipowerService extends Service
 
     @Override
     public void onDestroy() {
+        enforcePrivilegedPermission();
         Log.v(LOGTAG, "onDestroy");
     }
 
     @Override
     public IBinder onBind(Intent in) {
+        enforcePrivilegedPermission();
         Log.v(LOGTAG, "onBind");
         return mBinder;
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        enforcePrivilegedPermission();
         Log.d(LOGTAG, "onStart Command called!!");
 
         Log.v(LOGTAG, "Calling classInitNative");
@@ -291,6 +315,7 @@ public class WipowerService extends Service
 
    void stateChangeCallback (int state) {
         Log.e(LOGTAG, "stateChangeCallback: " + state);
+        enforcePrivilegedPermission();
         if (mCallbacks !=null) {
            int n = mCallbacks.beginBroadcast();
            Log.v(LOGTAG,"Broadcasting updateAdapterState() to " + n + " receivers.");
@@ -308,6 +333,7 @@ public class WipowerService extends Service
    void wipowerAlertNotify (int alert) {
         Log.e(LOGTAG, "wipowerAlertNotify: " + alert);
 
+        enforcePrivilegedPermission();
         if (mCallbacks !=null) {
         int n=mCallbacks.beginBroadcast();
         Log.d(LOGTAG,"Broadcasting wipower alert() to " + n + " receivers.");
@@ -325,6 +351,7 @@ public class WipowerService extends Service
    void wipowerPowerNotify (byte alert) {
         Log.e(LOGTAG, "wipowerPowerNotify: " + alert);
 
+        enforcePrivilegedPermission();
         if (mCallbacks !=null) {
         int n=mCallbacks.beginBroadcast();
         Log.d(LOGTAG,"Broadcasting wipower power alert() to " + n + " receivers.");
@@ -342,7 +369,7 @@ public class WipowerService extends Service
 
    void wipowerDataNotify (byte[] data) {
         Log.e(LOGTAG, "wipowerDataNotify: " + data);
-
+        enforcePrivilegedPermission();
         if (mCallbacks !=null) {
         int n = mCallbacks.beginBroadcast();
         Log.d(LOGTAG,"Broadcasting wipowerdata() to " + n + " receivers.");
