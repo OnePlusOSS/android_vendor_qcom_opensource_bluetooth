@@ -53,6 +53,12 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
            android:enabled="true"
            android:process="com.android.bluetooth">
             <intent-filter>
+                <action android:name="com.quicinc.wbc.action.ACTION_PTU_PRESENT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.bluetooth.adapter.action.BLE_STATE_CHANGED" />
+            </intent-filter>
+            <intent-filter>
                 <action android:name="android.bluetooth.adapter.action.STATE_CHANGED" />
             </intent-filter>
         </receiver>

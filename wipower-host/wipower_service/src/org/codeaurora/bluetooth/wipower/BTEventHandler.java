@@ -41,39 +41,54 @@ import android.util.Log;
 import java.lang.Object;
 
 public class BTEventHandler extends BroadcastReceiver {
-    private static final String TAG = "BTEventHandler";
+    private static final String TAG = "BTEventHandler-Wipower";
     private static final boolean V = false/*Constants.VERBOSE*/;
     private int state;
+    private BluetoothAdapter mBluetoothAdapter;
+    private static boolean wait_for_gattdereg = false;
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        if(SystemProperties.getBoolean("ro.bluetooth.wipower", false) == false) {
+        if(SystemProperties.getBoolean("persist.bluetooth.a4wp", false) == false) {
             Log.e(TAG, "WipowerService is not supported");
             return;
         }
 
         String action = intent.getAction();
+        if (V) Log.d(TAG, "action: " + action);
 
-        if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
+        if ((action.equals(BluetoothAdapter.ACTION_BLE_STATE_CHANGED)) ||
+            (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)))
+        {
             state = intent.getIntExtra
                            (BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
-            if (BluetoothAdapter.STATE_ON == state) {
-                if (V) Log.e(TAG, "Received BLUETOOTH_STATE_ON");
-
-                ComponentName service = context.startService
-                                      (new Intent(context, WipowerService.class));
-                if (service != null) {
-                    Log.e(TAG, "WipowerService started successfully");
-                } else {
-                    Log.e(TAG, "Could Not Start Wipower Service ");
+            if ((BluetoothAdapter.STATE_BLE_ON == state) ||
+                (BluetoothAdapter.STATE_ON == state))
+            {
+                if(SystemProperties.get("bluetooth.wipower").equals("true")) {
+                    Log.e(TAG, "Wipower Service is running");
                     return;
                 }
-
-
-            } else if (BluetoothAdapter.STATE_TURNING_OFF == state) {
-                if (V) Log.v(TAG, "Received BLUETOOTH_STATE_TURNING_OFF");
+                if (wait_for_gattdereg == false) {
+                    ComponentName service = context.startService
+                                      (new Intent(context, WipowerService.class));
+                    if (service != null) {
+                        Log.d(TAG, "WipowerService started successfully");
+                        SystemProperties.set("bluetooth.wipower", "true");
+                    } else {
+                        Log.e(TAG, "Could Not Start Wipower Service ");
+                        return;
+                    }
+                }
+            } else if ( BluetoothAdapter.STATE_BLE_TURNING_OFF == state ||
+                        BluetoothAdapter.STATE_TURNING_OFF == state) {
+                if (V) Log.v(TAG, "stopping wipower service on BLE off");
+                wait_for_gattdereg = true;
                 context.stopService(new Intent(context, WipowerService.class));
-           }
+                SystemProperties.set("bluetooth.wipower", "false");
+            } else if (BluetoothAdapter.STATE_OFF == state) {
+                wait_for_gattdereg = false;
+            }
         }
     }
 }
