@@ -1171,7 +1171,7 @@ public class A4wpService extends Service
 
         // Ensure Bluetooth is enabled
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        if (mBluetoothAdapter == null) {
+        if (mBluetoothAdapter == null || !mBluetoothAdapter.isLeEnabled()) {
             Log.d(LOGTAG, "Bluetooth is not available or enabled - exiting...");
             return;
         }

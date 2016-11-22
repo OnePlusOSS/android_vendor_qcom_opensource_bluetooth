@@ -41,6 +41,7 @@ import android.provider.Settings;
 import android.content.ContentResolver;
 import android.os.UserHandle;
 import com.quicinc.wbc.WbcTypes;
+import com.quicinc.wbc.WbcManager;
 
 import java.lang.Object;
 
@@ -50,6 +51,8 @@ public class BTEventHandler extends BroadcastReceiver {
     private static boolean wait_for_gattdereg = false;
     private int state;
     private BluetoothAdapter mBluetoothAdapter;
+    static boolean mPtuPresence = false;
+    private WbcManager mWbcManager;
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -67,14 +70,22 @@ public class BTEventHandler extends BroadcastReceiver {
             if (BluetoothAdapter.STATE_OFF == state) {
                wait_for_gattdereg = false;
                if(mBluetoothAdapter.isLeEnabled()) {
-                   if (V) Log.d(TAG, "broadcast pad detection");
-                   context.sendBroadcastAsUser(new Intent(WbcTypes.ACTION_PTU_PRESENT), UserHandle.ALL);
+                   if (mWbcManager != null) {
+                       mPtuPresence = (mWbcManager.getPtuPresence() == 0);
+                          if (V) Log.d(TAG, "broadcast pad detection mPtuPresence: " + mPtuPresence);
+                          if (mPtuPresence == true)
+                              context.sendBroadcastAsUser(new Intent(WbcTypes.ACTION_PTU_PRESENT), UserHandle.ALL);
+                   }
                }
             } else if (BluetoothAdapter.STATE_ON == state) {
                 if(SystemProperties.get("bluetooth.a4wp").equals("true")) {
                     if (V) Log.d(TAG, "Service Already registered");
                     return;
                 } else {
+                    if(SystemProperties.getBoolean("persist.bluetooth.a4wp", false) == false) {
+                        Log.e(TAG, "A4WP is not supported");
+                        return;
+                    }
                     ComponentName service = context.startService
                                       (new Intent(context, A4wpService.class));
                     if (service != null) {
