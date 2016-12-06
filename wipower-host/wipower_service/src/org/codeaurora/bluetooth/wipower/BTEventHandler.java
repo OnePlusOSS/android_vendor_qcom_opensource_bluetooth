@@ -57,6 +57,26 @@ public class BTEventHandler extends BroadcastReceiver {
         String action = intent.getAction();
         if (V) Log.d(TAG, "action: " + action);
 
+        if (action.equals("com.quicinc.wbc.action.ACTION_PTU_PRESENT")) {
+            mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+            if (mBluetoothAdapter.getState() == BluetoothAdapter.STATE_ON ||
+                mBluetoothAdapter.isLeEnabled()) {
+                if(SystemProperties.get("bluetooth.wipower").equals("true")) {
+                    Log.e(TAG, "Wipower Service is running");
+                    return;
+                }
+                 ComponentName service = context.startService
+                                  (new Intent(context, WipowerService.class));
+                 if (service != null) {
+                     Log.d(TAG, "WipowerService started successfully");
+                     SystemProperties.set("bluetooth.wipower", "true");
+                 } else {
+                     Log.e(TAG, "Could Not Start Wipower Service ");
+                     return;
+                 }
+            }
+        }
+
         if ((action.equals(BluetoothAdapter.ACTION_BLE_STATE_CHANGED)) ||
             (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)))
         {
