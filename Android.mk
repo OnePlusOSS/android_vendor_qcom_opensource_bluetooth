@@ -1,7 +1,7 @@
 LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
-#ifeq (0,1)   # dependency on system/bt/include logging.h change
+ifneq ($(TARGET_USES_AOSP),true)
 LOCAL_MODULE_TAGS := optional
 src_dirs:= src/org/codeaurora/bluetooth/btcservice \
            src/org/codeaurora/bluetooth/ftp \
@@ -30,4 +30,4 @@ include $(BUILD_PACKAGE)
 
 
 include $(call all-makefiles-under,$(LOCAL_PATH))
-#endif
+endif

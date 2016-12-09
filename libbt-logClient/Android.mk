@@ -1,5 +1,6 @@
 LOCAL_PATH := $(call my-dir)
 
+ifneq ($(TARGET_USES_AOSP),true)
 ifeq ($(BOARD_HAVE_BLUETOOTH_QCOM),true)
 
 include $(CLEAR_VARS)
@@ -32,3 +33,4 @@ endif
 include $(BUILD_SHARED_LIBRARY)
 
 endif # BOARD_HAVE_BLUETOOTH_QCOM
+endif

@@ -1,5 +1,6 @@
-
 LOCAL_PATH:= $(call my-dir)
+
+ifneq ($(TARGET_USES_AOSP),true)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE_TAGS := optional
@@ -20,4 +21,5 @@ LOCAL_PROGUARD_ENABLED := disabled
 ifeq ($(TARGET_BUILD_VARIANT),userdebug)
     include $(BUILD_PACKAGE)
     include $(call all-makefiles-under,$(LOCAL_PATH))
+endif
 endif
