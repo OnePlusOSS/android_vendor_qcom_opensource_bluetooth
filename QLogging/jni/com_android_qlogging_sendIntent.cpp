@@ -109,9 +109,11 @@ static void setLogging(JNIEnv* env, jclass clazz,jstring jlog_layer, jint log_le
                     set_level = 0xF;
                 else
                     set_level = values[log_level-1];
-
-                uint8_t array[3]={0x11,values[index],set_level};
-                sBluetoothInterface->hci_cmd_send(HCI_OPCODE_PACK(0x3F,0x17),array,3);
+                if ((index < 7) && (index >= 0))
+                {
+                    uint8_t array[3]={0x11,values[index],set_level};
+                    sBluetoothInterface->hci_cmd_send(HCI_OPCODE_PACK(0x3F,0x17),array,3);
+                }
             }
             else if( module == 4)
             {

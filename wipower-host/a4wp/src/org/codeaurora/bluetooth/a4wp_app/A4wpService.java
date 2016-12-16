@@ -1197,7 +1197,9 @@ public class A4wpService extends Service
              mWipowerManager.registerCallback(mWipowerCallback);
         mWbcManager = WbcManager.getInstance();
         if (mWbcManager != null) {
-            Log.v(LOGTAG, "onCreate: charge complete " + mChargeComplete);
+            mChargeComplete = (mWbcManager.getChargeComplete() == 1);
+            mUSBCharging = (mWbcManager.getUSBChargingPresent() == 1);
+            Log.v(LOGTAG, "onCreate: charge complete " + mChargeComplete + " mUSBCharging " + mUSBCharging);
             mWbcManager.register(mWbcCallback);
         }
     }
