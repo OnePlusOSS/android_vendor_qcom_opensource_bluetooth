@@ -55,6 +55,9 @@ typedef struct {
     /** Does BREDR cleanup */
     void (*bredrcleanup)(void);
 
+    /** Generate level 6 logs */
+    void (*capture_vnd_logs)(void);
+
     /** Closes the interface. */
     void  (*cleanup)( void );
 
