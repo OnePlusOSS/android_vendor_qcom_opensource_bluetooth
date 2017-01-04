@@ -83,7 +83,7 @@ static void wp_data_timeout() {
     btif_transfer_context(dispatch_wp_events, (UINT16)len,
           (char*)power_removal_event, len, NULL);
     if (wipower_hal_cbacks) {
-        ALOGE("kiran: dispatch_wp_events :Sending associate event to jni");
+        ALOGE("dispatch_wp_events :Sending associate event to jni");
         wipower_hal_cbacks->callback_thread_event(DISASSOCIATE_JVM);
     }
 
@@ -295,7 +295,7 @@ void dispatch_wp_events (UINT16 len, char* p_param) {
             ALOGE("WP_HCI_EVENT_POWER_ON: Error! Length"); return;
         } else {
             if (wipower_hal_cbacks) {
-               ALOGE("kiran: dispatch_wp_events :Sending associate event to jni");
+               ALOGE("dispatch_wp_events :Sending associate event to jni");
                wipower_hal_cbacks->callback_thread_event(ASSOCIATE_JVM);
             }
             unsigned char alert = p_param[1];
