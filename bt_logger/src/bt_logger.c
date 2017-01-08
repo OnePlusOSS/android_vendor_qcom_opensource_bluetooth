@@ -449,6 +449,7 @@ void dump_log_to_logcat()
 
     if (!log_list || log_list->head == NULL) {
         ALOGE("No Log to Dump to file");
+        return;
     }
 
     while (log_list->head) {
