@@ -968,6 +968,9 @@ public class A4wpService extends Service
                     value = mPruStaticParam.getValue();
                     mDevice = device;
                     mState = BluetoothProfile.STATE_CONNECTED;
+                    /* intiate a server connect so that gatt will maintain
+                    ** this as a vote in its existing  LE connections.*/
+                    mBluetoothGattServer.connect(mDevice, false);
                     mWipowerManager.enableDataNotification(true);
                 }
                 else if (id == A4WP_PRU_DYNAMIC_UUID) {
@@ -1105,7 +1108,7 @@ public class A4wpService extends Service
         BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         if (bluetoothManager == null) return false;
 
-        mBluetoothGattServer = bluetoothManager.openGattServer(this, mGattCallbacks);
+        mBluetoothGattServer = bluetoothManager.openGattServer(this, mGattCallbacks, BluetoothDevice.TRANSPORT_LE);
         Log.d(LOGTAG,"calling start server......");
         if (mBluetoothGattServer == null) {
             Log.e(LOGTAG,"mBluetoothGattServer is NULL");
