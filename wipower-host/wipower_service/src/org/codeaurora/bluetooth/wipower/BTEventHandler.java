@@ -42,7 +42,7 @@ import java.lang.Object;
 
 public class BTEventHandler extends BroadcastReceiver {
     private static final String TAG = "BTEventHandler-Wipower";
-    private static final boolean V = false/*Constants.VERBOSE*/;
+    private static boolean V = false/*Constants.VERBOSE*/;
     private int state;
     private BluetoothAdapter mBluetoothAdapter;
     private static boolean wait_for_gattdereg = false;
@@ -53,6 +53,8 @@ public class BTEventHandler extends BroadcastReceiver {
             Log.e(TAG, "WipowerService is not supported");
             return;
         }
+
+        V = SystemProperties.getBoolean("persist.a4wp.logging", false);
 
         String action = intent.getAction();
         if (V) Log.d(TAG, "action: " + action);

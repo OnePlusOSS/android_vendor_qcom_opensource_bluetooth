@@ -47,18 +47,20 @@ import java.lang.Object;
 
 public class BTEventHandler extends BroadcastReceiver {
     private static final String TAG = "BTEventHandler-A4WP";
-    private static final boolean V = false/*Constants.VERBOSE*/;
+    private static boolean V = false/*Constants.VERBOSE*/;
     private static boolean wait_for_gattdereg = false;
     private int state;
     private BluetoothAdapter mBluetoothAdapter;
     static boolean mPtuPresence = false;
     private WbcManager mWbcManager;
 
+
     @Override
     public void onReceive(Context context, Intent intent) {
        String action = intent.getAction();
        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
+       V = SystemProperties.getBoolean("persist.a4wp.logging", false);
        /* 1> if State changes from BT-ON to BLE-ALWAYS when MTP is
        ** still on pad, pad detection will be broadcasted to register
        ** a4wp service

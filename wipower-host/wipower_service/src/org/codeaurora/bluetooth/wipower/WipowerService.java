@@ -54,6 +54,7 @@ import android.wipower.IWipower;
 import android.wipower.IWipowerManagerCallback;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
+import android.os.StrictMode;
 
 /**
  * Class which executes A4WP service
@@ -278,6 +279,7 @@ public class WipowerService extends Service
         super.onCreate();
 
         enforcePrivilegedPermission();
+        StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder().permitDiskReads().build());
         mCallbacks = new RemoteCallbackList<IWipowerManagerCallback>();
         mBinder = new WipowerBinder(this);
         Log.v(LOGTAG, "onCreate>>");
