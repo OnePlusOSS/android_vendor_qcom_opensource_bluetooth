@@ -756,7 +756,8 @@ void interop_database_add_addr(const uint16_t feature, const bt_bdaddr_t *addr,
                                 size_t length)
 {
   assert(addr);
-  assert(length);
+  assert(length > 0);
+  assert(length < sizeof(bt_bdaddr_t));
 
   interop_db_entry_t *entry = osi_calloc(sizeof(interop_db_entry_t));
   entry->bl_type = INTEROP_BL_TYPE_ADDR;
@@ -780,7 +781,6 @@ void interop_database_add_name(const uint16_t feature, const char *name)
 void interop_database_add_manufacturer(const interop_feature_t feature,
                     uint16_t manufacturer)
 {
-  assert(manufacturer);
 
   interop_db_entry_t *entry = osi_calloc(sizeof(interop_db_entry_t));
   entry->bl_type = INTEROP_BL_TYPE_MANUFACTURE;
@@ -792,8 +792,6 @@ void interop_database_add_manufacturer(const interop_feature_t feature,
 void interop_database_add_vndr_prdt(const interop_feature_t feature,
                   uint16_t vendor_id, uint16_t product_id)
 {
-  assert(vendor_id);
-  assert(product_id);
 
   interop_db_entry_t *entry = osi_calloc(sizeof(interop_db_entry_t));
   entry->bl_type = INTEROP_BL_TYPE_VNDR_PRDT;
@@ -807,7 +805,6 @@ void interop_database_add_vndr_prdt(const interop_feature_t feature,
 bool interop_database_match_manufacturer(const interop_feature_t feature,
                       uint16_t manufacturer)
 {
-  assert(manufacturer);
 
   interop_db_entry_t entry;
   interop_db_entry_t *ret_entry = NULL;
@@ -873,8 +870,6 @@ bool interop_database_match_addr(const interop_feature_t feature, const bt_bdadd
 bool interop_database_match_vndr_prdt(const interop_feature_t feature,
                    uint16_t vendor_id, uint16_t product_id)
 {
-  assert(vendor_id);
-  assert(product_id);
 
   interop_db_entry_t entry;
   interop_db_entry_t *ret_entry = NULL;
@@ -918,7 +913,6 @@ bool interop_database_remove_name( const interop_feature_t feature, const char *
 bool interop_database_remove_manufacturer( const interop_feature_t feature,
                           uint16_t manufacturer)
 {
-  assert(manufacturer);
 
   interop_db_entry_t entry;
 
@@ -963,8 +957,6 @@ bool interop_database_remove_addr(const interop_feature_t feature,
 bool interop_database_remove_vndr_prdt(const interop_feature_t feature,
           uint16_t vendor_id, uint16_t product_id)
 {
-  assert(vendor_id);
-  assert(product_id);
 
   interop_db_entry_t entry;
 
