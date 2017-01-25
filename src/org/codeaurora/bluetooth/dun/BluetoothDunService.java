@@ -1130,8 +1130,8 @@ public class BluetoothDunService extends Service {
         }
 
         private boolean isATDCommand(ByteBuffer rfcommData) {
-            String[] atdCommands = {"ATDT*98#", "ATDT*99#", "ATDT#777#", "ATD*98#", "ATD*99#",
-                    "ATD#777#"};
+            String[] atdCommands = {"ATDT*98", "ATDT*99", "ATDT#777", "ATD*98", "ATD*99",
+                    "ATD#777"};
             String temp =   new String(rfcommData.array(),
                     rfcommData.arrayOffset() + DUN_IPC_MSG_OFF_MSG,
                     rfcommData.remaining()-DUN_IPC_MSG_OFF_MSG);
