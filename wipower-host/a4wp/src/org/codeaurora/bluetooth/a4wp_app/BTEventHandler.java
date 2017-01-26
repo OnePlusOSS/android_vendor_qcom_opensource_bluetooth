@@ -180,6 +180,7 @@ public class BTEventHandler extends BroadcastReceiver {
                     }
                 }
             } else if ( BluetoothAdapter.STATE_BLE_TURNING_OFF == state ||
+                        BluetoothAdapter.STATE_TURNING_ON == state ||
                         BluetoothAdapter.STATE_TURNING_OFF == state ) {
                 wait_for_gattdereg = true;
                 if (V) Log.d(TAG, "Deregister-A4WPService");
