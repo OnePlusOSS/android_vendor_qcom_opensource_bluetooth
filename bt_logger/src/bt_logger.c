@@ -205,6 +205,7 @@ void listen_data(void)
 
         if (FD_ISSET(server_socket, &sock_fds)) {
             int new_client;
+            addrlen = sizeof(cliaddr);
             BTLOG_NO_INTR(new_client = accept(server_socket, (struct sockaddr*)&cliaddr, &addrlen));
             if (new_client == -1) {
                 if (errno == EINVAL || errno == EBADF) {
