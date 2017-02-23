@@ -67,12 +67,14 @@ static config_t *config;
 #define KEY_MAX_LENGTH      (249)
 #define VALID_VNDR_PRDT_LEN   (13)
 #define VALID_MNFR_STR_LEN    (6)
+#define VALID_SSR_LAT_LEN   (15)
 #define VENDOR_VALUE_SEPARATOR  "-"
 
 #define ADDR_BASED    "Address_Based"
 #define NAME_BASED    "Name_Based"
 #define MNFR_BASED    "Manufacturer_Based"
 #define VNDR_PRDT_BASED   "Vndr_Prdt_Based"
+#define SSR_MAX_LAT_BASED   "SSR_Max_Lat_Based"
 
 struct config_t {
   list_t *sections;
@@ -88,11 +90,19 @@ typedef struct {
   list_t *entries;
 } interop_section_t;
 
+typedef struct {
+  bt_bdaddr_t addr;
+  size_t length;
+  uint16_t max_lat;
+  interop_feature_t feature;
+} interop_hid_ssr_max_lat_t;
+
 typedef enum {
     INTEROP_BL_TYPE_ADDR = 0,
     INTEROP_BL_TYPE_NAME,
     INTEROP_BL_TYPE_MANUFACTURE,
     INTEROP_BL_TYPE_VNDR_PRDT,
+    INTEROP_BL_TYPE_SSR_MAX_LAT,
 
 } interop_bl_type;
 
@@ -104,6 +114,7 @@ typedef struct {
         interop_name_entry_t name_entry;
         interop_manufacturer_t mnfr_entry;
         interop_hid_multitouch_t vnr_pdt_entry;
+        interop_hid_ssr_max_lat_t ssr_max_lat_entry;
     } entry_type;
 
 } interop_db_entry_t;
@@ -149,6 +160,12 @@ bool interop_match_vendor_product_ids(const interop_feature_t feature,
   return interop_database_match_vndr_prdt(feature, vendor_id, product_id);
 }
 
+bool interop_match_addr_get_max_lat(const interop_feature_t feature,
+    const bt_bdaddr_t *addr, uint16_t *max_lat)
+{
+  return interop_database_match_addr_get_max_lat(feature, addr, max_lat);
+}
+
 void interop_database_add(const uint16_t feature, const bt_bdaddr_t *addr,
                               size_t length)
 {
@@ -182,6 +199,7 @@ static const char* interop_feature_string_(const interop_feature_t feature)
     CASE_RETURN_STR(INTEROP_STORE_REMOTE_AVRCP_VERSION_1_4)
     CASE_RETURN_STR(INTEROP_ADV_PBAP_VER_1_1)
     CASE_RETURN_STR(INTEROP_REMOTE_AVDTP_START)
+    CASE_RETURN_STR(INTEROP_UPDATE_HID_SSR_MAX_LAT)
     CASE_RETURN_STR(END_OF_INTEROP_LIST)
   }
   return "UNKNOWN";
@@ -397,6 +415,22 @@ static void interop_database_add_( interop_db_entry_t *db_entry,
         interop_config_flush();
         break;
       }
+    case INTEROP_BL_TYPE_SSR_MAX_LAT:
+      {
+        interop_feature_t feature =
+          db_entry->entry_type.ssr_max_lat_entry.feature;
+        char m_vendor[KEY_MAX_LENGTH] = { '\0' };
+        bdstr_t bdstr = { '\0' };
+        bdaddr_to_string(&db_entry->entry_type.addr_entry.addr,
+                    bdstr, sizeof(bdstr));
+        bdstr[(db_entry->entry_type.addr_entry.length * 3) - 1] = '\0';
+        snprintf(m_vendor, sizeof(m_vendor), "%s-0x%04x",
+            bdstr, db_entry->entry_type.ssr_max_lat_entry.max_lat);
+        interop_config_set_str(interop_feature_string_(feature),
+            m_vendor, SSR_MAX_LAT_BASED);
+        interop_config_flush();
+        break;
+      }
   }
 }
 
@@ -481,6 +515,21 @@ static bool interop_database_match_( interop_db_entry_t *entry,
           }
           break;
         }
+      case INTEROP_BL_TYPE_SSR_MAX_LAT:
+        {
+          interop_hid_ssr_max_lat_t *src = &entry->entry_type.ssr_max_lat_entry;
+          interop_hid_ssr_max_lat_t *cur = &db_entry->entry_type.ssr_max_lat_entry;
+
+          if ( (src->feature  == cur->feature) &&
+              (!memcmp( &src->addr, &cur->addr, cur->length)) ) {
+            src->length = cur->length;
+            if (ret_entry) {
+              *ret_entry = db_entry;
+            }
+            found = true;
+          }
+          break;
+        }
     }
 
     if (found) {
@@ -555,6 +604,22 @@ static bool interop_database_remove_( interop_db_entry_t *entry)
         interop_config_flush();
         break;
       }
+    case INTEROP_BL_TYPE_SSR_MAX_LAT:
+      {
+        interop_hid_ssr_max_lat_t *src = &entry->entry_type.ssr_max_lat_entry;
+
+        interop_feature_t feature = src->feature;
+        char m_vendor[KEY_MAX_LENGTH] = { '\0' };
+        bdstr_t bdstr = { '\0' };
+        bdaddr_to_string(&src->addr, bdstr, sizeof(bdstr));
+        bdstr[(src->length * 3) - 1] = '\0';
+        snprintf(m_vendor, sizeof(m_vendor), "%s-0x%04x",
+            bdstr, src->max_lat);
+        interop_config_remove(interop_feature_string_(feature),
+            m_vendor);
+        interop_config_flush();
+        break;
+      }
     default:
     status = false;
   }
@@ -598,6 +663,32 @@ static bool get_vendor_product_id(char *vendorstr, uint16_t *vendor,
     trim(token);
     errno = 0;
     *product = (uint16_t)strtoul(token, &e, 16);
+    if ( (e != NULL) || errno != EINVAL || errno != ERANGE )
+      ret_value = true;
+  }
+  return ret_value;
+}
+
+static bool get_addr_maxlat(char *str, char *bdaddrstr,
+               uint16_t *max_lat)
+{
+    char *token;
+    char *saveptr;
+    char *e;
+    bool ret_value = false;
+
+  if ( (token = strtok_r(str, VENDOR_VALUE_SEPARATOR,
+                  &saveptr)) != NULL) {
+    trim(token);
+    errno = 0;
+    strlcpy(bdaddrstr, token, strlen(token) + 1);
+    if ( errno == EINVAL || errno == ERANGE )
+      return false;
+  }
+  if ( (token = strtok_r(NULL, VENDOR_VALUE_SEPARATOR, &saveptr)) != NULL) {
+    trim(token);
+    errno = 0;
+    *max_lat = (uint16_t)strtoul(token, &e, 16);
     if ( (e != NULL) || errno != EINVAL || errno != ERANGE )
       ret_value = true;
   }
@@ -694,6 +785,54 @@ bool load_to_database(int feature, char *key, char *value)
     entry->entry_type.vnr_pdt_entry.feature = feature;
     entry->entry_type.vnr_pdt_entry.vendor_id = vendor_id;
     entry->entry_type.vnr_pdt_entry.product_id = product_id;
+    interop_database_add_(entry, false);
+  } else if ( !strncasecmp( value, SSR_MAX_LAT_BASED, strlen(SSR_MAX_LAT_BASED))) {
+
+    uint16_t max_lat;
+    char tmp_key[KEY_MAX_LENGTH] = { '\0' };
+    char bdaddr_str[KEY_MAX_LENGTH] = { '\0' };
+
+    if ( strlen(key) != VALID_SSR_LAT_LEN ) {
+      LOG_WARN(LOG_TAG,
+      " ignoring %s due to invalid key for ssr max lat in config file",key);
+      return false;
+    }
+
+    strlcpy(tmp_key, key, KEY_MAX_LENGTH);
+    if (!get_addr_maxlat(tmp_key, bdaddr_str, &max_lat)) {
+      LOG_WARN(LOG_TAG, " Error in parsing address and max_lat %s", key);
+      return false;
+    }
+
+    bdstr_t bdstr = { '\0' };
+    bt_bdaddr_t addr;
+    int len = 0;
+    char append_str[] = ":00";
+
+    len = (strlen(bdaddr_str) + 1) / 3;
+    if ( len < 3 && len > 6 ) {
+      LOG_WARN(LOG_TAG, "%s Ignoring as invalid entry for Address %s",
+      __func__, bdaddr_str);
+      return false;
+    }
+
+    snprintf(bdstr, sizeof(bdstr), "%s", bdaddr_str);
+    for ( int i = 6;  i > len; i-- )
+      strlcat(bdstr, append_str, sizeof(bdstr_t));
+
+    if (!string_is_bdaddr(bdstr)) {
+      LOG_WARN(LOG_TAG,
+      "%s Bluetooth Address %s is invalid, not added to interop list",
+      __func__, key);
+      return false;
+    }
+    string_to_bdaddr(bdstr, &addr);
+    interop_db_entry_t *entry = osi_calloc(sizeof(interop_db_entry_t));
+    entry->bl_type = INTEROP_BL_TYPE_SSR_MAX_LAT;
+    entry->entry_type.ssr_max_lat_entry.feature = feature;
+    bdaddr_copy(&entry->entry_type.ssr_max_lat_entry.addr, &addr);
+    entry->entry_type.ssr_max_lat_entry.length = len;
+    entry->entry_type.ssr_max_lat_entry.max_lat = max_lat;
     interop_database_add_(entry, false);
   }
   LOG_WARN(LOG_TAG, " feature:: %d, key :: %s, value :: %s",
@@ -804,6 +943,22 @@ void interop_database_add_vndr_prdt(const interop_feature_t feature,
   interop_database_add_(entry, true);
 }
 
+void interop_database_add_addr_max_lat(const interop_feature_t feature,
+                  const bt_bdaddr_t *addr, size_t length, uint16_t max_lat)
+{
+
+  assert(addr);
+  assert(length > 0);
+  assert(length < sizeof(bt_bdaddr_t));
+
+  interop_db_entry_t *entry = osi_calloc(sizeof(interop_db_entry_t));
+  entry->bl_type = INTEROP_BL_TYPE_SSR_MAX_LAT;
+  memcpy(&entry->entry_type.ssr_max_lat_entry.addr, addr, length);
+  entry->entry_type.ssr_max_lat_entry.feature = feature;
+  entry->entry_type.ssr_max_lat_entry.length = length;
+  entry->entry_type.ssr_max_lat_entry.max_lat = max_lat;
+  interop_database_add_(entry, true);
+}
 
 bool interop_database_match_manufacturer(const interop_feature_t feature,
                       uint16_t manufacturer)
@@ -887,6 +1042,31 @@ bool interop_database_match_vndr_prdt(const interop_feature_t feature,
       "%s() Device with vendor_id: %d product_id: %d is a match for "
       "interop workaround %s", __func__, vendor_id, product_id,
       interop_feature_string_(feature));
+    return true;
+  }
+
+  return false;
+}
+
+bool interop_database_match_addr_get_max_lat(const interop_feature_t feature,
+                   const bt_bdaddr_t *addr, uint16_t *max_lat)
+{
+
+  interop_db_entry_t entry;
+  interop_db_entry_t *ret_entry = NULL;
+
+  entry.bl_type = INTEROP_BL_TYPE_SSR_MAX_LAT;
+
+  entry.entry_type.ssr_max_lat_entry.feature = feature;
+  memcpy(&entry.entry_type.ssr_max_lat_entry.addr, addr, sizeof(bt_bdaddr_t));
+  entry.entry_type.ssr_max_lat_entry.feature = feature;
+  entry.entry_type.ssr_max_lat_entry.length = sizeof(bt_bdaddr_t);
+  if (interop_database_match_(&entry, &ret_entry)) {
+      bdstr_t bdstr = { '\0' };
+      LOG_WARN(LOG_TAG, "%s() Device %s is a match for interop workaround %s.",
+        __func__, bdaddr_to_string(addr, bdstr, sizeof(bdstr)),
+        interop_feature_string_(feature));
+      *max_lat = ret_entry->entry_type.ssr_max_lat_entry.max_lat;
     return true;
   }
 
@@ -978,3 +1158,28 @@ bool interop_database_remove_vndr_prdt(const interop_feature_t feature,
   }
   return false;
 }
+
+bool interop_database_remove_addr_max_lat(const interop_feature_t feature,
+          const bt_bdaddr_t *addr, size_t length, uint16_t max_lat)
+{
+
+  interop_db_entry_t entry;
+
+  entry.bl_type = INTEROP_BL_TYPE_SSR_MAX_LAT;
+
+  memcpy(&entry.entry_type.ssr_max_lat_entry.addr, addr, sizeof(bt_bdaddr_t));
+  entry.entry_type.ssr_max_lat_entry.feature = feature;
+  entry.entry_type.ssr_max_lat_entry.length = sizeof(bt_bdaddr_t);
+  entry.entry_type.ssr_max_lat_entry.max_lat = max_lat;
+
+  if (interop_database_remove_(&entry)) {
+      bdstr_t bdstr = { '\0' };
+      LOG_WARN(LOG_TAG,
+        "%s() Device %s is a removed from interop workaround %s.",
+        __func__, bdaddr_to_string(addr, bdstr, sizeof(bdstr)),
+        interop_feature_string_(feature));
+    return true;
+  }
+  return false;
+}
+
