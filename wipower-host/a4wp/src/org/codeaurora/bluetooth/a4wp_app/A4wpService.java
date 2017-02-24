@@ -1243,6 +1243,6 @@ public class A4wpService extends Service
             //release wake lock in case if held during crashes or on BT restart.
             acquire_wake_lock(false);
         }
-        return START_STICKY;
+        return START_NOT_STICKY;
    }
 }
