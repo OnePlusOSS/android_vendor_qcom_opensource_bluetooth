@@ -81,7 +81,7 @@ public class BTEventHandler extends BroadcastReceiver {
                }
             } else if (BluetoothAdapter.STATE_ON == state) {
                 if(SystemProperties.get("bluetooth.a4wp").equals("true")) {
-                    if (V) Log.d(TAG, "Service Already registered");
+                    if (V) Log.d(TAG, "Service Already registered - BTON");
                     return;
                 } else {
                     if(SystemProperties.getBoolean("persist.bluetooth.a4wp", false) == false) {
@@ -91,7 +91,7 @@ public class BTEventHandler extends BroadcastReceiver {
                     ComponentName service = context.startService
                                       (new Intent(context, A4wpService.class));
                     if (service != null) {
-                        Log.d(TAG, "A4wp service started successfully");
+                        Log.d(TAG, "A4wp service started successfully -  BTON");
                         SystemProperties.set("bluetooth.a4wp", "true");
                         return;
                     } else {
@@ -120,26 +120,27 @@ public class BTEventHandler extends BroadcastReceiver {
                     Settings.Global.putInt(context.getContentResolver(),Settings.Global.BLE_SCAN_ALWAYS_AVAILABLE, 1);
                     mBluetoothAdapter.enableBLE();
                 }
-                if(SystemProperties.get("bluetooth.a4wp").equals("true")) {
-                    Log.e(TAG, "Service Already registered");
-                    return;
-                } else {
-                    SystemProperties.set("bluetooth.a4wp", "true");
-                }
                 if ((mBluetoothAdapter.isLeEnabled()) ||
                     (mBluetoothAdapter.getState() == BluetoothAdapter.STATE_ON)) {
                     if(SystemProperties.getBoolean("persist.bluetooth.a4wp", false) == false) {
                         Log.e(TAG, "A4WP is not supported");
                         return;
                     }
-                    ComponentName service = context.startService
-                                      (new Intent(context, A4wpService.class));
-                    if (service != null) {
-                        Log.e(TAG, "A4wp service started successfully");
-                        wait_for_gattdereg = false;
-                    } else {
-                        Log.e(TAG, "Could Not Start A4wp Service");
-                        return;
+                    if(SystemProperties.get("bluetooth.a4wp").equals("true")) {
+                        Log.e(TAG, "Service Already registered: PTU Detect");
+                       return;
+                    }
+                    if (wait_for_gattdereg == false) {
+                        ComponentName service = context.startService
+                                          (new Intent(context, A4wpService.class));
+                        if (service != null) {
+                            Log.e(TAG, "A4wp service started successfully: PTU Detect");
+                            wait_for_gattdereg = false;
+                            SystemProperties.set("bluetooth.a4wp", "true");
+                        } else {
+                            Log.e(TAG, "Could Not Start A4wp Service");
+                            return;
+                        }
                     }
                 }
                 Settings.Global.putInt(context.getContentResolver(),Settings.Global.BLE_SCAN_ALWAYS_AVAILABLE, 1);
@@ -171,11 +172,16 @@ public class BTEventHandler extends BroadcastReceiver {
             if ((BluetoothAdapter.STATE_BLE_ON == state))
             {
                 if (V) Log.v(TAG, "Received BLUETOOTH_BLE_STATE_ON");
+                if(SystemProperties.get("bluetooth.a4wp").equals("true")) {
+                    if (V) Log.d(TAG, "Service Already registered");
+                    return;
+                }
                 if (wait_for_gattdereg == false) {
                     ComponentName service = context.startService
                                       (new Intent(context, A4wpService.class));
                     if (service != null) {
-                        Log.e(TAG, "A4wp service started successfully");
+                        SystemProperties.set("bluetooth.a4wp", "true");
+                        Log.e(TAG, "A4wp service started successfully: BLE On");
                     } else {
                         Log.e(TAG, "Could Not Start A4wp Service");
                         return;

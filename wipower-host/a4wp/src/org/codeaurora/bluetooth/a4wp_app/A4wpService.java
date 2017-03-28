@@ -1207,8 +1207,6 @@ public class A4wpService extends Service
         stopAdvertising();
         closeServer();
         if (mWipowerManager != null) {
-             mWipowerManager.enableDataNotification(false);
-             mWipowerManager.enablePowerApply(false, false,false);
              mWipowerManager.unregisterCallback(mWipowerCallback);
         }
         if (mWbcManager != null)
@@ -1243,6 +1241,6 @@ public class A4wpService extends Service
             //release wake lock in case if held during crashes or on BT restart.
             acquire_wake_lock(false);
         }
-        return START_STICKY;
+        return START_NOT_STICKY;
    }
 }
