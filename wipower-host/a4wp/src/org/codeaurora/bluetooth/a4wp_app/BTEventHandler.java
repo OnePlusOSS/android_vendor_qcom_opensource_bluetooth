@@ -53,12 +53,14 @@ public class BTEventHandler extends BroadcastReceiver {
     private BluetoothAdapter mBluetoothAdapter;
     static boolean mPtuPresence = false;
     private WbcManager mWbcManager;
+    static boolean wait_for_bt = false;
 
 
     @Override
     public void onReceive(Context context, Intent intent) {
        String action = intent.getAction();
        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+       ContentResolver cr = context.getContentResolver();
 
        V = SystemProperties.getBoolean("persist.a4wp.logging", false);
        /* 1> if State changes from BT-ON to BLE-ALWAYS when MTP is
@@ -93,6 +95,7 @@ public class BTEventHandler extends BroadcastReceiver {
                     if (service != null) {
                         Log.d(TAG, "A4wp service started successfully -  BTON");
                         SystemProperties.set("bluetooth.a4wp", "true");
+                        wait_for_bt = false;
                         return;
                     } else {
                         Log.e(TAG, "Could Not Start A4wp Service");
@@ -102,6 +105,19 @@ public class BTEventHandler extends BroadcastReceiver {
             }
        }
 
+       /*
+       ** 1> In airplane mode no charging is to be done as all radios are to be turned off.
+       ** 2> if user turns on BT in airplane mode, need to ensure BT is turned on and charging
+       **    starts in BT on.
+       ** 3> If BT was on before airplane mode entry, post airplane mode exit need to esnure
+       **    charging resumes back in BT on state.
+       */
+
+       int airplaneModeOn = Settings.System.getInt(cr, Settings.System.AIRPLANE_MODE_ON, 0);
+       int persist_state = Settings.Global.getInt(cr, Settings.Global.BLUETOOTH_ON, -1);
+       if (airplaneModeOn == 1 && persist_state == 2) {
+          wait_for_bt = true;
+       }
        /* 1> Enable Wipower-BLEOn when placed on PAD. if other app has already
        **    enabled BLE start a4wp service and enable BLE to hold app count so
        **    that even if other app disbles BLE a4wp will continue to hold BLE
@@ -113,7 +129,7 @@ public class BTEventHandler extends BroadcastReceiver {
        **    so that it continues to hold BLE Always on even after BT is
        **    turned off.
        */
-       if (action.equals("com.quicinc.wbc.action.ACTION_PTU_PRESENT")) {
+       if (action.equals("com.quicinc.wbc.action.ACTION_PTU_PRESENT") && (airplaneModeOn != 1) && (wait_for_bt == false)) {
             if (mBluetoothAdapter != null) {
                 if (mBluetoothAdapter.getState() == BluetoothAdapter.STATE_ON) {
                     if (V) Log.d(TAG, "Enable BLE");
