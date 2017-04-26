@@ -100,7 +100,7 @@ static void wipower_alerts_cb(unsigned char alert_data) {
 
 static void wipower_data_cb(wipower_dyn_data_t *alert_data) {
     if (DBG)
-        ALOGV("%s: wp data is: %x", __FUNCTION__, (unsigned int)alert_data);
+        ALOGV("%s", __FUNCTION__);
     jbyteArray wp_data = NULL;
 
     CHECK_CALLBACK_ENV
@@ -213,7 +213,7 @@ static void android_wipower_wipowerJNI_initNative (JNIEnv* env, jobject obj) {
     //Get WiPower Interface
     sWipowerInterface = (const wipower_interface_t*)btInf->get_profile_interface(BT_PROFILE_WIPOWER_VENDOR_ID);
     if (sWipowerInterface == NULL) {
-        ALOGE("%s: Get wipower interface: %x",__FUNCTION__, (unsigned int)sWipowerInterface);
+        ALOGE("%s: Get wipower interface failed",__FUNCTION__);
         return;
     }
     //Initialize wipower interface

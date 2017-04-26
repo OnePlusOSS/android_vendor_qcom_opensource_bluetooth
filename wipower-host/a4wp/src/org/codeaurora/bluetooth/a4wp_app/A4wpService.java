@@ -185,7 +185,7 @@ public class A4wpService extends Service
     private AdvertiseData mAdvertisementData;
     private BluetoothLeAdvertiser mAdvertiser;
     private AdvertiseCallback mAdvertiseCallback = new myAdvertiseCallback(1);
-    ParcelUuid uuid1 = ParcelUuid.fromString("6455fffe-a146-11e2-9e96-0800200c9a67");
+    ParcelUuid uuid1 = ParcelUuid.fromString("0000fffe-0000-1000-8000-00805F9B34FB");
 
     /*a> Due to bad coupling irect value drops to zero and vrect remains
       constant would render stark to reset the CHG_OK pin, So as to
