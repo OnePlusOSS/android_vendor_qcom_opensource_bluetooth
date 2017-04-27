@@ -1,7 +1,6 @@
 LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
-ifneq ($(TARGET_USES_AOSP),true)
 LOCAL_MODULE_TAGS := optional
 src_dirs:= src/org/codeaurora/bluetooth/btcservice \
            src/org/codeaurora/bluetooth/ftp \
@@ -29,5 +28,4 @@ LOCAL_JNI_SHARED_LIBRARIES:= libbluetooth_jni
 include $(BUILD_PACKAGE)
 
 
-include $(call all-makefiles-under,$(LOCAL_PATH))
-endif
+#include $(call all-makefiles-under,$(LOCAL_PATH))
