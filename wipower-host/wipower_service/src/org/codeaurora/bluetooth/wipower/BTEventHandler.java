@@ -59,6 +59,32 @@ public class BTEventHandler extends BroadcastReceiver {
         String action = intent.getAction();
         if (V) Log.d(TAG, "action: " + action);
 
+       if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
+           state = intent.getIntExtra
+                          (BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
+            if (BluetoothAdapter.STATE_ON == state) {
+                if(SystemProperties.get("bluetooth.wipower").equals("true")) {
+                    if (V) Log.d(TAG, "Service Already registered");
+                    return;
+                } else {
+                    if(SystemProperties.getBoolean("persist.bluetooth.a4wp", false) == false) {
+                        Log.e(TAG, "A4WP is not supported");
+                        return;
+                    }
+                    ComponentName service = context.startService
+                                      (new Intent(context, WipowerService.class));
+                    if (service != null) {
+                        Log.d(TAG, "wipower service started successfully");
+                        SystemProperties.set("bluetooth.wipower", "true");
+                        return;
+                    } else {
+                        Log.e(TAG, "Could Not Start wipower Service");
+                        return;
+                    }
+                }
+            }
+       }
+
         if (action.equals("com.quicinc.wbc.action.ACTION_PTU_PRESENT")) {
             mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
             if (mBluetoothAdapter.getState() == BluetoothAdapter.STATE_ON ||
@@ -103,6 +129,7 @@ public class BTEventHandler extends BroadcastReceiver {
                     }
                 }
             } else if ( BluetoothAdapter.STATE_BLE_TURNING_OFF == state ||
+                        BluetoothAdapter.STATE_TURNING_ON == state ||
                         BluetoothAdapter.STATE_TURNING_OFF == state) {
                 if (V) Log.v(TAG, "stopping wipower service on BLE off");
                 wait_for_gattdereg = true;
@@ -110,6 +137,7 @@ public class BTEventHandler extends BroadcastReceiver {
                 SystemProperties.set("bluetooth.wipower", "false");
             } else if (BluetoothAdapter.STATE_OFF == state) {
                 wait_for_gattdereg = false;
+                SystemProperties.set("bluetooth.wipower", "false");
             }
         }
     }
