@@ -26,5 +26,6 @@ LOCAL_JNI_SHARED_LIBRARIES:= libbluetooth_jni
 
 include $(BUILD_PACKAGE)
 
+include $(LOCAL_PATH)/tools/Android.mk
 
 #include $(call all-makefiles-under,$(LOCAL_PATH))
