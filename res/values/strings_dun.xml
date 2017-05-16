@@ -39,5 +39,6 @@
     <string name="bluetooth_dun_request">"DUN request"</string>
     <!-- Bluetooth DUN permission Alert Activity text [CHAR LIMIT=none] -->
     <string name="bluetooth_dun_acceptance_dialog_text">%1$s would like to use DUN. Give access to %2$s?</string>
+    <string name="dun_notification_group">"Dial Up Network"</string>
 
 </resources>

@@ -31,6 +31,7 @@ package org.codeaurora.bluetooth.dun;
 import android.app.Service;
 import android.app.Notification;
 import android.app.NotificationManager;
+import android.app.NotificationChannel;
 import android.app.PendingIntent;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothDun;
@@ -38,7 +39,9 @@ import android.bluetooth.BluetoothProfile;
 import android.bluetooth.IBluetoothDun;
 import android.net.ConnectivityManager;
 import android.content.Context;
+import android.content.BroadcastReceiver;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
@@ -296,7 +299,20 @@ public class BluetoothDunService extends Service {
                     android.Manifest.permission.BLUETOOTH;
 
     private static final String BLUETOOTH_PRIVILEGED =
-                    android.Manifest.permission.BLUETOOTH_PRIVILEGED;;
+                    android.Manifest.permission.BLUETOOTH_PRIVILEGED;
+
+    private NotificationChannel mNotificationChannel = null;
+
+    private final String DUN_NOTIFICATION_CHANNEL = "dun_notification_channel";
+
+    private class DunBroadcastReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            parseIntent(intent);
+        }
+    }
+
+    private DunBroadcastReceiver mDunReceiver = null;
 
     @Override
     public void onCreate() {
@@ -320,6 +336,14 @@ public class BluetoothDunService extends Service {
             Log.e(TAG, "Failed to get Telephony Service interface");
         } else {
             Log.i(TAG, "Telephony Service interface got Successfully");
+        }
+
+        if (mDunReceiver == null) {
+            mDunReceiver = new DunBroadcastReceiver();
+            IntentFilter filter = new IntentFilter();
+            filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
+            filter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
+            registerReceiver(mDunReceiver, filter);
         }
     }
 
@@ -418,14 +442,20 @@ public class BluetoothDunService extends Service {
     // process the intent from DUN receiver
     private void parseIntent(final Intent intent) {
 
-        String action = intent.getStringExtra("action");
+        String action = intent.getAction();
+        if (action == null) {
+            action = intent.getStringExtra("action");
+            if (action == null) {
+                Log.e(TAG, "Unexpected error! action is null");
+                return;
+            }
+        }
         Log.d(TAG, "parseIntent: action: " + action);
-
-        int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
-        if (VERBOSE) Log.v(TAG, "parseIntent: state: " + state);
 
         boolean removeTimeoutMsg = true;
         if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
+            int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
+            if (VERBOSE) Log.v(TAG, "parseIntent: state: " + state);
             if ((state == BluetoothAdapter.STATE_ON) && (!mDunEnable)) {
                 synchronized(mConnection) {
                     try {
@@ -514,12 +544,15 @@ public class BluetoothDunService extends Service {
                Log.e(TAG, "Unexpected error!");
                return;
             }
-            if (mDunHandler != null) {
-               /* Let the user timeout handle this case as well */
-               mDunHandler.sendMessage(mDunHandler.obtainMessage(MESSAGE_DUN_USER_TIMEOUT));
-               removeTimeoutMsg = false;
+            BluetoothDevice device =
+                intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+            if (device != null && device.equals(mRemoteDevice)) {
+                if (mDunHandler != null) {
+                   /* Let the user timeout handle this case as well */
+                   mDunHandler.sendMessage(mDunHandler.obtainMessage(MESSAGE_DUN_USER_TIMEOUT));
+                   removeTimeoutMsg = false;
+                }
             }
-
         } else if (action.equals(DUN_ACCESS_ALLOWED_ACTION)) {
             if (VERBOSE) Log.v(TAG, "DunService-Received ACCESS_ALLOWED_ACTION");
 
@@ -765,10 +798,18 @@ public class BluetoothDunService extends Service {
     }
 
     private final void closeDunService() {
-        Log.d(TAG, "Dun Service closeDunService in");
+        Log.d(TAG, "Dun Service closeDunService in mDunReceiver :" + mDunReceiver);
 
         // exit initRfcommSocket early
         mInterrupted = true;
+        try {
+            if (mDunReceiver != null) {
+                unregisterReceiver(mDunReceiver);
+                mDunReceiver = null;
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Unable to unregister dun receiver", e);
+        }
 
         closeListenSocket();
 
@@ -837,6 +878,13 @@ public class BluetoothDunService extends Service {
 
         NotificationManager nm = (NotificationManager)
                 getSystemService(Context.NOTIFICATION_SERVICE);
+        if (mNotificationChannel == null) {
+            mNotificationChannel = new NotificationChannel(DUN_NOTIFICATION_CHANNEL,
+                    getString(R.string.dun_notification_group),
+                    NotificationManager.IMPORTANCE_HIGH);
+            nm.createNotificationChannel(mNotificationChannel);
+        }
+
 
         // Create an intent triggered by clicking on the status icon.
         Intent clickIntent = new Intent();
@@ -858,7 +906,7 @@ public class BluetoothDunService extends Service {
 
         deleteIntent.setAction(DUN_ACCESS_DISALLOWED_ACTION);
 
-        notification = new Notification.Builder(this)
+        notification = new Notification.Builder(this, DUN_NOTIFICATION_CHANNEL)
                 .setContentTitle(getString(R.string.dun_notif_ticker))
                 .setTicker(getString(R.string.dun_notif_ticker))
                 .setContentText(getString(R.string.dun_notif_message, name))
@@ -871,6 +919,7 @@ public class BluetoothDunService extends Service {
                 .setDeleteIntent(PendingIntent.getBroadcast(this, 0, deleteIntent, 0))
                 .setColor(this.getColor(
                         com.android.internal.R.color.system_notification_accent_color))
+                .setOnlyAlertOnce(true)
                 .build();
         notification.flags |= Notification.FLAG_NO_CLEAR; // Cannot be set with the builder.
         nm.notify(DUN_NOTIFICATION_ID_ACCESS, notification);

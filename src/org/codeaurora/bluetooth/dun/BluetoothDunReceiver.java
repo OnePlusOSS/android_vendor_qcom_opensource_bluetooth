@@ -44,25 +44,21 @@ public class BluetoothDunReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
 
-        if(SystemProperties.getBoolean("ro.bluetooth.dun", false) == false) {
-            return;
-        }
-
-        if (V) Log.v(TAG, "DunReceiver onReceive ");
+        Log.d(TAG, "DunReceiver onReceive enter");
 
         Intent in = new Intent();
         in.putExtras(intent);
         in.setClass(context, BluetoothDunService.class);
         String action = intent.getAction();
         in.putExtra("action", action);
-        if (V) Log.v(TAG,"action = " + action);
+        Log.d(TAG,"action = " + action);
 
         boolean startService = true;
 
         if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
             int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
             in.putExtra(BluetoothAdapter.EXTRA_STATE, state);
-            if (V) Log.v(TAG," Bluetooth Adapter state = " + state);
+            Log.d(TAG," Bluetooth Adapter state = " + state);
             if ((state == BluetoothAdapter.STATE_TURNING_ON)
                     || (state == BluetoothAdapter.STATE_OFF)) {
                 startService = false;
@@ -78,5 +74,6 @@ public class BluetoothDunReceiver extends BroadcastReceiver {
             if (V) Log.v(TAG,"Calling DUN service start service with action = " + in.getAction());
             context.startService(in);
         }
+        Log.d(TAG, "DunReceiver onReceive exit");
     }
 }
