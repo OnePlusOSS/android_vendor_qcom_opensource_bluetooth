@@ -43,7 +43,7 @@ public class BluetoothFtpReceiver extends BroadcastReceiver {
         @Override
         public void  onReceive  (Context context, Intent intent) {
 
-            if(V) Log.v(TAG,"BluetoothFtpReceiver onReceive :" + intent.getAction());
+            Log.d(TAG,"BluetoothFtpReceiver onReceive :" + intent.getAction());
 
             Intent in = new Intent();
             in.putExtras(intent);
@@ -53,34 +53,32 @@ public class BluetoothFtpReceiver extends BroadcastReceiver {
 
             boolean startService = true;
             if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
-                    int state = in.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
-                    //in.putExtra(BluetoothAdapter.EXTRA_STATE, state);
-                    /*
-                     * Other than Tranistioning state, start the FTP service whenever
-                     * BT transitioned to OFF/ON, or Adapter returns error
-                     */
-                   if(V) Log.v(TAG,"BluetoothFtpReceiver  Action: " + intent.getAction()
-                                 + "STATE: "+state);
-                    if ((state == BluetoothAdapter.STATE_TURNING_ON)
-                        || (state == BluetoothAdapter.STATE_OFF)) {
-                        startService = false;
-                    }
-            }  else {
-                 // Don't forward intent unless device has bluetooth and bluetooth is enabled.
-                 BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
-                 if (adapter == null || !adapter.isEnabled()) {
+                int state = in.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
+                Log.d(TAG," Bluetooth Adapter state = " + state);
+                /*
+                 * Other than Tranistioning state, start the FTP service whenever
+                 * BT transitioned to OFF/ON, or Adapter returns error
+                 */
+                if(V) Log.v(TAG,"BluetoothFtpReceiver  Action: " + intent.getAction()
+                             + "STATE: " + state);
+                if ((state == BluetoothAdapter.STATE_TURNING_ON)
+                    || (state == BluetoothAdapter.STATE_OFF)) {
                     startService = false;
-                 }
-                   if(V) Log.v(TAG,"BluetoothFtpReceiver  Action: " + intent.getAction()
-                                 + "startSeervice : "+startService);
+                }
+            } else {
+                // Don't forward intent unless device has bluetooth and bluetooth is enabled.
+                BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
+                if (adapter == null || !adapter.isEnabled()) {
+                startService = false;
+                }
+                if(V) Log.v(TAG,"BluetoothFtpReceiver  Action: " + intent.getAction()
+                             + "startSeervice : " + startService);
             }
 
             if (startService) {
-                /* start the FTP service only if ftp property is enabled in build */
-                //if (SystemProperties.getBoolean("ro.qualcomm.bluetooth.ftp", false)) {
-                    if(V) Log.v(TAG,"BluetoothFtpReceiver Start Service");
-                    context.startService(in);
-                //}
+                if(V) Log.v(TAG,"BluetoothFtpReceiver Start Service");
+                context.startService(in);
             }
+            Log.d(TAG, "BluetoothFtpReceiver onReceive exit");
         }
 }

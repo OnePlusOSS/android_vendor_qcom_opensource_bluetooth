@@ -149,8 +149,6 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             android:name=".ftp.BluetoothFtpReceiver">
             <intent-filter>
                 <action android:name="android.bluetooth.adapter.action.STATE_CHANGED"/>
-                <action android:name="android.bluetooth.device.action.BOND_STATE_CHANGED"/>
-                <action android:name="android.bluetooth.device.action.ACL_DISCONNECTED"/>
             </intent-filter>
         </receiver>
         <activity android:name=".dun.BluetoothDunPermissionActivity"
@@ -176,8 +174,6 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             android:name=".dun.BluetoothDunReceiver">
             <intent-filter>
                 <action android:name="android.bluetooth.adapter.action.STATE_CHANGED"/>
-                <action android:name="android.bluetooth.device.action.BOND_STATE_CHANGED"/>
-                <action android:name="android.bluetooth.device.action.ACL_DISCONNECTED"/>
             </intent-filter>
         </receiver>
         <service
