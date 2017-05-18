@@ -22,7 +22,6 @@ LOCAL_REQUIRED_MODULES := bluetooth.default
 
 LOCAL_PROGUARD_ENABLED := disabled
 
-LOCAL_MULTILIB:= 32
 LOCAL_JNI_SHARED_LIBRARIES:= libbluetooth_jni
 
 include $(BUILD_PACKAGE)

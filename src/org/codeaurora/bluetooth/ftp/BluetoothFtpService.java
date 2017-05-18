@@ -33,9 +33,11 @@ import android.bluetooth.BluetoothSocket;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothAdapter;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.ContentProviderClient;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Message;
 import android.util.Log;
 import android.os.Handler;
@@ -48,6 +50,7 @@ import android.os.ParcelUuid;
 import org.codeaurora.bluetooth.R;
 import android.app.Notification;
 import android.app.NotificationManager;
+import android.app.NotificationChannel;
 import android.app.PendingIntent;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -234,6 +237,18 @@ public class BluetoothFtpService extends Service {
 
     private boolean isWaitingAuthorization = false;
 
+    private NotificationChannel mNotificationChannel = null;
+
+    private final String FTP_NOTIFICATION_CHANNEL = "ftp_notification_channel";
+
+    private class FtpBroadcastReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            parseIntent(intent);
+        }
+    }
+
+    private FtpBroadcastReceiver mFtpReceiver = null;
 
     public BluetoothFtpService() {
     }
@@ -252,6 +267,13 @@ public class BluetoothFtpService extends Service {
             if (state == BluetoothAdapter.STATE_ON) {
                 Log.v(TAG, "FTP service start listener");
                 mHasStarted = true;
+                if (mFtpReceiver == null) {
+                    mFtpReceiver = new FtpBroadcastReceiver();
+                    IntentFilter filter = new IntentFilter();
+                    filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
+                    filter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
+                    registerReceiver(mFtpReceiver, filter);
+                }
                 mSessionStatusHandler.sendMessage(mSessionStatusHandler
                         .obtainMessage(MSG_INTERNAL_START_LISTENER));
             }
@@ -282,16 +304,19 @@ public class BluetoothFtpService extends Service {
 
     // process the intent from receiver
     private void parseIntent(final Intent intent) {
-        String action = (intent == null) ? null : intent.getStringExtra("action");
+        String action = intent.getAction();
         if (action == null) {
-            Log.e(TAG, "Unexpected error! action is null");
-            return;
+            action = intent.getStringExtra("action");
+            if (action == null) {
+                Log.e(TAG, "Unexpected error! action is null");
+                return;
+            }
         }
         Log.v(TAG, "PARSE INTENT action: " + action);
 
-        int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
         boolean removeTimeoutMsg = true;
         if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
+            int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
             removeTimeoutMsg = false;
             Log.d(TAG, "ACTION_STATE_CHANGED: state: " + state + " mHasStarted: " + mHasStarted);
             if ((state == BluetoothAdapter.STATE_TURNING_OFF) && (mAdapter != null)) {
@@ -480,7 +505,7 @@ public class BluetoothFtpService extends Service {
         }
     }
     private final void closeService() {
-        Log.v(TAG, "Ftp Service closeService");
+        Log.v(TAG, "Ftp Service closeService mFtpReceiver :" + mFtpReceiver);
 
         try {
             closeRfcommSocket(true, false);
@@ -508,7 +533,15 @@ public class BluetoothFtpService extends Service {
             mServerSession = null;
         }
 
-        mHasStarted = false;
+        try {
+            if (mFtpReceiver != null) {
+                unregisterReceiver(mFtpReceiver);
+                mFtpReceiver = null;
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Unable to unregister ftp receiver", e);
+        }
+
         if (stopSelfResult(mStartId)) {
             Log.v(TAG, "successfully stopped ftp service");
         }
@@ -815,6 +848,14 @@ public class BluetoothFtpService extends Service {
 
         NotificationManager nm = (NotificationManager)
             getSystemService(Context.NOTIFICATION_SERVICE);
+        if (mNotificationChannel == null) {
+            mNotificationChannel = new NotificationChannel(FTP_NOTIFICATION_CHANNEL,
+                    getString(R.string.ftp_notification_group),
+                    NotificationManager.IMPORTANCE_HIGH);
+            nm.createNotificationChannel(mNotificationChannel);
+        }
+        Context ctx = getApplicationContext();
+
 
         // Create an intent triggered by clicking on the status icon.
         Intent clickIntent = new Intent();
@@ -832,29 +873,36 @@ public class BluetoothFtpService extends Service {
         String name = getRemoteDeviceName();
         if (action.equals(ACCESS_REQUEST_ACTION)) {
             deleteIntent.setAction(ACCESS_DISALLOWED_ACTION);
-            notification = new Notification(android.R.drawable.stat_sys_data_bluetooth,
-                getString(R.string.ftp_notif_ticker), System.currentTimeMillis());
-            notification.setLatestEventInfo(this, getString(R.string.ftp_notif_ticker),
-                    getString(R.string.ftp_notif_message, name), PendingIntent
-                            .getActivity(this, 0, clickIntent, 0));
-            notification.flags |= Notification.FLAG_AUTO_CANCEL;
+            notification = new Notification.Builder(ctx, FTP_NOTIFICATION_CHANNEL)
+            .setOnlyAlertOnce(true)
+            .setPriority(Notification.PRIORITY_MAX)
+            .setDefaults(Notification.DEFAULT_ALL)
+            .setAutoCancel(true)
+            .setSmallIcon(android.R.drawable.stat_sys_data_bluetooth)
+            .setContentTitle(getString(R.string.ftp_notif_ticker))
+            .setContentText(getString(R.string.ftp_notif_message, name))
+            .setWhen(System.currentTimeMillis())
+            .setContentIntent(PendingIntent.getActivity(this, 0, clickIntent, 0))
+            .setDeleteIntent(PendingIntent.getBroadcast(this, 0, deleteIntent, 0))
+            .build();
             notification.flags |= Notification.FLAG_NO_CLEAR;
-            notification.priority = Notification.PRIORITY_MAX;
-            notification.defaults = Notification.DEFAULT_ALL;
-            notification.deleteIntent = PendingIntent.getBroadcast(this, 0, deleteIntent, 0);
             nm.notify(NOTIFICATION_ID_ACCESS, notification);
         } else if (action.equals(AUTH_CHALL_ACTION)) {
             deleteIntent.setAction(AUTH_CANCELLED_ACTION);
-            notification = new Notification(android.R.drawable.stat_sys_data_bluetooth,
-                getString(R.string.ftp_notif_ticker), System.currentTimeMillis());
-            notification.setLatestEventInfo(this, getString(R.string.ftp_notif_title),
-                    getString(R.string.ftp_notif_message, name), PendingIntent
-                            .getActivity(this, 0, clickIntent, 0));
-
+            notification = new Notification.Builder(ctx, FTP_NOTIFICATION_CHANNEL)
+            .setOnlyAlertOnce(true)
+            .setPriority(Notification.PRIORITY_MAX)
+            .setDefaults(Notification.DEFAULT_SOUND)
+            .setAutoCancel(true)
+            .setSmallIcon(android.R.drawable.stat_sys_data_bluetooth)
+            .setTicker(getString(R.string.ftp_notif_ticker))
+            .setContentTitle(getString(R.string.ftp_notif_title))
+            .setContentText(getString(R.string.ftp_notif_message, name))
+            .setWhen(System.currentTimeMillis())
+            .setContentIntent(PendingIntent.getActivity(this, 0, clickIntent, 0))
+            .setDeleteIntent(PendingIntent.getBroadcast(this, 0, deleteIntent, 0))
+            .build();
             notification.flags |= Notification.FLAG_AUTO_CANCEL;
-            notification.flags |= Notification.FLAG_ONLY_ALERT_ONCE;
-            notification.defaults = Notification.DEFAULT_SOUND;
-            notification.deleteIntent = PendingIntent.getBroadcast(this, 0, deleteIntent, 0);
             nm.notify(NOTIFICATION_ID_AUTH, notification);
         }
     }
