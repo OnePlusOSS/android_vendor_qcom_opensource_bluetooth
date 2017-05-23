@@ -14,8 +14,8 @@ LOCAL_JAVA_LIBRARIES += android.wipower
 LOCAL_REQUIRED_MODULES := bluetooth.default
 
 LOCAL_PROGUARD_ENABLED := disabled
+LOCAL_PRIVILEGED_MODULE := true
 
-LOCAL_MULTILIB := 32
 LOCAL_JNI_SHARED_LIBRARIES := libwipower_jni
 
 include $(BUILD_PACKAGE)

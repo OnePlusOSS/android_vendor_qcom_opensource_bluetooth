@@ -24,7 +24,6 @@ LOCAL_SHARED_LIBRARIES := \
         liblog \
         libhardware
 
-LOCAL_MULTILIB := 32
 LOCAL_JNI_SHARED_LIBRARIES := libbluetooth_jni
 
 LOCAL_MODULE := libwipower_jni

@@ -1,7 +1,6 @@
 LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
-ifneq ($(TARGET_USES_AOSP),true)
 LOCAL_MODULE_TAGS := optional
 src_dirs:= src/org/codeaurora/bluetooth/btcservice \
            src/org/codeaurora/bluetooth/ftp \
@@ -23,11 +22,10 @@ LOCAL_REQUIRED_MODULES := bluetooth.default
 
 LOCAL_PROGUARD_ENABLED := disabled
 
-LOCAL_MULTILIB:= 32
 LOCAL_JNI_SHARED_LIBRARIES:= libbluetooth_jni
 
 include $(BUILD_PACKAGE)
 
+include $(LOCAL_PATH)/tools/Android.mk
 
-include $(call all-makefiles-under,$(LOCAL_PATH))
-endif
+#include $(call all-makefiles-under,$(LOCAL_PATH))
