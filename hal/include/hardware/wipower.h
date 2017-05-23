@@ -37,6 +37,7 @@
 
 #include <hardware/hardware.h>
 #include <hardware/bluetooth.h>
+#define BT_PROFILE_WIPOWER_VENDOR_ID "wipower"
 
 __BEGIN_DECLS
 

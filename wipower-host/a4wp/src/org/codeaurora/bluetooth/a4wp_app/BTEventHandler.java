@@ -47,18 +47,22 @@ import java.lang.Object;
 
 public class BTEventHandler extends BroadcastReceiver {
     private static final String TAG = "BTEventHandler-A4WP";
-    private static final boolean V = false/*Constants.VERBOSE*/;
+    private static boolean V = false/*Constants.VERBOSE*/;
     private static boolean wait_for_gattdereg = false;
     private int state;
     private BluetoothAdapter mBluetoothAdapter;
     static boolean mPtuPresence = false;
     private WbcManager mWbcManager;
+    static boolean wait_for_bt = false;
+
 
     @Override
     public void onReceive(Context context, Intent intent) {
        String action = intent.getAction();
        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+       ContentResolver cr = context.getContentResolver();
 
+       V = SystemProperties.getBoolean("persist.a4wp.logging", false);
        /* 1> if State changes from BT-ON to BLE-ALWAYS when MTP is
        ** still on pad, pad detection will be broadcasted to register
        ** a4wp service
@@ -79,7 +83,7 @@ public class BTEventHandler extends BroadcastReceiver {
                }
             } else if (BluetoothAdapter.STATE_ON == state) {
                 if(SystemProperties.get("bluetooth.a4wp").equals("true")) {
-                    if (V) Log.d(TAG, "Service Already registered");
+                    if (V) Log.d(TAG, "Service Already registered - BTON");
                     return;
                 } else {
                     if(SystemProperties.getBoolean("persist.bluetooth.a4wp", false) == false) {
@@ -89,8 +93,9 @@ public class BTEventHandler extends BroadcastReceiver {
                     ComponentName service = context.startService
                                       (new Intent(context, A4wpService.class));
                     if (service != null) {
-                        Log.d(TAG, "A4wp service started successfully");
+                        Log.d(TAG, "A4wp service started successfully -  BTON");
                         SystemProperties.set("bluetooth.a4wp", "true");
+                        wait_for_bt = false;
                         return;
                     } else {
                         Log.e(TAG, "Could Not Start A4wp Service");
@@ -100,6 +105,19 @@ public class BTEventHandler extends BroadcastReceiver {
             }
        }
 
+       /*
+       ** 1> In airplane mode no charging is to be done as all radios are to be turned off.
+       ** 2> if user turns on BT in airplane mode, need to ensure BT is turned on and charging
+       **    starts in BT on.
+       ** 3> If BT was on before airplane mode entry, post airplane mode exit need to esnure
+       **    charging resumes back in BT on state.
+       */
+
+       int airplaneModeOn = Settings.System.getInt(cr, Settings.System.AIRPLANE_MODE_ON, 0);
+       int persist_state = Settings.Global.getInt(cr, Settings.Global.BLUETOOTH_ON, -1);
+       if (airplaneModeOn == 1 && persist_state == 2) {
+          wait_for_bt = true;
+       }
        /* 1> Enable Wipower-BLEOn when placed on PAD. if other app has already
        **    enabled BLE start a4wp service and enable BLE to hold app count so
        **    that even if other app disbles BLE a4wp will continue to hold BLE
@@ -111,18 +129,12 @@ public class BTEventHandler extends BroadcastReceiver {
        **    so that it continues to hold BLE Always on even after BT is
        **    turned off.
        */
-       if (action.equals("com.quicinc.wbc.action.ACTION_PTU_PRESENT")) {
+       if (action.equals("com.quicinc.wbc.action.ACTION_PTU_PRESENT") && (airplaneModeOn != 1) && (wait_for_bt == false)) {
             if (mBluetoothAdapter != null) {
                 if (mBluetoothAdapter.getState() == BluetoothAdapter.STATE_ON) {
                     if (V) Log.d(TAG, "Enable BLE");
                     Settings.Global.putInt(context.getContentResolver(),Settings.Global.BLE_SCAN_ALWAYS_AVAILABLE, 1);
                     mBluetoothAdapter.enableBLE();
-                }
-                if(SystemProperties.get("bluetooth.a4wp").equals("true")) {
-                    Log.e(TAG, "Service Already registered");
-                    return;
-                } else {
-                    SystemProperties.set("bluetooth.a4wp", "true");
                 }
                 if ((mBluetoothAdapter.isLeEnabled()) ||
                     (mBluetoothAdapter.getState() == BluetoothAdapter.STATE_ON)) {
@@ -130,14 +142,21 @@ public class BTEventHandler extends BroadcastReceiver {
                         Log.e(TAG, "A4WP is not supported");
                         return;
                     }
-                    ComponentName service = context.startService
-                                      (new Intent(context, A4wpService.class));
-                    if (service != null) {
-                        Log.e(TAG, "A4wp service started successfully");
-                        wait_for_gattdereg = false;
-                    } else {
-                        Log.e(TAG, "Could Not Start A4wp Service");
-                        return;
+                    if(SystemProperties.get("bluetooth.a4wp").equals("true")) {
+                        Log.e(TAG, "Service Already registered: PTU Detect");
+                       return;
+                    }
+                    if (wait_for_gattdereg == false) {
+                        ComponentName service = context.startService
+                                          (new Intent(context, A4wpService.class));
+                        if (service != null) {
+                            Log.e(TAG, "A4wp service started successfully: PTU Detect");
+                            wait_for_gattdereg = false;
+                            SystemProperties.set("bluetooth.a4wp", "true");
+                        } else {
+                            Log.e(TAG, "Could Not Start A4wp Service");
+                            return;
+                        }
                     }
                 }
                 Settings.Global.putInt(context.getContentResolver(),Settings.Global.BLE_SCAN_ALWAYS_AVAILABLE, 1);
@@ -169,17 +188,23 @@ public class BTEventHandler extends BroadcastReceiver {
             if ((BluetoothAdapter.STATE_BLE_ON == state))
             {
                 if (V) Log.v(TAG, "Received BLUETOOTH_BLE_STATE_ON");
+                if(SystemProperties.get("bluetooth.a4wp").equals("true")) {
+                    if (V) Log.d(TAG, "Service Already registered");
+                    return;
+                }
                 if (wait_for_gattdereg == false) {
                     ComponentName service = context.startService
                                       (new Intent(context, A4wpService.class));
                     if (service != null) {
-                        Log.e(TAG, "A4wp service started successfully");
+                        SystemProperties.set("bluetooth.a4wp", "true");
+                        Log.e(TAG, "A4wp service started successfully: BLE On");
                     } else {
                         Log.e(TAG, "Could Not Start A4wp Service");
                         return;
                     }
                 }
             } else if ( BluetoothAdapter.STATE_BLE_TURNING_OFF == state ||
+                        BluetoothAdapter.STATE_TURNING_ON == state ||
                         BluetoothAdapter.STATE_TURNING_OFF == state ) {
                 wait_for_gattdereg = true;
                 if (V) Log.d(TAG, "Deregister-A4WPService");
