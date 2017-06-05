@@ -330,6 +330,11 @@ int enable(bool enable)
     if (DBG)
         ALOGI("enable: %d", enable);
 
+    if (!btif_is_enabled()) {
+        ALOGE("%s: btif main adapter is NOT fully enabled", __func__);
+        return -1;
+    }
+
     en[0] = WP_HCI_CMD_SET_CHARGE_OUTPUT;
 
     if (enable) {
@@ -348,6 +353,11 @@ int set_current_limit(short value)
 {
     UINT8 curr_limit[2];
     int status = -1;
+
+    if (!btif_is_enabled()) {
+        ALOGE("%s: btif main adapter is NOT fully enabled", __func__);
+        return status;
+    }
 
     curr_limit[0] = WP_HCI_CMD_SET_CURRENT_LIMIT;
     curr_limit[1] = value;
@@ -368,6 +378,12 @@ unsigned char get_current_limit(void)
 {
     unsigned char val =  0;
     UINT8 get_limit = 0;
+
+    if (!btif_is_enabled()) {
+        ALOGE("%s: btif main adapter is NOT fully enabled", __func__);
+        return val;
+    }
+
     get_limit = WP_HCI_CMD_GET_CURRENT_LIMIT;
     gStatus = 0xFF;
     BTM_VendorSpecificCommand(WP_HCI_VS_CMD, 1, &get_limit, get_current_limit_cb);
@@ -383,6 +399,12 @@ wipower_state_t get_state(void)
 {
     wipower_state_t state = OFF;
     UINT8 get_state = 0;
+
+    if (!btif_is_enabled()) {
+        ALOGE("%s: btif main adapter is NOT fully enabled", __func__);
+        return state;
+    }
+
     get_state = WP_HCI_CMD_GET_CHARGE_OUTPUT;
     gStatus = 0xFF;
     BTM_VendorSpecificCommand(WP_HCI_VS_CMD, 1, &get_state, get_state_cb);
@@ -399,6 +421,11 @@ int enable_alerts(bool enable)
 {
     UINT8 en[2];
     int status = -1;
+
+    if (!btif_is_enabled()) {
+        ALOGE("%s: btif main adapter is NOT fully enabled", __func__);
+        return status;
+    }
 
     en[0] = WP_HCI_CMD_ENABLE_ALERT;
     if (enable) {
@@ -422,6 +449,11 @@ int enable_data_notify(bool enable)
     int status = -1;
     struct sigevent se;
     int ret;
+
+    if (!btif_is_enabled()) {
+        ALOGE("%s: btif main adapter is NOT fully enabled", __func__);
+        return status;
+    }
 
     en[0] = WP_HCI_CMD_ENABLE_DATA;
     if (enable) {
@@ -462,6 +494,11 @@ int enable_power_apply(bool enable, bool on, bool time_flag)
     UINT8 en[6];
     if (DBG)
         ALOGI("%s:%d", __func__, enable);
+
+    if (!btif_is_enabled()) {
+        ALOGE("%s: btif main adapter is NOT fully enabled", __func__);
+        return -1;
+    }
 
     en[0] = WP_HCI_CMD_ENABLE_POWER;
     if (enable) {

@@ -222,6 +222,7 @@ public class A4wpService extends Service
                 if (sDebug) Log.v(LOGTAG, "initiateDisconnection:" + " dropping Connection");
                 mDiscInitiated = true;
                 mBluetoothGattServer.cancelConnection(mDevice);
+                mWipowerManager.enableDataNotification(false);
                 mWipowerManager.enablePowerApply(false, false, false);
                 if ((mChargeComplete == true) || (mUSBCharging == true)) {
                     /*
@@ -263,14 +264,14 @@ public class A4wpService extends Service
                     } else {
                         mChargeComplete = false;
                         if ((mUSBCharging == false) &&  (mState == BluetoothProfile.STATE_DISCONNECTED)) {
+                            mWipowerManager.enableDataNotification(false);
                             mWipowerManager.enablePowerApply(false, false, false);
                             mWipowerManager.enablePowerApply(true, true, false);
                         }
                     }
                     break;
                 case WbcTypes.WBC_EVENT_TYPE_PTU_PRESENCE_STATUS:
-                    if (arg1 == WbcTypes.WBC_PTU_STATUS_NOT_PRESENT && mState == BluetoothProfile.STATE_CONNECTED)
-                        initiateDisconnection();
+                    // Do nothing.
                     break;
                 case WbcTypes.WBC_EVENT_TYPE_USB_CHARGING_PRESENT:
                     if (arg1 == WbcTypes.WBC_USB_CHARGING_PRESENT) {
@@ -286,6 +287,7 @@ public class A4wpService extends Service
                     } else {
                         mUSBCharging = false;
                         if ((mChargeComplete == false) &&  (mState == BluetoothProfile.STATE_DISCONNECTED)) {
+                            mWipowerManager.enableDataNotification(false);
                             mWipowerManager.enablePowerApply(false, false, false);
                             mWipowerManager.enablePowerApply(true, true, false);
                         }
@@ -791,6 +793,7 @@ public class A4wpService extends Service
         @Override
         public void onWipowerReady() {
             Log.v(LOGTAG, "onWipowerReady");
+            mWipowerManager.enableDataNotification(false);
             mWipowerManager.enablePowerApply(false, false, false);
             if ((mChargeComplete == true) || (mUSBCharging == true)) {
                 mWipowerManager.enablePowerApply(true, true, true);
@@ -1044,6 +1047,7 @@ public class A4wpService extends Service
         public void onStartSuccess(AdvertiseSettings settingsInEffect) {
             Log.d(LOGTAG, "advertise success " + mIndex);
             if (mWipowerManager != null) {
+                mWipowerManager.enableDataNotification(false);
                 mWipowerManager.enablePowerApply(false, false, false);
                 if ((mChargeComplete == true) || (mUSBCharging == true)) {
                     mWipowerManager.enablePowerApply(true, true, true);
@@ -1231,6 +1235,8 @@ public class A4wpService extends Service
 
         //mWipowerBoot is used to hold power enable command till the service is been registered completely
         if (mWipowerBoot == true && mWipowerManager != null) {
+            mWipowerManager.enableDataNotification(false);
+            mWipowerManager.enablePowerApply(false, false, false);
             if ((mChargeComplete == true) || (mUSBCharging == true)) {
                 mWipowerManager.enablePowerApply(true, true, true);
             } else {
