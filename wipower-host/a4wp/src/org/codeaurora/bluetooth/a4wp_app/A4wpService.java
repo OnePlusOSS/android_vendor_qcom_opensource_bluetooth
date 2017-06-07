@@ -1158,7 +1158,13 @@ public class A4wpService extends Service
 
         mBluetoothGattServer.addService(a4wpService);
         Log.d(LOGTAG, "calling StartAdvertising");
-        StartAdvertising();
+
+        try {
+            StartAdvertising();
+        } catch (Exception e) {
+            Log.e(LOGTAG, "Failed to start advertising");
+            return false;
+        }
 
         return true;
     }
@@ -1208,7 +1214,13 @@ public class A4wpService extends Service
     @Override
     public void onDestroy() {
         Log.v(LOGTAG, "onDestroy");
-        stopAdvertising();
+        try {
+          stopAdvertising();
+        } catch (Exception e) {
+            Log.e(LOGTAG, "Failed to stop advertising");
+            return;
+        }
+
         closeServer();
         if (mWipowerManager != null) {
              mWipowerManager.unregisterCallback(mWipowerCallback);
