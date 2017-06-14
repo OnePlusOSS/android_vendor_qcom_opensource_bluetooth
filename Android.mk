@@ -25,8 +25,9 @@ LOCAL_PROGUARD_ENABLED := disabled
 LOCAL_JNI_SHARED_LIBRARIES:= libbluetooth_jni
 
 include $(BUILD_PACKAGE)
-
+TEMP_LOCAL_PATH := $(LOCAL_PATH)
 include $(LOCAL_PATH)/tools/Android.mk
+include $(TEMP_LOCAL_PATH)/bthost_ipc/Android.mk
 
 include $(call all-makefiles-under,$(LOCAL_PATH)/wipower-host)
 #include $(call all-makefiles-under,$(LOCAL_PATH))
