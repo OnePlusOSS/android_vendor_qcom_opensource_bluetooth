@@ -66,6 +66,7 @@ public class WipowerService extends Service
     private BluetoothAdapter mBluetoothAdapter = null;
     private BluetoothGattServer mBluetoothGattServer = null;
     private BluetoothDevice mDevice = null;
+    private int mStartId = -1;
 
     private static final Object mLock = new Object();
     private int mState = BluetoothProfile.STATE_DISCONNECTED;
@@ -76,6 +77,11 @@ public class WipowerService extends Service
     private void enforcePrivilegedPermission() {
         enforceCallingOrSelfPermission(BLUETOOTH_PRIVILEGED,
            "Need BLUETOOTH_PRIVILEGED permission");
+    }
+
+    static {
+        Log.v(LOGTAG, "Calling classInitNative");
+        classInitNative();
     }
 
     public boolean startCharging() {
@@ -278,6 +284,8 @@ public class WipowerService extends Service
         Log.v(LOGTAG, "onCreate");
         super.onCreate();
 
+        Log.v(LOGTAG, "Calling InitNative");
+        initNative();
         enforcePrivilegedPermission();
         StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder().permitDiskReads().build());
         mCallbacks = new RemoteCallbackList<IWipowerManagerCallback>();
@@ -299,18 +307,34 @@ public class WipowerService extends Service
         return mBinder;
     }
 
+    private void parseIntent(final Intent intent) {
+        String action = (intent == null) ? null : intent.getStringExtra("action");
+        if (action != null) {
+            int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
+            if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
+                if (BluetoothAdapter.STATE_ON == state) {
+                   Log.v(LOGTAG, "Start Service on BT On");
+
+                } else if (BluetoothAdapter.STATE_OFF == state) {
+                     if (stopSelfResult(mStartId)) {
+                         Log.d(LOGTAG, "successfully stopped wipower service");
+                     }
+                }
+            } else if (action.equals("com.quicinc.wbc.action.ACTION_PTU_PRESENT")) {
+                   Log.v(LOGTAG, "Start Service on PAD detect");
+            }
+        }
+    }
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         enforcePrivilegedPermission();
         Log.d(LOGTAG, "onStart Command called!!");
+        mStartId = startId;
+        if (intent != null) {
+            parseIntent(intent);
+        }
 
-        Log.v(LOGTAG, "Calling classInitNative");
-        classInitNative();
-
-        Log.v(LOGTAG, "Calling InitNative");
-        initNative();
-        //Make this restarable service by
-        //Android app manager
         return START_NOT_STICKY;
    }
 

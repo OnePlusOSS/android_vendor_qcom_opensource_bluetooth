@@ -28,4 +28,5 @@ include $(BUILD_PACKAGE)
 
 include $(LOCAL_PATH)/tools/Android.mk
 
+include $(call all-makefiles-under,$(LOCAL_PATH)/wipower-host)
 #include $(call all-makefiles-under,$(LOCAL_PATH))
