@@ -52,14 +52,7 @@ static int bt_split_a2dp_enabled = 0;
 /* Below two values adds up to 8 sec retry to address IOT issues*/
 #define STREAM_START_MAX_RETRY_COUNT 10
 #define STREAM_START_MAX_RETRY_LOOPER 8
-
 #define CTRL_CHAN_RETRY_COUNT 3
-#define USEC_PER_SEC 1000000L
-#define SOCK_SEND_TIMEOUT_MS 2000  /* Timeout for sending */
-#define SOCK_RECV_TIMEOUT_MS 5000  /* Timeout for receiving */
-
-// set WRITE_POLL_MS to 0 for blocking sockets, nonzero for polled non-blocking sockets
-#define WRITE_POLL_MS 20
 
 #define CASE_RETURN_STR(const) case const: return #const;
 
@@ -87,11 +80,6 @@ static int test = 0;
 audio_sbc_encoder_config_t sbc_codec;
 audio_aptx_encoder_config_t aptx_codec;
 audio_aac_encoder_config_t aac_codec;
-/*****************************************************************************
-**  Externs
-******************************************************************************/
-//extern int osi_socket_local_client_connect(int fd, const char* name,
-//                                           int namespaceId, int type);
 /*****************************************************************************
 **  Functions
 ******************************************************************************/
@@ -128,7 +116,9 @@ static const char* dump_a2dp_ctrl_ack(tA2DP_CTRL_ACK resp)
         CASE_RETURN_STR(A2DP_CTRL_ACK_INCALL_FAILURE)
         CASE_RETURN_STR(A2DP_CTRL_ACK_UNSUPPORTED)
         CASE_RETURN_STR(A2DP_CTRL_ACK_PENDING)
+        CASE_RETURN_STR(A2DP_CTRL_ACK_DISCONNECT_IN_PROGRESS)
         CASE_RETURN_STR(A2DP_CTRL_SKT_DISCONNECTED)
+        CASE_RETURN_STR(A2DP_CTRL_ACK_UNKNOWN)
         default:
             return "UNKNOWN ACK ID";
     }
@@ -504,7 +494,7 @@ void a2dp_stream_common_init(struct a2dp_stream_common *common)
     pthread_mutexattr_settype(&lock_attr, PTHREAD_MUTEX_RECURSIVE);
     pthread_mutex_init(&common->lock, &lock_attr);
 
-    common->ctrl_fd = AUDIO_SKT_DISCONNECTED;
+    //common->ctrl_fd = AUDIO_SKT_DISCONNECTED;
     //common->audio_fd = AUDIO_SKT_DISCONNECTED;
     common->state = AUDIO_A2DP_STATE_STOPPED;
 
@@ -515,37 +505,11 @@ void a2dp_stream_common_init(struct a2dp_stream_common *common)
 
 int check_a2dp_stream_started(struct a2dp_stream_common *common)
 {
-   //if (a2dp_command(common, A2DP_CTRL_CMD_CHECK_STREAM_STARTED) < 0)
    {
-       //INFO("Btif not in stream state");
        ALOGW("Btif not in stream state");
        return -1;
    }
    return 0;
-}
-/*static int check_a2dp_open_ready(struct a2dp_stream_common *common)
-{
-    if (a2dp_command(common, A2DP_CTRL_GET_CONNECTION_STATUS) < 0)
-    {
-        INFO("No active a2dp connection");
-        return -1;
-    }
-    return 0;
-}*/
-int audio_open_ctrl_path()
-{
-    //INFO("%s",__func__);
-    ALOGW("%s",__func__);
-    //a2dp_open_ctrl_path(&audio_stream);
-    if (audio_stream.ctrl_fd != AUDIO_SKT_DISCONNECTED)
-    {
-        ALOGW("control path opened successfull");
-        return 0;
-    }
-    else
-        //INFO("control path open failed");
-        ALOGW("control path open failed");
-    return -1;
 }
 
 int wait_for_stack_response(uint8_t time_to_wait)
@@ -653,17 +617,21 @@ void bt_stack_on_get_codec_cfg(tA2DP_CTRL_ACK status, const char *p_cfg,
         pthread_mutex_lock(&audio_stream.ack_lock);
         audio_stream.ack_status = status;
         ALOGW("bt_stack_on_get_codec_config len = %d",len);
+        if (len > MAX_CODEC_CFG_SIZE) {
+          ALOGE("codec config length > MAX_CODEC_CFG_SIZE");
+          status = A2DP_CTRL_ACK_FAILURE;
+        }
         if (status == A2DP_CTRL_ACK_SUCCESS)
         {
             memcpy(audio_stream.codec_cfg,p_cfg,len);
             for (int i = 0; i < len; i++) {
-                ALOGW("audio_stream.codec_cfg[%d] = %x",i,audio_stream.codec_cfg[i]);
+                ALOGV("audio_stream.codec_cfg[%d] = %x",i,audio_stream.codec_cfg[i]);
             }
-            if (!ack_recvd)
-            {
-                ack_recvd = 1;
-                pthread_cond_signal(&ack_cond);
-            }
+        }
+        if (!ack_recvd)
+        {
+            ack_recvd = 1;
+            pthread_cond_signal(&ack_cond);
         }
         pthread_mutex_unlock(&audio_stream.ack_lock);
     }
@@ -745,7 +713,6 @@ int audio_start_stream()
             if (stack_cb)
             {
                 stack_cb->start_req_cb();
-                //wait_for_stack_response(5);
                 status = audio_stream.ack_status;
                 audio_stream.ack_status = A2DP_CTRL_ACK_UNKNOWN;
                 ALOGW("audio_start_stream status = %s",dump_a2dp_ctrl_ack(status));
@@ -765,9 +732,12 @@ int audio_start_stream()
                     audio_stream.state = AUDIO_A2DP_STATE_STARTED;
                     goto end;
                 }
-                else if (status == A2DP_CTRL_ACK_INCALL_FAILURE)
+                else if (status == A2DP_CTRL_ACK_INCALL_FAILURE ||
+                         status == A2DP_CTRL_ACK_UNSUPPORTED ||
+                         status == A2DP_CTRL_ACK_DISCONNECT_IN_PROGRESS)
                 {
-                    ALOGW("a2dp stream start failed: call in progress");
+                    ALOGW("a2dp stream start failed: status = %s",dump_a2dp_ctrl_ack(status));
+                    audio_stream.state = AUDIO_A2DP_STATE_STOPPED;
                     goto end;
                 }
                 else if (status == A2DP_CTRL_ACK_FAILURE)
@@ -785,6 +755,7 @@ int audio_start_stream()
             else
             {
                 ALOGW("Stack shutdown");
+                pthread_mutex_lock(&audio_stream.lock);
                 return A2DP_CTRL_SKT_DISCONNECTED;
             }
             ALOGW("%s: a2dp stream not started,wait 100mse & retry", __func__);
@@ -795,15 +766,12 @@ int audio_start_stream()
         // For every 1 sec check if a2dp is still up, to avoid
         // blocking the audio thread forever if a2dp connection is closed
         // for some reason
-        //if (check_a2dp_open_ready (&audio_stream) < 0) {
-        //if (stack_cb->get_connection_status_cb() != A2DP_CTRL_ACK_SUCCESS) {
         stack_cb->get_connection_status_cb();
         //wait_for_stack_response(5);
         status = audio_stream.ack_status;
         audio_stream.ack_status = A2DP_CTRL_ACK_UNKNOWN;
         if (status != A2DP_CTRL_ACK_SUCCESS)
         {
-            //TODO lock it and waith for stack return with status
             ALOGE("%s: No valid a2dp connection\n", __func__);
             pthread_mutex_unlock(&audio_stream.lock);
             return -1;
@@ -824,7 +792,6 @@ int audio_stream_open()
 {
     ALOGW("%s",__func__);
     a2dp_stream_common_init(&audio_stream);
-    //a2dp_open_ctrl_path(&audio_stream);
     bt_split_a2dp_enabled = true;
     if (stack_cb != NULL)
     {
@@ -846,7 +813,6 @@ int audio_stream_close()
         ALOGW("%s: Suspending audio stream",__func__);
         if (stack_cb)
         {
-        //    suspend_audio_datapath(&audio_stream,true);
             stack_cb->suspend_req_cb();
         }
     }
@@ -861,33 +827,39 @@ int audio_stop_stream()
     ALOGW("%s",__func__);
     tA2DP_CTRL_ACK status;
     pthread_mutex_lock(&audio_stream.lock);
-    //if (suspend_audio_datapath(&audio_stream, true) == 0)
     if (stack_cb)
     {
-        stack_cb->suspend_req_cb();
-        //wait_for_stack_response(5);
-        status = audio_stream.ack_status;
-        audio_stream.ack_status = A2DP_CTRL_ACK_UNKNOWN;
-        ALOGW("audio_stop_stream: ack status = %s",dump_a2dp_ctrl_ack(status));
-        if (status == A2DP_CTRL_ACK_PENDING)
+        if (audio_stream.state != AUDIO_A2DP_STATE_SUSPENDED)
         {
-            wait_for_stack_response(5);
+            stack_cb->suspend_req_cb();
+        //wait_for_stack_response(5);
             status = audio_stream.ack_status;
             audio_stream.ack_status = A2DP_CTRL_ACK_UNKNOWN;
-        }
-        if (status == A2DP_CTRL_ACK_SUCCESS)
-        {
-            ALOGW("audio stop stream successful");
-            audio_stream.state = AUDIO_A2DP_STATE_STANDBY;
-            pthread_mutex_unlock(&audio_stream.lock);
-            return 0;
-        }
-        else
-        {
-            ALOGW("audio stop stream failed");
-            return -1;
+            ALOGW("audio_stop_stream: ack status = %s",dump_a2dp_ctrl_ack(status));
+            if (status == A2DP_CTRL_ACK_PENDING)
+            {
+                wait_for_stack_response(5);
+                status = audio_stream.ack_status;
+                audio_stream.ack_status = A2DP_CTRL_ACK_UNKNOWN;
+            }
+            else if (status == A2DP_CTRL_ACK_SUCCESS)
+            {
+                ALOGW("audio stop stream successful");
+                audio_stream.state = AUDIO_A2DP_STATE_STANDBY;
+                pthread_mutex_unlock(&audio_stream.lock);
+                return 0;
+            }
+            else
+            {
+                ALOGW("audio stop stream failed");
+                audio_stream.state = AUDIO_A2DP_STATE_STOPPED;
+                pthread_mutex_unlock(&audio_stream.lock);
+                return -1;
+            }
         }
     }
+    else
+        ALOGW("stack is down");
     audio_stream.state = AUDIO_A2DP_STATE_STOPPED;
     pthread_mutex_unlock(&audio_stream.lock);
     return -1;
@@ -899,34 +871,39 @@ int audio_suspend_stream()
     tA2DP_CTRL_ACK status;
 
     pthread_mutex_lock(&audio_stream.lock);
-    //if (suspend_audio_datapath(&audio_stream, false) == 0)
     if (stack_cb)
     {
-        stack_cb->suspend_req_cb();
-        //wait_for_stack_response(5);
-        status = audio_stream.ack_status;
-        audio_stream.ack_status = A2DP_CTRL_ACK_UNKNOWN;
-        ALOGW("audio_suspend_stream: ack status = %s",dump_a2dp_ctrl_ack(status));
-        if (status == A2DP_CTRL_ACK_PENDING)
+        if (audio_stream.state != AUDIO_A2DP_STATE_SUSPENDED)
         {
-            //TODO wait for the response;
-            wait_for_stack_response(5);
+            stack_cb->suspend_req_cb();
+            //wait_for_stack_response(5);
             status = audio_stream.ack_status;
             audio_stream.ack_status = A2DP_CTRL_ACK_UNKNOWN;
-        }
-        if (status == A2DP_CTRL_ACK_SUCCESS)
-        {
-            ALOGW("audio suspend stream successful");
-            pthread_mutex_unlock(&audio_stream.lock);
-            audio_stream.state = AUDIO_A2DP_STATE_SUSPENDED;
-            return 0;
-        }
-        else
-        {
-            ALOGW("audio suspend stream failed");
-            return -1;
+            ALOGW("audio_suspend_stream: ack status = %s",dump_a2dp_ctrl_ack(status));
+            if (status == A2DP_CTRL_ACK_PENDING)
+            {
+                //TODO wait for the response;
+                wait_for_stack_response(5);
+                status = audio_stream.ack_status;
+                audio_stream.ack_status = A2DP_CTRL_ACK_UNKNOWN;
+            }
+            else if (status == A2DP_CTRL_ACK_SUCCESS)
+            {
+                ALOGW("audio suspend stream successful");
+                pthread_mutex_unlock(&audio_stream.lock);
+                audio_stream.state = AUDIO_A2DP_STATE_SUSPENDED;
+                return 0;
+            }
+            else
+            {
+                ALOGW("audio suspend stream failed");
+                pthread_mutex_unlock(&audio_stream.lock);
+                return -1;
+            }
         }
     }
+    else
+        ALOGW("stack is down");
     pthread_mutex_unlock(&audio_stream.lock);
     return -1;
 }
