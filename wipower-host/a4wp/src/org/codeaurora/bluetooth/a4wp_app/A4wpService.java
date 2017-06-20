@@ -203,9 +203,8 @@ public class A4wpService extends Service
                 mWipowerManager.startCharging();
                 isChargePortSet = true;
             }
-        }
-        if (isChargePortSet) {
-            if ((byte)(value[PRU_ALERT] & CHARGE_PORT_MASK) == CHARGE_PORT_MASK) {
+        } else {
+            if ((byte)(value[PRU_ALERT] & CHARGE_PORT_MASK) == 0) {
                 if ((value[IRECT_LSB] <= IRECT_MASK_LSB && value[IRECT_MSB] == IRECT_MASK_MSB)
                      && (value[VRECT_LSB] > VRECT_MASK || value[VRECT_MSB] > VRECT_MASK)) {
                      mWipowerManager.startCharging();
