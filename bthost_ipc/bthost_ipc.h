@@ -60,7 +60,6 @@ typedef enum {
     A2DP_CTRL_ACK_INCALL_FAILURE, /* Failure when in Call*/
     A2DP_CTRL_ACK_UNSUPPORTED,
     A2DP_CTRL_ACK_PENDING,
-    A2DP_CTRL_ACK_DISCONNECT_IN_PROGRESS,
     A2DP_CTRL_SKT_DISCONNECTED,
     A2DP_CTRL_ACK_UNKNOWN,
 } tA2DP_CTRL_ACK;
@@ -90,10 +89,10 @@ struct a2dp_config {
 struct a2dp_stream_common {
     pthread_mutex_t         lock;
     pthread_mutex_t         ack_lock;
-    //int                     ctrl_fd;
-    //int                     audio_fd;
-    //size_t                  buffer_sz;
-    //struct a2dp_config      cfg;
+    int                     ctrl_fd;
+    int                     audio_fd;
+    size_t                  buffer_sz;
+    struct a2dp_config      cfg;
     a2dp_state_t            state;
     tA2DP_CTRL_ACK          ack_status;
     uint8_t                 multicast;
