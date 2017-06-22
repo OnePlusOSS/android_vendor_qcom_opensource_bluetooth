@@ -59,6 +59,8 @@ typedef struct {
 
     /** Generate level 6 logs */
     void (*capture_vnd_logs)(void);
+    /** Set wifi state */
+    void  (*set_wifi_state)(bool status);
 
     /** Closes the interface. */
     void  (*cleanup)( void );
