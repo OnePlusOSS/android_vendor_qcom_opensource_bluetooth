@@ -61,8 +61,8 @@ const int BT_LENGTH_OFFSET_SCO = 2;
 const int BT_EVENT_PREAMBLE_SIZE = 2;
 const int BT_LENGTH_OFFSET_EVT = 1;
 
-const int ANT_COMMAND_PREAMBLE_SIZE = 2;
-const int ANT_LENGTH_OFFSET_CMD = 1;
+const int ANT_COMMAND_PREAMBLE_SIZE = 1;
+const int ANT_LENGTH_OFFSET_CMD = 0;
 
 const int FM_COMMAND_PREAMBLE_SIZE = 3;
 const int FM_LENGTH_OFFSET_CMD = 2;

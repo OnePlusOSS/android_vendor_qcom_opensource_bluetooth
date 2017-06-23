@@ -1,4 +1,4 @@
-LOCAL_PATH:= $(call my-dir)
+LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE_TAGS := optional
@@ -25,9 +25,12 @@ LOCAL_PROGUARD_ENABLED := disabled
 LOCAL_JNI_SHARED_LIBRARIES:= libbluetooth_jni
 
 include $(BUILD_PACKAGE)
-TEMP_LOCAL_PATH := $(LOCAL_PATH)
-include $(LOCAL_PATH)/tools/Android.mk
-include $(TEMP_LOCAL_PATH)/bthost_ipc/Android.mk
 
-include $(call all-makefiles-under,$(LOCAL_PATH)/wipower-host)
+#use TMP local path for further inclusions
+TMP_LOCAL_PATH := $(LOCAL_PATH)
+include $(TMP_LOCAL_PATH)/tools/Android.mk
+
+include $(TMP_LOCAL_PATH)/bthost_ipc/Android.mk
+
+include $(TMP_LOCAL_PATH)/wipower-host/Android.mk
 #include $(call all-makefiles-under,$(LOCAL_PATH))

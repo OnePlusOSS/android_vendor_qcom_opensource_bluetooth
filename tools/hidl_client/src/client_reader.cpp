@@ -28,6 +28,10 @@
 
 #include <android/hardware/bluetooth/1.0/IBluetoothHci.h>
 
+#include <com/qualcomm/qti/ant/1.0/IAntHci.h>
+#include <com/qualcomm/qti/ant/1.0/IAntHciCallbacks.h>
+#include <com/qualcomm/qti/ant/1.0/types.h>
+
 #include <sys/socket.h>
 #include <cutils/sockets.h>
 #include <pthread.h>
@@ -42,8 +46,10 @@
 
 using android::hardware::bluetooth::V1_0::IBluetoothHci;
 using ::android::hardware::hidl_vec;
+using com::qualcomm::qti::ant::V1_0::IAntHci;
 
 extern android::sp<IBluetoothHci> btHci;
+extern android::sp<IAntHci> antHci;
 
 extern int server_fd;
 
@@ -77,22 +83,18 @@ void *process_tool_data(void *arg) {
             ALOGE("%s: failed to read the packet from tools", __func__);
             break;
         }
-
         if ((preamble_len = get_preamble_length(packet_type))== -1) {
-            ALOGE("%s: Unsupported packet type", __func__);
+            ALOGE("%s: Unsupported preamble_len packet type %d",__func__, packet_type);
             break;
         }
-
         if (safe_read(server_fd, preamble, preamble_len) == -1) {
             ALOGE("%s: failed to read the packet from tools", __func__);
             break;
         }
-
         if ((payload_len = get_payload_len(packet_type, preamble)) == -1) {
             ALOGE("%s: Invalid payload length ", __func__);
             break;
         }
-
         data->resize(preamble_len + payload_len);
         memcpy(data->data(), preamble, preamble_len);
         if (safe_read(server_fd, data->data() + preamble_len, payload_len) == -1) {
@@ -114,7 +116,13 @@ void *process_tool_data(void *arg) {
                 break;
 
             case ANT_PACKET_TYPE_CTRL:
+                antHci->sendAntControl(*data);
+                break;
+
             case ANT_PACKET_TYPE_DATA:
+                antHci->sendAntData(*data);
+                break;
+
             case FM_PACKET_TYPE_CMD:
             case FM_PACKET_TYPE_EVENT:
                 // Support not enabled for now.
