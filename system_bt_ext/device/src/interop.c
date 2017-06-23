@@ -46,8 +46,8 @@
 #if defined(OS_GENERIC)
 static const char *INTEROP_FILE_PATH = "interop_database.conf";
 #else  // !defined(OS_GENERIC)
-static const char *INTEROP_FILE_PATH = "/data/misc/bluedroid/interop_database.conf";
-static const char *INTEROP_BASE_FILE_PATH = "/etc/bluetooth/interop_database.conf";
+static const char *INTEROP_DYNAMIC_FILE_PATH = "/data/misc/bluedroid/interop_database_dynamic.conf";
+static const char *INTEROP_STATIC_FILE_PATH = "/etc/bluetooth/interop_database.conf";
 #endif  // defined(OS_GENERIC)
 
 list_t *interop_list = NULL;
@@ -57,7 +57,8 @@ pthread_mutex_t interop_list_lock;
 
 // protects operations on |config|
 static pthread_mutex_t file_lock;
-static config_t *config;
+static config_t *config_static;
+static config_t *config_dynamic;
 
 #define CASE_RETURN_STR(const) case const: return #const;
 // Macro used to find the total number of feature_types
@@ -106,8 +107,15 @@ typedef enum {
 
 } interop_bl_type;
 
+typedef enum {
+    INTEROP_ENTRY_TYPE_STATIC = 1 << 0,
+    INTEROP_ENTRY_TYPE_DYNAMIC = 1 << 1
+} interop_entry_type;
+
+
 typedef struct {
     interop_bl_type bl_type;
+    interop_entry_type bl_entry_type;
 
     union {
         interop_addr_entry_t addr_entry;
@@ -128,7 +136,7 @@ static void interop_lazy_init_(void);
 static void load_config();
 static void interop_database_add_( interop_db_entry_t *db_entry, bool persist);
 static bool interop_database_remove_( interop_db_entry_t *entry);
-static bool interop_database_match_( interop_db_entry_t *entry, interop_db_entry_t **ret_entry);
+static bool interop_database_match_( interop_db_entry_t *entry, interop_db_entry_t **ret_entry, interop_entry_type entry_type);
 static void interop_config_write(UNUSED_ATTR UINT16 event, UNUSED_ATTR char *p_param);
 
 
@@ -275,44 +283,52 @@ static int interop_config_init(void)
   pthread_mutex_init(&file_lock, NULL);
   pthread_mutex_lock(&file_lock);
 
-  if (!stat(INTEROP_FILE_PATH, &sts) && sts.st_size) {
-    if(!(config = config_new(INTEROP_FILE_PATH))) {
-      LOG_WARN(LOG_TAG, "%s unable to load config file for : %s",
-         __func__, INTEROP_FILE_PATH);
+  if (!stat(INTEROP_STATIC_FILE_PATH, &sts) && sts.st_size) {
+    if(!(config_static = config_new(INTEROP_STATIC_FILE_PATH))) {
+      LOG_WARN(LOG_TAG, "%s unable to load static config file for : %s",
+         __func__, INTEROP_STATIC_FILE_PATH);
     }
-  } else if(!(config = config_new(INTEROP_BASE_FILE_PATH))) {
-      LOG_WARN(LOG_TAG, "%s unable to load config file for : %s",
-         __func__, INTEROP_BASE_FILE_PATH);
+  }
+  if(!config_static  && !(config_static = config_new_empty())) {
+    goto error;
   }
 
-  if(!config  && !(config = config_new_empty()))
+  if (!stat(INTEROP_DYNAMIC_FILE_PATH, &sts) && sts.st_size) {
+    if(!(config_dynamic = config_new(INTEROP_DYNAMIC_FILE_PATH))) {
+      LOG_WARN(LOG_TAG, "%s unable to load dynamic config file for : %s",
+         __func__, INTEROP_DYNAMIC_FILE_PATH);
+    }
+  }
+  if(!config_dynamic  && !(config_dynamic = config_new_empty())) {
     goto error;
-
+  }
   pthread_mutex_unlock(&file_lock);
   return 0;
 
 error:
-  config_free(config);
+  config_free(config_static);
+  config_free(config_dynamic);
   pthread_mutex_unlock(&file_lock);
   pthread_mutex_destroy(&file_lock);
-  config = NULL;
+  config_static = NULL;
+  config_dynamic = NULL;
   return -1;
 }
 
 static void interop_config_flush(void)
 {
-  assert(config != NULL);
+  assert(config_dynamic != NULL);
   interop_config_write(0, NULL);
 }
 
 static bool interop_config_remove(const char *section, const char *key)
 {
-  assert(config != NULL);
+  assert(config_dynamic != NULL);
   assert(section != NULL);
   assert(key != NULL);
 
   pthread_mutex_lock(&file_lock);
-  bool ret = config_remove_key(config, section, key);
+  bool ret = config_remove_key(config_dynamic, section, key);
   pthread_mutex_unlock(&file_lock);
 
   return ret;
@@ -321,13 +337,13 @@ static bool interop_config_remove(const char *section, const char *key)
 static bool interop_config_set_str(const char *section, const char *key,
                           const char *value)
 {
-  assert(config != NULL);
+  assert(config_dynamic != NULL);
   assert(section != NULL);
   assert(key != NULL);
   assert(value != NULL);
 
   pthread_mutex_lock(&file_lock);
-  config_set_string(config, section, key, value);
+  config_set_string(config_dynamic, section, key, value);
   pthread_mutex_unlock(&file_lock);
 
   return true;
@@ -352,7 +368,8 @@ static void interop_database_add_( interop_db_entry_t *db_entry,
 {
   interop_db_entry_t *ret_entry = NULL;
 
-  if (!interop_database_match_(db_entry, &ret_entry)) {
+  if (!interop_database_match_(db_entry, &ret_entry,
+        INTEROP_ENTRY_TYPE_STATIC | INTEROP_ENTRY_TYPE_DYNAMIC)) {
     pthread_mutex_lock(&interop_list_lock);
 
     if (interop_list) {
@@ -439,7 +456,7 @@ static void interop_database_add_( interop_db_entry_t *db_entry,
 }
 
 static bool interop_database_match_( interop_db_entry_t *entry,
-                interop_db_entry_t **ret_entry)
+                interop_db_entry_t **ret_entry, interop_entry_type entry_type)
 {
   assert(entry);
   bool found = false;
@@ -458,6 +475,14 @@ static bool interop_database_match_( interop_db_entry_t *entry,
     if (entry->bl_type != db_entry->bl_type) {
       node = list_next(node);
       continue;
+    }
+
+    if((entry_type == INTEROP_ENTRY_TYPE_STATIC) ||
+       (entry_type == INTEROP_ENTRY_TYPE_DYNAMIC)) {
+      if (entry->bl_entry_type != db_entry->bl_entry_type) {
+        node = list_next(node);
+        continue;
+      }
     }
 
     switch (db_entry->bl_type) {
@@ -550,7 +575,7 @@ static bool interop_database_remove_( interop_db_entry_t *entry)
   bool status = true;
   interop_db_entry_t *ret_entry = NULL;
 
-  if (!interop_database_match_(entry, &ret_entry)) {
+  if (!interop_database_match_(entry, &ret_entry, INTEROP_ENTRY_TYPE_DYNAMIC)) {
     LOG_ERROR(LOG_TAG, "%s Entry not found in the list", __func__);
     return false;
   }
@@ -699,7 +724,7 @@ static bool get_addr_maxlat(char *str, char *bdaddrstr,
   return ret_value;
 }
 
-bool load_to_database(int feature, char *key, char *value)
+bool load_to_database(int feature, char *key, char *value, interop_entry_type entry_type)
 {
   if ( !strncasecmp( value, ADDR_BASED, strlen(ADDR_BASED)) ) {
     bdstr_t bdstr = { '\0' };
@@ -728,6 +753,7 @@ bool load_to_database(int feature, char *key, char *value)
 
     interop_db_entry_t *entry = osi_calloc(sizeof(interop_db_entry_t));
     entry->bl_type = INTEROP_BL_TYPE_ADDR;
+    entry->bl_entry_type = entry_type;
     bdaddr_copy(&entry->entry_type.addr_entry.addr, &addr);
     entry->entry_type.addr_entry.feature = feature;
     entry->entry_type.addr_entry.length = len;
@@ -740,6 +766,7 @@ bool load_to_database(int feature, char *key, char *value)
     }
     interop_db_entry_t *entry = osi_calloc(sizeof(interop_db_entry_t));
     entry->bl_type = INTEROP_BL_TYPE_NAME;
+    entry->bl_entry_type = entry_type;
     memcpy(&entry->entry_type.name_entry.name, key, strlen(key));
     entry->entry_type.name_entry.feature = feature;
     entry->entry_type.name_entry.length = strlen(key);
@@ -762,6 +789,7 @@ bool load_to_database(int feature, char *key, char *value)
        return false;
     interop_db_entry_t *entry = osi_calloc(sizeof(interop_db_entry_t));
     entry->bl_type = INTEROP_BL_TYPE_MANUFACTURE;
+    entry->bl_entry_type = entry_type;
     entry->entry_type.mnfr_entry.feature = feature;
     entry->entry_type.mnfr_entry.manufacturer = manufacturer;
     interop_database_add_(entry, false);
@@ -786,6 +814,7 @@ bool load_to_database(int feature, char *key, char *value)
 
     interop_db_entry_t *entry = osi_calloc(sizeof(interop_db_entry_t));
     entry->bl_type = INTEROP_BL_TYPE_VNDR_PRDT;
+    entry->bl_entry_type = entry_type;
     entry->entry_type.vnr_pdt_entry.feature = feature;
     entry->entry_type.vnr_pdt_entry.vendor_id = vendor_id;
     entry->entry_type.vnr_pdt_entry.product_id = product_id;
@@ -833,6 +862,7 @@ bool load_to_database(int feature, char *key, char *value)
     string_to_bdaddr(bdstr, &addr);
     interop_db_entry_t *entry = osi_calloc(sizeof(interop_db_entry_t));
     entry->bl_type = INTEROP_BL_TYPE_SSR_MAX_LAT;
+    entry->bl_entry_type = entry_type;
     entry->entry_type.ssr_max_lat_entry.feature = feature;
     bdaddr_copy(&entry->entry_type.ssr_max_lat_entry.addr, &addr);
     entry->entry_type.ssr_max_lat_entry.length = len;
@@ -848,8 +878,8 @@ static void load_config()
 {
   if ( interop_config_init() != -1) {
     pthread_mutex_lock(&file_lock);
-    for (const list_node_t *node = list_begin(config->sections);
-       node != list_end(config->sections); node = list_next(node)) {
+    for (const list_node_t *node = list_begin(config_static->sections);
+       node != list_end(config_static->sections); node = list_next(node)) {
       int feature = -1;
       interop_section_t *sec = list_node(node);
       if ( (feature = get_feature(sec->name)) != -1 ) {
@@ -857,7 +887,20 @@ static void load_config()
            node_entry != list_end(sec->entries);
            node_entry = list_next(node_entry)) {
           interop_entry_t *entry = list_node(node_entry);
-          load_to_database(feature, entry->key, entry->value);
+          load_to_database(feature, entry->key, entry->value, INTEROP_ENTRY_TYPE_STATIC);
+        }
+      }
+    }
+    for (const list_node_t *node = list_begin(config_dynamic->sections);
+       node != list_end(config_dynamic->sections); node = list_next(node)) {
+      int feature = -1;
+      interop_section_t *sec = list_node(node);
+      if ( (feature = get_feature(sec->name)) != -1 ) {
+        for (const list_node_t *node_entry = list_begin(sec->entries);
+           node_entry != list_end(sec->entries);
+           node_entry = list_next(node_entry)) {
+          interop_entry_t *entry = list_node(node_entry);
+          load_to_database(feature, entry->key, entry->value, INTEROP_ENTRY_TYPE_DYNAMIC);
         }
       }
       else {
@@ -868,18 +911,18 @@ static void load_config()
     pthread_mutex_unlock(&file_lock);
   }
   else {
-    LOG_ERROR(LOG_TAG, "Error in initializing interop config file");
+    LOG_ERROR(LOG_TAG, "Error in initializing interop static config file");
   }
 }
 
 static void interop_config_write(UNUSED_ATTR UINT16 event, UNUSED_ATTR char *p_param)
 {
-  assert(config != NULL);
+  assert(config_dynamic != NULL);
 
   pthread_mutex_lock(&file_lock);
-  config_save(config, INTEROP_FILE_PATH);
+  config_save(config_dynamic, INTEROP_DYNAMIC_FILE_PATH);
   // sync the file as well
-  int fd = open (INTEROP_FILE_PATH, O_WRONLY | O_APPEND, 0660);
+  int fd = open (INTEROP_DYNAMIC_FILE_PATH, O_WRONLY | O_APPEND, 0660);
   if (fd != -1) {
     fsync (fd);
     close (fd);
@@ -892,8 +935,10 @@ static void interop_config_cleanup(void)
   interop_config_flush();
 
   pthread_mutex_lock(&file_lock);
-  config_free(config);
-  config = NULL;
+  config_free(config_static);
+  config_static = NULL;
+  config_free(config_dynamic);
+  config_dynamic = NULL;
   pthread_mutex_unlock(&file_lock);
   pthread_mutex_destroy(&file_lock);
 }
@@ -907,6 +952,7 @@ void interop_database_add_addr(const uint16_t feature, const bt_bdaddr_t *addr,
 
   interop_db_entry_t *entry = osi_calloc(sizeof(interop_db_entry_t));
   entry->bl_type = INTEROP_BL_TYPE_ADDR;
+  entry->bl_entry_type = INTEROP_ENTRY_TYPE_DYNAMIC;
   memcpy(&entry->entry_type.addr_entry.addr, addr, length);
   entry->entry_type.addr_entry.feature = feature;
   entry->entry_type.addr_entry.length = length;
@@ -918,6 +964,7 @@ void interop_database_add_name(const uint16_t feature, const char *name)
   assert(name);
   interop_db_entry_t *entry = osi_calloc(sizeof(interop_db_entry_t));
   entry->bl_type = INTEROP_BL_TYPE_NAME;
+  entry->bl_entry_type = INTEROP_ENTRY_TYPE_DYNAMIC;
   memcpy(&entry->entry_type.name_entry.name, name, strlen(name));
   entry->entry_type.name_entry.feature = feature;
   entry->entry_type.name_entry.length = strlen(name);
@@ -930,6 +977,7 @@ void interop_database_add_manufacturer(const interop_feature_t feature,
 
   interop_db_entry_t *entry = osi_calloc(sizeof(interop_db_entry_t));
   entry->bl_type = INTEROP_BL_TYPE_MANUFACTURE;
+  entry->bl_entry_type = INTEROP_ENTRY_TYPE_DYNAMIC;
   entry->entry_type.mnfr_entry.feature = feature;
   entry->entry_type.mnfr_entry.manufacturer = manufacturer;
   interop_database_add_(entry, true);
@@ -941,6 +989,7 @@ void interop_database_add_vndr_prdt(const interop_feature_t feature,
 
   interop_db_entry_t *entry = osi_calloc(sizeof(interop_db_entry_t));
   entry->bl_type = INTEROP_BL_TYPE_VNDR_PRDT;
+  entry->bl_entry_type = INTEROP_ENTRY_TYPE_DYNAMIC;
   entry->entry_type.vnr_pdt_entry.feature = feature;
   entry->entry_type.vnr_pdt_entry.vendor_id = vendor_id;
   entry->entry_type.vnr_pdt_entry.product_id = product_id;
@@ -957,6 +1006,7 @@ void interop_database_add_addr_max_lat(const interop_feature_t feature,
 
   interop_db_entry_t *entry = osi_calloc(sizeof(interop_db_entry_t));
   entry->bl_type = INTEROP_BL_TYPE_SSR_MAX_LAT;
+  entry->bl_entry_type = INTEROP_ENTRY_TYPE_DYNAMIC;
   memcpy(&entry->entry_type.ssr_max_lat_entry.addr, addr, length);
   entry->entry_type.ssr_max_lat_entry.feature = feature;
   entry->entry_type.ssr_max_lat_entry.length = length;
@@ -975,7 +1025,7 @@ bool interop_database_match_manufacturer(const interop_feature_t feature,
   entry.entry_type.mnfr_entry.feature = feature;
   entry.entry_type.mnfr_entry.manufacturer = manufacturer;
 
-  if (interop_database_match_(&entry, &ret_entry)) {
+  if (interop_database_match_(&entry, &ret_entry, INTEROP_ENTRY_TYPE_STATIC | INTEROP_ENTRY_TYPE_DYNAMIC)) {
     LOG_WARN(LOG_TAG, "%s() Device with manufacturer id: %d is a match for interop "
       "workaround %s", __func__, manufacturer, interop_feature_string_(feature));
     return true;
@@ -996,7 +1046,7 @@ bool interop_database_match_name( const interop_feature_t feature, const char *n
   entry.entry_type.name_entry.feature = feature;
   entry.entry_type.name_entry.length = strlen(entry.entry_type.name_entry.name);
 
-  if (interop_database_match_(&entry, &ret_entry)) {
+  if (interop_database_match_(&entry, &ret_entry, INTEROP_ENTRY_TYPE_STATIC  | INTEROP_ENTRY_TYPE_DYNAMIC)) {
     LOG_WARN(LOG_TAG,
     "%s() Device with name: %s is a match for interop workaround %s", __func__,
       name, interop_feature_string_(feature));
@@ -1018,7 +1068,7 @@ bool interop_database_match_addr(const interop_feature_t feature, const bt_bdadd
   entry.entry_type.addr_entry.feature = feature;
   entry.entry_type.addr_entry.length = sizeof(bt_bdaddr_t);
 
-  if (interop_database_match_(&entry, &ret_entry)) {
+  if (interop_database_match_(&entry, &ret_entry, INTEROP_ENTRY_TYPE_STATIC  | INTEROP_ENTRY_TYPE_DYNAMIC)) {
     bdstr_t bdstr = { '\0' };
     LOG_WARN(LOG_TAG, "%s() Device %s is a match for interop workaround %s.",
       __func__, bdaddr_to_string(addr, bdstr, sizeof(bdstr)),
@@ -1041,7 +1091,7 @@ bool interop_database_match_vndr_prdt(const interop_feature_t feature,
   entry.entry_type.vnr_pdt_entry.feature = feature;
   entry.entry_type.vnr_pdt_entry.vendor_id = vendor_id;
   entry.entry_type.vnr_pdt_entry.product_id = product_id;
-  if (interop_database_match_(&entry, &ret_entry)) {
+  if (interop_database_match_(&entry, &ret_entry,  INTEROP_ENTRY_TYPE_STATIC  | INTEROP_ENTRY_TYPE_DYNAMIC)) {
     LOG_WARN(LOG_TAG,
       "%s() Device with vendor_id: %d product_id: %d is a match for "
       "interop workaround %s", __func__, vendor_id, product_id,
@@ -1065,7 +1115,7 @@ bool interop_database_match_addr_get_max_lat(const interop_feature_t feature,
   memcpy(&entry.entry_type.ssr_max_lat_entry.addr, addr, sizeof(bt_bdaddr_t));
   entry.entry_type.ssr_max_lat_entry.feature = feature;
   entry.entry_type.ssr_max_lat_entry.length = sizeof(bt_bdaddr_t);
-  if (interop_database_match_(&entry, &ret_entry)) {
+  if (interop_database_match_(&entry, &ret_entry, INTEROP_ENTRY_TYPE_STATIC  | INTEROP_ENTRY_TYPE_DYNAMIC)) {
       bdstr_t bdstr = { '\0' };
       LOG_WARN(LOG_TAG, "%s() Device %s is a match for interop workaround %s.",
         __func__, bdaddr_to_string(addr, bdstr, sizeof(bdstr)),
@@ -1084,6 +1134,7 @@ bool interop_database_remove_name( const interop_feature_t feature, const char *
   interop_db_entry_t entry;
 
   entry.bl_type = INTEROP_BL_TYPE_NAME;
+  entry.bl_entry_type = INTEROP_ENTRY_TYPE_DYNAMIC;
   strlcpy(entry.entry_type.name_entry.name, name, KEY_MAX_LENGTH);
   entry.entry_type.name_entry.feature = feature;
   entry.entry_type.name_entry.length = strlen(entry.entry_type.name_entry.name);
@@ -1104,6 +1155,7 @@ bool interop_database_remove_manufacturer( const interop_feature_t feature,
   interop_db_entry_t entry;
 
   entry.bl_type = INTEROP_BL_TYPE_MANUFACTURE;
+  entry.bl_entry_type = INTEROP_ENTRY_TYPE_DYNAMIC;
   entry.entry_type.mnfr_entry.feature = feature;
   entry.entry_type.mnfr_entry.manufacturer = manufacturer;
   if (interop_database_remove_(&entry)) {
@@ -1126,6 +1178,7 @@ bool interop_database_remove_addr(const interop_feature_t feature,
   interop_db_entry_t entry;
 
   entry.bl_type = INTEROP_BL_TYPE_ADDR;
+  entry.bl_entry_type = INTEROP_ENTRY_TYPE_DYNAMIC;
   memcpy(&entry.entry_type.addr_entry.addr, addr, sizeof(bt_bdaddr_t));
   entry.entry_type.addr_entry.feature = feature;
   entry.entry_type.addr_entry.length = sizeof(bt_bdaddr_t);
@@ -1148,6 +1201,7 @@ bool interop_database_remove_vndr_prdt(const interop_feature_t feature,
   interop_db_entry_t entry;
 
   entry.bl_type = INTEROP_BL_TYPE_VNDR_PRDT;
+  entry.bl_entry_type = INTEROP_ENTRY_TYPE_DYNAMIC;
 
   entry.entry_type.vnr_pdt_entry.feature = feature;
   entry.entry_type.vnr_pdt_entry.vendor_id = vendor_id;
@@ -1170,6 +1224,7 @@ bool interop_database_remove_addr_max_lat(const interop_feature_t feature,
   interop_db_entry_t entry;
 
   entry.bl_type = INTEROP_BL_TYPE_SSR_MAX_LAT;
+  entry.bl_entry_type = INTEROP_ENTRY_TYPE_DYNAMIC;
 
   memcpy(&entry.entry_type.ssr_max_lat_entry.addr, addr, sizeof(bt_bdaddr_t));
   entry.entry_type.ssr_max_lat_entry.feature = feature;
