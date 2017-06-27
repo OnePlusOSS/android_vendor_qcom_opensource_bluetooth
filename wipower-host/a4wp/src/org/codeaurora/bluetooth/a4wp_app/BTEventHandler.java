@@ -61,8 +61,26 @@ public class BTEventHandler extends BroadcastReceiver {
        String action = intent.getAction();
        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
        ContentResolver cr = context.getContentResolver();
+       mWbcManager = WbcManager.getInstance();
 
        V = SystemProperties.getBoolean("persist.a4wp.logging", false);
+
+       if (action.equals(Intent.ACTION_BOOT_COMPLETED)) {
+           if (V) Log.d(TAG, "Received ACTION_BOOT_COMPLETED");
+           if (mBluetoothAdapter != null) {
+               if (mBluetoothAdapter.getState() == BluetoothAdapter.STATE_OFF) {
+                   if (mWbcManager != null) {
+                       mPtuPresence = (mWbcManager.getPtuPresence() == 1);
+                       if (V) Log.d(TAG, "Pad detection, mPtuPresence: " + mPtuPresence);
+                       if (mPtuPresence == true) {
+                           Settings.Global.putInt(context.getContentResolver(),Settings.Global.BLE_SCAN_ALWAYS_AVAILABLE, 1);
+                           mBluetoothAdapter.enableBLE();
+                       }
+                   }
+               }
+           }
+       }
+
        /* 1> if State changes from BT-ON to BLE-ALWAYS when MTP is
        ** still on pad, pad detection will be broadcasted to register
        ** a4wp service
