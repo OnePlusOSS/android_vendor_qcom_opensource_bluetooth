@@ -34,12 +34,6 @@
 **  Constants & Macros
 ******************************************************************************/
 #define BT_AUDIO_HARDWARE_INTERFACE "libbthost"
-#define A2DP_CTRL_PATH "/data/misc/bluedroid/.a2dp_ctrl"
-#define A2DP_DATA_PATH "/data/misc/bluedroid/.a2dp_data"
-#define AUDIO_STREAM_OUTPUT_BUFFER_SZ      (28*512)
-#define AUDIO_STREAM_DEFAULT_FORMAT        AUDIO_FORMAT_PCM_16_BIT
-#define AUDIO_STREAM_DEFAULT_CHANNEL_FLAG  AUDIO_CHANNEL_OUT_STEREO
-#define AUDIO_SKT_DISCONNECTED             (-1)
 
 typedef enum {
     A2DP_CTRL_CMD_NONE,
