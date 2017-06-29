@@ -493,13 +493,8 @@ void a2dp_stream_common_init(struct a2dp_stream_common *common)
     pthread_mutexattr_init(&lock_attr);
     pthread_mutexattr_settype(&lock_attr, PTHREAD_MUTEX_RECURSIVE);
     pthread_mutex_init(&common->lock, &lock_attr);
-
-    //common->ctrl_fd = AUDIO_SKT_DISCONNECTED;
-    //common->audio_fd = AUDIO_SKT_DISCONNECTED;
+    pthread_mutexattr_destroy(&lock_attr);
     common->state = AUDIO_A2DP_STATE_STOPPED;
-
-    /* manages max capacity of socket pipe */
-    //common->buffer_sz = AUDIO_STREAM_OUTPUT_BUFFER_SZ;
     bt_split_a2dp_enabled = false;
 }
 
@@ -744,13 +739,6 @@ int audio_start_stream()
                 {
                     ALOGW("a2dp stream start failed: generic failure");
                 }
-#if 0
-                if (audio_stream.ctrl_fd == AUDIO_SKT_DISCONNECTED)
-                {
-                    INFO("control path is disconnected");
-                    goto end;
-                }
-#endif
             }
             else
             {
@@ -817,8 +805,6 @@ int audio_stream_close()
         }
     }
 
-    //skt_disconnect(audio_stream.ctrl_fd);
-    //audio_stream.ctrl_fd = AUDIO_SKT_DISCONNECTED;
     pthread_mutex_unlock(&audio_stream.lock);
     return 0;
 }

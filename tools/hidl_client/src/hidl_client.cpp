@@ -23,6 +23,11 @@
 #include <android/hardware/bluetooth/1.0/types.h>
 #include <hwbinder/ProcessState.h>
 
+#include <com/qualcomm/qti/ant/1.0/IAntHci.h>
+#include <com/qualcomm/qti/ant/1.0/IAntHciCallbacks.h>
+#include <com/qualcomm/qti/ant/1.0/types.h>
+
+
 #include <sys/un.h>
 #include <netinet/in.h>
 #include <semaphore.h>
@@ -39,6 +44,10 @@ using android::hardware::bluetooth::V1_0::IBluetoothHci;
 using android::hardware::bluetooth::V1_0::IBluetoothHciCallbacks;
 using android::hardware::bluetooth::V1_0::HciPacket;
 using android::hardware::bluetooth::V1_0::Status;
+
+using com::qualcomm::qti::ant::V1_0::IAntHci;
+using com::qualcomm::qti::ant::V1_0::IAntHciCallbacks;
+
 using android::hardware::ProcessState;
 using ::android::hardware::Return;
 using ::android::hardware::Void;
@@ -55,6 +64,9 @@ static pthread_t client_rthread;
 #define BT_SCO_PACKET_TYPE 0x03
 #define BT_EVT_PACKET_TYPE 0x04
 
+#define ANT_CTRL_PACKET_TYPE    0x0c
+#define ANT_DATA_PACKET_TYPE    0x0e
+
 #define INVALID_FD (-1)
 
 static sem_t s_cond;
@@ -63,6 +75,7 @@ static volatile bool hidl_init = false;
 int server_fd = -1;
 
 android::sp<IBluetoothHci> btHci;
+android::sp<IAntHci> antHci;
 
 class BluetoothHciCallbacks : public IBluetoothHciCallbacks {
 
@@ -123,6 +136,60 @@ class BluetoothHciCallbacks : public IBluetoothHciCallbacks {
     }
 };
 
+namespace
+{
+using com::qualcomm::qti::ant::V1_0::AntPacket;
+using com::qualcomm::qti::ant::V1_0::Status;
+
+class AntHciCallbacks : public IAntHciCallbacks {
+   public:
+   AntHciCallbacks() {};
+   virtual ~AntHciCallbacks() = default;
+
+   Return<void> initializationComplete(Status status)
+   {
+       ALOGI("%s: start ", __func__);
+       if (status == Status::SUCCESS) {
+           hidl_init = true;
+       } else {
+           ALOGE("Error in HIDL initialization");
+       }
+       sem_post(&s_cond);
+       ALOGI("%s:end", __func__);
+       return Void();
+   }
+
+   Return<void> antControlReceived(const hidl_vec<uint8_t>& event)
+   {
+       int len = static_cast<int>(event.size());
+       unsigned char val = ANT_CTRL_PACKET_TYPE;
+       if (safe_write(server_fd, &val, 1) == -1) {
+           ALOGE("%s: failed to write event to tool socket", __func__);
+           return Void();
+       }
+       if (safe_write(server_fd, const_cast<unsigned char*>(event.data()), len) == -1) {
+           ALOGE("%s: failed to write event to tool socket", __func__);
+           return Void();
+       }
+       return Void();
+   }
+
+   Return<void> antDataReceived(const hidl_vec<uint8_t>& event)
+   {
+       int len = static_cast<int>(event.size());
+       unsigned char val = ANT_DATA_PACKET_TYPE;
+       if (safe_write(server_fd, &val, 1) == -1) {
+           return Void();
+       }
+       if (safe_write(server_fd, const_cast<unsigned char*>(event.data()), len) == -1) {
+           ALOGE("%s: failed to write event to tool socket", __func__);
+           return Void();
+       }
+       return Void();
+   }
+};
+}
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -166,9 +233,30 @@ bool hidl_client_initialize(int mode, int *tool_fd) {
             }
 
         case MODE_ANT:
-            // Block for ANT initialization
-            return false;
-            break;
+            ALOGI("%s: Initialize the HIDL with Mode ANT", __func__);
+            antHci = IAntHci::getService();
+            if (antHci != nullptr) {
+                ALOGI("%s: IAntHci::getService() returned %p (%s)",
+                   __func__, antHci.get(), (antHci->isRemote() ? "remote" : "local"));
+            } else {
+                ALOGE("Unable to initialize the HIDL");
+                return false;
+            }
+            {
+             android::sp<IAntHciCallbacks> callbacks = new AntHciCallbacks();
+              hidl_init = false;
+              sem_init(&s_cond, 0, 0);
+              antHci->initialize(callbacks);
+              // waiting for initialisation callback
+              ALOGV("%s: Wait for initialisation callback", __func__);
+              sem_wait(&s_cond);
+            }
+            if (hidl_init == true) {
+                break;
+            } else {
+                ALOGE("%s: HIDL failed to initialize, sending invalid FD to tool", __func__);
+                return false;
+            }
 
         case MODE_FM:
             // Block for FM initialization
@@ -189,7 +277,6 @@ bool hidl_client_initialize(int mode, int *tool_fd) {
     }
 
     server_fd = fds[0];
-
     if (pthread_create(&client_rthread, NULL, process_tool_data, NULL) != 0) {
         ALOGE("%s:Unable to create pthread err = %s", __func__,  strerror(errno));
         close(server_fd);
@@ -223,8 +310,9 @@ void hidl_client_close() {
             break;
 
         case MODE_ANT:
-            //Block for ANT Close
-            return;
+            ALOGI("%s: Close HIDL with Mode ANT", __func__);
+            antHci->close();
+            antHci = nullptr;
             break;
 
         case MODE_FM:
