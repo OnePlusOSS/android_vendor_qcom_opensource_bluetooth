@@ -203,9 +203,8 @@ public class A4wpService extends Service
                 mWipowerManager.startCharging();
                 isChargePortSet = true;
             }
-        }
-        if (isChargePortSet) {
-            if ((byte)(value[PRU_ALERT] & CHARGE_PORT_MASK) == CHARGE_PORT_MASK) {
+        } else {
+            if ((byte)(value[PRU_ALERT] & CHARGE_PORT_MASK) == 0) {
                 if ((value[IRECT_LSB] <= IRECT_MASK_LSB && value[IRECT_MSB] == IRECT_MASK_MSB)
                      && (value[VRECT_LSB] > VRECT_MASK || value[VRECT_MSB] > VRECT_MASK)) {
                      mWipowerManager.startCharging();
@@ -1158,7 +1157,13 @@ public class A4wpService extends Service
 
         mBluetoothGattServer.addService(a4wpService);
         Log.d(LOGTAG, "calling StartAdvertising");
-        StartAdvertising();
+
+        try {
+            StartAdvertising();
+        } catch (Exception e) {
+            Log.e(LOGTAG, "Failed to start advertising");
+            return false;
+        }
 
         return true;
     }
@@ -1208,7 +1213,13 @@ public class A4wpService extends Service
     @Override
     public void onDestroy() {
         Log.v(LOGTAG, "onDestroy");
-        stopAdvertising();
+        try {
+          stopAdvertising();
+        } catch (Exception e) {
+            Log.e(LOGTAG, "Failed to stop advertising");
+            return;
+        }
+
         closeServer();
         if (mWipowerManager != null) {
              mWipowerManager.unregisterCallback(mWipowerCallback);
