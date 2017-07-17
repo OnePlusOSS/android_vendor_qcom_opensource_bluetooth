@@ -452,6 +452,7 @@ public class BluetoothDunService extends Service {
             }
         }
         Log.d(TAG, "parseIntent: action: " + action);
+        if (action == null) return;  /* Nothing to do */
 
         boolean removeTimeoutMsg = true;
         if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
