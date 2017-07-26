@@ -93,6 +93,7 @@ struct a2dp_stream_common {
     uint8_t                 multicast;
     uint8_t                 num_conn_dev;
     uint8_t                 codec_cfg[MAX_CODEC_CFG_SIZE];
+    uint16_t                sink_latency;
 };
 /*
 codec specific definitions
@@ -165,6 +166,8 @@ codec specific definitions
 #define A2D_AAC_IE_VBR_MSK                     0x80
 #define A2D_AAC_IE_VBR                         0x80    /* supported */
 
+#define A2DP_DEFAULT_SINK_LATENCY 0
+
 typedef struct {
     uint32_t subband;    /* 4, 8 */
     uint32_t blk_len;    /* 4, 8, 12, 16 */
@@ -209,6 +212,7 @@ typedef void (*bt_ipc_get_codec_config_cb)(void);
 typedef void (*bt_ipc_get_multicast_status_cb)(void);
 typedef void (*bt_ipc_get_connected_devices_cb)(void);
 typedef void (*bt_ipc_get_connection_status_cb)(void);
+typedef void (*bt_ipc_get_sink_latency_cb)(void);
 typedef struct {
  bt_ipc_start_stream_req_cb start_req_cb;
  bt_ipc_suspend_stream_req_cb suspend_req_cb;
@@ -218,6 +222,7 @@ typedef struct {
  bt_ipc_get_connected_devices_cb get_connected_device_cb;
  bt_ipc_get_connection_status_cb get_connection_status_cb;
  bt_ipc_get_codec_config_cb get_codec_cfg_cb;
+ bt_ipc_get_sink_latency_cb get_sink_latency_cb;
 }bt_lib_callback_t;
 
 void bt_stack_init(bt_lib_callback_t *lib_cb);
@@ -230,6 +235,7 @@ void bt_stack_on_get_mcast_status(uint8_t status);
 void bt_stack_on_get_num_connected_devices(uint8_t num);
 void bt_stack_on_get_connection_status(tA2DP_CTRL_ACK status);
 void bt_stack_on_check_a2dp_ready(tA2DP_CTRL_ACK status);
+void bt_stack_on_get_sink_latency(uint16_t latency);
 int audio_stream_open(void);
 int audio_stream_close(void);
 int audio_start_stream(void);
@@ -240,6 +246,7 @@ void audio_handoff_triggered(void);
 void clear_a2dpsuspend_flag(void);
 void* audio_get_next_codec_config(uint8_t idx, audio_format_t *codec_type);
 int audio_check_a2dp_ready(void);
+uint16_t audio_get_a2dp_sink_latency();
 int wait_for_stack_response(uint8_t duration);
 #endif
 

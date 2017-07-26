@@ -74,6 +74,7 @@ static volatile unsigned char ack_recvd = 0;
 pthread_cond_t ack_cond = PTHREAD_COND_INITIALIZER;
 static int test = 0;
 bool cmd_pending = false;
+static bool update_initial_sink_latency = false;
 /*****************************************************************************
 **  Static functions
 ******************************************************************************/
@@ -496,6 +497,8 @@ void a2dp_stream_common_init(struct a2dp_stream_common *common)
     pthread_mutex_init(&common->lock, &lock_attr);
     pthread_mutexattr_destroy(&lock_attr);
     common->state = AUDIO_A2DP_STATE_STOPPED;
+    common->sink_latency = A2DP_DEFAULT_SINK_LATENCY;
+
     bt_split_a2dp_enabled = false;
 }
 
@@ -691,6 +694,20 @@ void bt_stack_on_check_a2dp_ready(tA2DP_CTRL_ACK status)
     }
     pthread_mutex_unlock(&audio_stream.ack_lock);
 }
+
+void bt_stack_on_get_sink_latency(uint16_t latency)
+{
+    ALOGW("bt_stack_on_get_sink_latency");
+    pthread_mutex_lock(&audio_stream.ack_lock);
+    audio_stream.sink_latency = latency;
+    if (!ack_recvd)
+    {
+        ack_recvd = 1;
+        pthread_cond_signal(&ack_cond);
+    }
+    pthread_mutex_unlock(&audio_stream.ack_lock);
+}
+
 int audio_start_stream()
 {
     int i, j;
@@ -932,6 +949,7 @@ void * audio_get_codec_config(uint8_t *multicast_status, uint8_t *num_dev,
     else
         *num_dev = 1;
     ALOGW("got multicast status = %d dev = %d",*multicast_status,*num_dev);
+    update_initial_sink_latency = true;
     if (a2dp_read_codec_config(&audio_stream, 0) == 0)
     {
         pthread_mutex_unlock(&audio_stream.lock);
@@ -976,4 +994,22 @@ int audio_check_a2dp_ready()
     cmd_pending = false;
     pthread_mutex_unlock(&audio_stream.lock);
     return status == A2DP_CTRL_ACK_SUCCESS;
+}
+
+uint16_t audio_get_a2dp_sink_latency()
+{
+    ALOGW("%s: state = %s",__func__,dump_a2dp_hal_state(audio_stream.state));
+    pthread_mutex_lock(&audio_stream.lock);
+    if (update_initial_sink_latency)
+    {
+        if (stack_cb)
+        {
+            stack_cb->get_sink_latency_cb();
+        }
+        else
+            audio_stream.sink_latency = A2DP_DEFAULT_SINK_LATENCY;
+        update_initial_sink_latency = false;
+    }
+    pthread_mutex_unlock(&audio_stream.lock);
+    return audio_stream.sink_latency;
 }
