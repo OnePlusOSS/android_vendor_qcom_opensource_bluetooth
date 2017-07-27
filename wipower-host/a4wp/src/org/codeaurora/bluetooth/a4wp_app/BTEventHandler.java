@@ -54,6 +54,7 @@ public class BTEventHandler extends BroadcastReceiver {
     static boolean mPtuPresence = false;
     private WbcManager mWbcManager;
     static boolean wait_for_bt = false;
+    static boolean isBleEnabled = false;
 
 
     @Override
@@ -150,9 +151,12 @@ public class BTEventHandler extends BroadcastReceiver {
        if (action.equals("com.quicinc.wbc.action.ACTION_PTU_PRESENT") && (airplaneModeOn != 1) && (wait_for_bt == false)) {
             if (mBluetoothAdapter != null) {
                 if (mBluetoothAdapter.getState() == BluetoothAdapter.STATE_ON) {
-                    if (V) Log.d(TAG, "Enable BLE");
-                    Settings.Global.putInt(context.getContentResolver(),Settings.Global.BLE_SCAN_ALWAYS_AVAILABLE, 1);
-                    mBluetoothAdapter.enableBLE();
+                    if (isBleEnabled == false) {
+                        if (V) Log.d(TAG, "Enable BLE");
+                        Settings.Global.putInt(context.getContentResolver(),Settings.Global.BLE_SCAN_ALWAYS_AVAILABLE, 1);
+                        mBluetoothAdapter.enableBLE();
+                        isBleEnabled = true;
+                    }
                 }
                 if ((mBluetoothAdapter.isLeEnabled()) ||
                     (mBluetoothAdapter.getState() == BluetoothAdapter.STATE_ON)) {
@@ -177,8 +181,12 @@ public class BTEventHandler extends BroadcastReceiver {
                         }
                     }
                 }
-                Settings.Global.putInt(context.getContentResolver(),Settings.Global.BLE_SCAN_ALWAYS_AVAILABLE, 1);
-                mBluetoothAdapter.enableBLE();
+                if (isBleEnabled == false) {
+                    Settings.Global.putInt(context.getContentResolver(),Settings.Global.BLE_SCAN_ALWAYS_AVAILABLE, 1);
+                    if (V) Log.d(TAG, "Enable BLE if BT/BLE is not enabled");
+                    mBluetoothAdapter.enableBLE();
+                    isBleEnabled = true;
+                }
             }
         }
 
@@ -224,6 +232,9 @@ public class BTEventHandler extends BroadcastReceiver {
             } else if ( BluetoothAdapter.STATE_BLE_TURNING_OFF == state ||
                         BluetoothAdapter.STATE_TURNING_ON == state ||
                         BluetoothAdapter.STATE_TURNING_OFF == state ) {
+                if (BluetoothAdapter.STATE_BLE_TURNING_OFF == state) {
+                    isBleEnabled = false;
+                }
                 wait_for_gattdereg = true;
                 if (V) Log.d(TAG, "Deregister-A4WPService");
                 SystemProperties.set("bluetooth.a4wp", "false");
