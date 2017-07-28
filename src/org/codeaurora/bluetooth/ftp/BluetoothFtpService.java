@@ -325,6 +325,7 @@ public class BluetoothFtpService extends Service {
                 // Send any pending timeout now, as this service will be destroyed.
                 if (mSessionStatusHandler.hasMessages(MSG_INTERNAL_USER_TIMEOUT)) {
                     Intent i = new Intent(USER_CONFIRM_TIMEOUT_ACTION);
+                    i.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
                     sendBroadcast(i);
                     removeFtpNotification(NOTIFICATION_ID_ACCESS);
                 }
@@ -383,6 +384,7 @@ public class BluetoothFtpService extends Service {
                 /** Terminate file copy operation if it is in progress */
                 FileUtils.interruptFileCopy = true;
                 Intent intent1 = new Intent(USER_CONFIRM_TIMEOUT_ACTION);
+                intent1.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
                 sendBroadcast(intent1);
                 removeFtpNotification(NOTIFICATION_ID_ACCESS);
                 isWaitingAuthorization = false;
@@ -751,6 +753,7 @@ public class BluetoothFtpService extends Service {
                     break;
                 case MSG_INTERNAL_USER_TIMEOUT:
                     Intent intent = new Intent(USER_CONFIRM_TIMEOUT_ACTION);
+                    intent.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
                     sendBroadcast(intent);
                     removeFtpNotification(NOTIFICATION_ID_ACCESS);
                     isWaitingAuthorization = false;
@@ -758,6 +761,7 @@ public class BluetoothFtpService extends Service {
                     break;
                 case MSG_INTERNAL_AUTH_TIMEOUT:
                     Intent i = new Intent(USER_CONFIRM_TIMEOUT_ACTION);
+                    i.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
                     sendBroadcast(i);
                     removeFtpNotification(NOTIFICATION_ID_AUTH);
                     notifyAuthCancelled();

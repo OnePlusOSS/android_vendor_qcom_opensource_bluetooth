@@ -498,15 +498,6 @@ void a2dp_stream_common_init(struct a2dp_stream_common *common)
     bt_split_a2dp_enabled = false;
 }
 
-int check_a2dp_stream_started(struct a2dp_stream_common *common)
-{
-   {
-       ALOGW("Btif not in stream state");
-       return -1;
-   }
-   return 0;
-}
-
 int wait_for_stack_response(uint8_t time_to_wait)
 {
     ALOGW("wait_for_stack_response");
@@ -678,7 +669,7 @@ void bt_stack_on_get_connection_status(tA2DP_CTRL_ACK status)
 }
 void bt_stack_on_check_a2dp_ready(tA2DP_CTRL_ACK status)
 {
-    ALOGW("bt_stack_on_get_connection_status");
+    ALOGW("bt_stack_on_check_a2dp_ready");
     //TO unlock conditional wait
     pthread_mutex_lock(&audio_stream.ack_lock);
     audio_stream.ack_status = status;
@@ -742,8 +733,8 @@ int audio_start_stream()
             }
             else
             {
-                ALOGW("Stack shutdown");
-                pthread_mutex_lock(&audio_stream.lock);
+                ALOGW("%s:Stack shutdown",__func__);
+                pthread_mutex_unlock(&audio_stream.lock);
                 return A2DP_CTRL_SKT_DISCONNECTED;
             }
             ALOGW("%s: a2dp stream not started,wait 100mse & retry", __func__);
