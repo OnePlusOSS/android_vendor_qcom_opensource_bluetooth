@@ -50,6 +50,7 @@ public class BluetoothFtpReceiver extends BroadcastReceiver {
             in.setClass(context, BluetoothFtpService.class);
             String action = intent.getAction();
             in.putExtra("action",action);
+            if (action == null) return; /* Nothing to do */
 
             boolean startService = true;
             if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
