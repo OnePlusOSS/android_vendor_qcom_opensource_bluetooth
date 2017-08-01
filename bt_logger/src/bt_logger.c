@@ -94,7 +94,7 @@ static unsigned char pending_dump = 0;
 void listen_data(void);
 void process_incoming_data(bt_log_buffer_t *log_list, char *buff, int buff_len);
 void dump_logs();
-int process_packet(bt_log_buffer_t *log_list, char *l_data);
+int process_packet(bt_log_buffer_t *log_list, char *l_data, short int pkt_len);
 void dump_log_to_logcat(void);
 
 int create_server_socket()
@@ -250,7 +250,7 @@ void listen_data(void)
     return;
 }
 
-int process_packet(bt_log_buffer_t *log_list, char *l_data)
+int process_packet(bt_log_buffer_t *log_list, char *l_data, short int pkt_len)
 {
     int ret = 0;
 
@@ -262,8 +262,13 @@ int process_packet(bt_log_buffer_t *log_list, char *l_data)
         unsigned short int log_len;
         bt_log_node_t *log_node = NULL;
         size_t log_size;
-        log_len = *(( unsigned short*)(&l_data[LEN_OFFSET]));
 
+        if(pkt_len < PAYLOAD_OFFSET) {
+            ALOGE("Logger Process: Invalid packet with no length field");
+            break;
+        }
+
+        log_len = *(( unsigned short*)(&l_data[LEN_OFFSET]));
         if (log_len == 0 || log_len > MAX_LOG_STR_LEN) {
             ALOGE("Logger Process: log_len = %d, returning", log_len);
             break;
@@ -320,7 +325,7 @@ void process_incoming_data(bt_log_buffer_t *log_list, char *buff, int buff_len)
 
     while (buff_len > proc_len) {
         int len = 0;
-        len = process_packet(log_list, &buff[proc_len]);
+        len = process_packet(log_list, &buff[proc_len], buff_len - proc_len);
 
         if (len == 0) {
             ALOGE("Error saving packet, buff = %s", buff);
