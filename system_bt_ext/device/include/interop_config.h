@@ -25,6 +25,42 @@
 #include "device/include/interop_database.h"
 #include "device/include/interop.h"
 
+
+typedef struct {
+  bt_bdaddr_t addr;
+  size_t length;
+  uint16_t max_lat;
+  interop_feature_t feature;
+} interop_hid_ssr_max_lat_t;
+
+typedef enum {
+    INTEROP_BL_TYPE_ADDR = 0,
+    INTEROP_BL_TYPE_NAME,
+    INTEROP_BL_TYPE_MANUFACTURE,
+    INTEROP_BL_TYPE_VNDR_PRDT,
+    INTEROP_BL_TYPE_SSR_MAX_LAT,
+
+} interop_bl_type;
+
+typedef enum {
+    INTEROP_ENTRY_TYPE_STATIC = 1 << 0,
+    INTEROP_ENTRY_TYPE_DYNAMIC = 1 << 1
+} interop_entry_type;
+
+typedef struct {
+    interop_bl_type bl_type;
+    interop_entry_type bl_entry_type;
+
+    union {
+        interop_addr_entry_t addr_entry;
+        interop_name_entry_t name_entry;
+        interop_manufacturer_t mnfr_entry;
+        interop_hid_multitouch_t vnr_pdt_entry;
+        interop_hid_ssr_max_lat_t ssr_max_lat_entry;
+    } entry_type;
+
+} interop_db_entry_t;
+
 // API's for adding entries to dynamic interop database
 void interop_database_add_addr(const uint16_t feature, const bt_bdaddr_t *addr, size_t length);
 void interop_database_add_name(const uint16_t feature, const char *name);

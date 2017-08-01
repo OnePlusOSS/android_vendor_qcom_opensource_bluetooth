@@ -63,6 +63,8 @@ typedef struct {
     /** Closes the interface. */
     void  (*cleanup)( void );
 
+    bool (*interop_db_match)( int feature, int type, void *value);
+
 } btvendor_interface_t;
 
 __END_DECLS
