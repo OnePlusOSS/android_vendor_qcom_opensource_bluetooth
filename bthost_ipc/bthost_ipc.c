@@ -73,6 +73,7 @@ bt_lib_callback_t *stack_cb = NULL;
 static volatile unsigned char ack_recvd = 0;
 pthread_cond_t ack_cond = PTHREAD_COND_INITIALIZER;
 static int test = 0;
+bool cmd_pending = false;
 /*****************************************************************************
 **  Static functions
 ******************************************************************************/
@@ -541,7 +542,17 @@ void bt_stack_init(bt_lib_callback_t *lib_cb)
 }
 void bt_stack_deinit(tA2DP_CTRL_ACK status)
 {
-    ALOGW("bt_stack_deinit");
+    ALOGW("bt_stack_deinit cmd_pending = %d",cmd_pending);
+    if (cmd_pending)
+    {
+        ALOGV("%s:cmd_pending true",__func__);
+        pthread_mutex_lock(&audio_stream.lock);
+        ALOGD("%s:acquired lock to set stack_cb null",__func__);
+        stack_cb = NULL;
+        pthread_mutex_unlock(&audio_stream.lock);
+        ALOGD("%s:Done setting stack_cb to null",__func__);
+        return;
+    }
     pthread_mutex_lock(&audio_stream.ack_lock);
     stack_cb = NULL;
     audio_stream.ack_status = status;
@@ -948,14 +959,9 @@ int audio_check_a2dp_ready()
     ALOGW("audio_check_a2dp_ready: state %s", dump_a2dp_hal_state(audio_stream.state));
     tA2DP_CTRL_ACK status;
     pthread_mutex_lock(&audio_stream.lock);
-    /*if (a2dp_command(&audio_stream, A2DP_CTRL_CMD_CHECK_READY) != 0)
-    {
-        INFO("audio_check_a2dp_ready: FAIL");
-        pthread_mutex_unlock(&audio_stream.lock);
-        return 0;
-    }*/
     if (stack_cb != NULL)
     {
+        cmd_pending = true;
         stack_cb->a2dp_check_ready_cb();
         status = audio_stream.ack_status;
         audio_stream.ack_status = A2DP_CTRL_ACK_UNKNOWN;
@@ -967,6 +973,7 @@ int audio_check_a2dp_ready()
         pthread_mutex_unlock(&audio_stream.lock);
         return A2DP_CTRL_SKT_DISCONNECTED;
     }
+    cmd_pending = false;
     pthread_mutex_unlock(&audio_stream.lock);
     return status == A2DP_CTRL_ACK_SUCCESS;
 }
