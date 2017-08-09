@@ -18,11 +18,11 @@ LOCAL_JAVA_LIBRARIES += telephony-common
 
 LOCAL_STATIC_JAVA_LIBRARIES := com.android.vcard
 
-LOCAL_REQUIRED_MODULES := bluetooth.default
+#LOCAL_REQUIRED_MODULES := bluetooth.default
 
 LOCAL_PROGUARD_ENABLED := disabled
 
-LOCAL_JNI_SHARED_LIBRARIES:= libbluetooth_jni
+#LOCAL_JNI_SHARED_LIBRARIES:= libbluetooth_jni
 
 include $(BUILD_PACKAGE)
 

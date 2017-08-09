@@ -207,6 +207,7 @@ public class BluetoothDunPermissionActivity extends AlertActivity implements
         if (extraName != null) {
             intent.putExtra(extraName, extraValue);
         }
+        intent.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
         sendBroadcast(intent);
     }
 
@@ -223,6 +224,7 @@ public class BluetoothDunPermissionActivity extends AlertActivity implements
             intent.putExtra(BluetoothDunService.EXTRA_BLUETOOTH_DEVICE,
                 (BluetoothDevice)i.getParcelableExtra(BluetoothDunService.EXTRA_BLUETOOTH_DEVICE));
         }
+        i.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
         sendBroadcast(intent);
     }
 
