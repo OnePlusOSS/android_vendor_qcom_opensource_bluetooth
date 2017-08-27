@@ -52,6 +52,7 @@ public class BluetoothDunReceiver extends BroadcastReceiver {
         String action = intent.getAction();
         in.putExtra("action", action);
         Log.d(TAG,"action = " + action);
+        if (action == null) return; /* Nothing to do */
 
         boolean startService = true;
 

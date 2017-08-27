@@ -80,6 +80,8 @@ public class WipowerService extends Service
     }
 
     static {
+        Log.v(LOGTAG,"Loading JNI Library");
+        System.loadLibrary("wipower_jni");
         Log.v(LOGTAG, "Calling classInitNative");
         classInitNative();
     }

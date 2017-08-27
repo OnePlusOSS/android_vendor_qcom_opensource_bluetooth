@@ -32,6 +32,10 @@
 #include <com/qualcomm/qti/ant/1.0/IAntHciCallbacks.h>
 #include <com/qualcomm/qti/ant/1.0/types.h>
 
+#include <vendor/qti/hardware/fm/1.0/IFmHci.h>
+#include <vendor/qti/hardware/fm/1.0/IFmHciCallbacks.h>
+#include <vendor/qti/hardware/fm/1.0/types.h>
+
 #include <sys/socket.h>
 #include <cutils/sockets.h>
 #include <pthread.h>
@@ -47,9 +51,11 @@
 using android::hardware::bluetooth::V1_0::IBluetoothHci;
 using ::android::hardware::hidl_vec;
 using com::qualcomm::qti::ant::V1_0::IAntHci;
+using vendor::qti::hardware::fm::V1_0::IFmHci;
 
 extern android::sp<IBluetoothHci> btHci;
 extern android::sp<IAntHci> antHci;
+extern android::sp<IFmHci> fmHci;
 
 extern int server_fd;
 
@@ -83,6 +89,7 @@ void *process_tool_data(void *arg) {
             ALOGE("%s: failed to read the packet from tools", __func__);
             break;
         }
+        ALOGI("%s: Packet type :%d", __func__,packet_type);
         if ((preamble_len = get_preamble_length(packet_type))== -1) {
             ALOGE("%s: Unsupported preamble_len packet type %d",__func__, packet_type);
             break;
@@ -101,7 +108,6 @@ void *process_tool_data(void *arg) {
             ALOGE("%s: failed to read the packet from tool", __func__);
             break;
         }
-
         switch (packet_type) {
             case BT_PACKET_TYPE_COMMAND:
                 btHci->sendHciCommand(*data);
@@ -124,8 +130,9 @@ void *process_tool_data(void *arg) {
                 break;
 
             case FM_PACKET_TYPE_CMD:
-            case FM_PACKET_TYPE_EVENT:
-                // Support not enabled for now.
+                ALOGI("%s: Send FM Cmd ", __func__);
+                fmHci->sendHciCommand(*data);
+                break;
             default:
                 ALOGE("%s: Unsupported packet type: %d", __func__, packet_type);
         }
@@ -167,7 +174,7 @@ static int get_preamble_length(char packet_type) {
             break;
 
         case FM_PACKET_TYPE_EVENT:
-            preamble_len = FM_COMMAND_PREAMBLE_SIZE;
+            preamble_len = FM_EVENT_PREAMBLE_SIZE;
             break;
 
         default:
@@ -205,7 +212,7 @@ static int get_pkt_len_offset(char packet_type) {
             break;
 
         case FM_PACKET_TYPE_CMD:
-            len_offset = FM_LENGTH_OFFSET_EVT;
+            len_offset = FM_LENGTH_OFFSET_CMD;
             break;
 
         case FM_PACKET_TYPE_EVENT:
