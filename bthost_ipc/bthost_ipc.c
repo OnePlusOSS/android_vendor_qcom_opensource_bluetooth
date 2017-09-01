@@ -954,6 +954,7 @@ void clear_a2dpsuspend_flag()
 void * audio_get_codec_config(uint8_t *multicast_status, uint8_t *num_dev,
                               audio_format_t *codec_type)
 {
+    int i, status;
     ALOGW("%s: state = %s",__func__,dump_a2dp_hal_state(audio_stream.state));
 
     pthread_mutex_lock(&audio_stream.lock);
@@ -966,14 +967,21 @@ void * audio_get_codec_config(uint8_t *multicast_status, uint8_t *num_dev,
         *num_dev = 1;
     ALOGW("got multicast status = %d dev = %d",*multicast_status,*num_dev);
     update_initial_sink_latency = true;
-    if (a2dp_read_codec_config(&audio_stream, 0) == 0)
+
+    for (i = 0; i < STREAM_START_MAX_RETRY_COUNT; i++)
     {
-        pthread_mutex_unlock(&audio_stream.lock);
-        if (stack_cb == NULL) {
-           ALOGW("get codec config returned due to stack deinit");
-           return NULL;
+        status = a2dp_read_codec_config(&audio_stream, 0);
+        if (status == A2DP_CTRL_ACK_SUCCESS)
+        {
+            pthread_mutex_unlock(&audio_stream.lock);
+            if (stack_cb == NULL) {
+               ALOGW("get codec config returned due to stack deinit");
+               return NULL;
+            }
+            return (a2dp_codec_parser(&audio_stream.codec_cfg[0], codec_type));
         }
-        return (a2dp_codec_parser(&audio_stream.codec_cfg[0], codec_type));
+        INFO("%s: a2dp stream not configured,wait 100mse & retry", __func__);
+        usleep(100000);
     }
     pthread_mutex_unlock(&audio_stream.lock);
     return NULL;
@@ -981,12 +989,19 @@ void * audio_get_codec_config(uint8_t *multicast_status, uint8_t *num_dev,
 
 void* audio_get_next_codec_config(uint8_t idx, audio_format_t *codec_type)
 {
+    int i, status;
     ALOGW("%s",__func__);
     pthread_mutex_lock(&audio_stream.lock);
-    if (a2dp_read_codec_config(&audio_stream,idx) == 0)
+    for (i = 0; i < STREAM_START_MAX_RETRY_COUNT; i++)
     {
-        pthread_mutex_unlock(&audio_stream.lock);
-        return a2dp_codec_parser(&audio_stream.codec_cfg[0], codec_type);
+        status = a2dp_read_codec_config(&audio_stream,idx);
+        if (status == A2DP_CTRL_ACK_SUCCESS)
+        {
+            pthread_mutex_unlock(&audio_stream.lock);
+            return (a2dp_codec_parser(&audio_stream.codec_cfg[0], codec_type));
+        }
+        INFO("%s: a2dp stream not configured,wait 100mse & retry", __func__);
+        usleep(100000);
     }
     pthread_mutex_unlock(&audio_stream.lock);
     return NULL;
