@@ -768,7 +768,8 @@ int audio_start_stream()
                 }
                 else if (status == A2DP_CTRL_ACK_INCALL_FAILURE ||
                          status == A2DP_CTRL_ACK_UNSUPPORTED ||
-                         status == A2DP_CTRL_ACK_DISCONNECT_IN_PROGRESS)
+                         status == A2DP_CTRL_ACK_DISCONNECT_IN_PROGRESS ||
+                         status == A2DP_CTRL_ACK_UNKNOWN)
                 {
                     ALOGW("a2dp stream start failed: status = %s",dump_a2dp_ctrl_ack(status));
                     audio_stream.state = AUDIO_A2DP_STATE_STOPPED;
