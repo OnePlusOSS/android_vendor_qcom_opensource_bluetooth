@@ -60,7 +60,7 @@ pthread_t snoop_client_tid = -1;
 int btsnoop_socket = -1;
 
 #define LOCAL_SOCKET_NAME "bthcitraffic"
-#define BTSNOOP_PATH "/data/media/0"
+#define BTSNOOP_PATH "/data/misc/bluetooth/logs"
 #define BTSOOP_PORT 8872
 
 //#define __SNOOP_DUMP_DBG__
@@ -336,16 +336,22 @@ void *snoop_dump_thread( void *context)
 /*
        16 Bytes : Read and discard snoop file header
 */
+    if(sk < 0)
+    {
+        snoop_log("Unable to connect to socket");
+        return NULL;
+    }
+
     bytes_recv = read_block (sk, &read_buf[0], 16);
     if ((bytes_recv == 0) || (bytes_recv == -1))
     {
         snoop_log("Error in reading the snoop file Header : ");
-        exit(0);
+        return NULL;
     }
 
     if (snoop_open_file() != 0)
     {
-        exit(0);
+        return NULL;
     }
 
     if (sk != -1)
