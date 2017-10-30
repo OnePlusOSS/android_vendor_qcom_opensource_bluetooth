@@ -50,6 +50,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cutils/log.h>
 
 #define MAX_FILE_SIZE 1024*1024*20
+#define MAX_SNOOP_LOG_FILES 2
 
 #define LOGD0(t,s) __android_log_write(ANDROID_LOG_DEBUG, t, s)
 
@@ -101,8 +102,8 @@ int btsnoop_file_name (char file_name[256])
 
 int snoop_open_file (void)
 {
-    char file_name[2][256];
-    int snoop_files_found = 0;
+    char file_name[MAX_SNOOP_LOG_FILES][256];
+    int snoop_files_found = 0, old_file_index = 0;
     struct DIR* p_dir;
     struct dirent* p_dirent;
 
@@ -121,52 +122,49 @@ int snoop_open_file (void)
         {
             snoop_files_found++;
         }
-        if (snoop_files_found > 2)
+        else
+        {
+            continue;
+        }
+        if (snoop_files_found > MAX_SNOOP_LOG_FILES)
         {
             snoop_log("snoop_log_open: Error : More than two snoop files : Abort");
             file_descriptor = -1;
+            closedir(p_dir);
             return -1;
         }
         else if (ret == 0)
         {
             strlcpy(file_name[snoop_files_found - 1], p_dirent->d_name, 256);
+            if(old_file_index != (snoop_files_found-1) && strncmp(file_name[snoop_files_found-1], file_name[old_file_index], 256) < 0) {
+                old_file_index = snoop_files_found - 1;
+            }
 #ifdef __SNOOP_DUMP_DBG__
             snoop_log("snoop_log_open: snoop file found : %s", file_name[snoop_files_found - 1]);
 #endif //__SNOOP_DUMP_DBG__
         }
     }
     closedir(p_dir);
-    if (snoop_files_found == 2)
+    if (snoop_files_found == MAX_SNOOP_LOG_FILES)
     {
         char del_file[256];
 
         /* Delete the oldest File */
-        if (strncmp(file_name[0], file_name[1], 256) < 0)
-        {
-            snprintf(del_file, 256, BTSNOOP_PATH"/%s", file_name[0]);
+        snprintf(del_file, 256, BTSNOOP_PATH"/%s", file_name[old_file_index]);
 #ifdef __SNOOP_DUMP_DBG__
             snoop_log("snoop_log_open: old file to delete : %s", del_file);
 #endif //__SNOOP_DUMP_DBG__
-            unlink(del_file);
-        }
-        else
-        {
-            snprintf(del_file, 256, BTSNOOP_PATH"/%s", file_name[1]);
-#ifdef __SNOOP_DUMP_DBG__
-            snoop_log("snoop_log_open: old file to delete : %s", del_file);
-#endif //__SNOOP_DUMP_DBG__
-            unlink(del_file);
-        }
+        unlink(del_file);
     }
 
-    if (btsnoop_file_name(file_name[0]) != 0)
+    if (btsnoop_file_name(file_name[old_file_index]) != 0)
     {
         snoop_log("snoop_log_open: error : could not get snoop file name !!");
         return -1;
     }
 
     snoop_log("snoop_log_open: new file : %s", file_name[0]);
-    file_descriptor = open(file_name[0], \
+    file_descriptor = open(file_name[old_file_index], \
                               O_WRONLY|O_CREAT|O_TRUNC, \
                               S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH);
     if (file_descriptor == -1)

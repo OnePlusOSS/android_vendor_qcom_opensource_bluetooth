@@ -73,6 +73,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 **  Variables
 ******************************************************************************/
 int client_sock;
+uint16_t logging_level;
+uint16_t logcat_capture_enabled;
 
 /******************************************************************************
 **  Local type definitions
@@ -216,17 +218,20 @@ unsigned short int create_log_info(const char *tag, char *buff)
 **
 ** Parameters:      Void
 
-** Returns          true if socket connection is successful, false otherwise.
+** Returns          Bluetooth logging level set in the device.
 **
 *******************************************************************************/
 static int init(void)
 {
     lib_log("%s", __func__);
+    logging_level = property_get_int32("persist.bt_logger.log_mask", 0xFFFF);
 
     client_sock = connect_to_logger_server();
     if (client_sock < 0)
         return -1;
-    return true;
+
+    logcat_capture_enabled = logging_level&DYNAMIC_LOGCAT_CAPTURE;
+    return logging_level;
 }
 
 /*******************************************************************************
@@ -246,6 +251,9 @@ static void send_log_msg(const char *tag, const char *fmt_str, va_list ap)
 {
     int info_size, log_size = 0;
     char buffer[VND_LOG_BUFF_SIZE];
+
+    if(!logcat_capture_enabled)
+        return;
 
     buffer[0] = VENDOR_LOGGER_LOGS;
 
