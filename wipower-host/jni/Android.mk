@@ -10,7 +10,8 @@ LOCAL_C_INCLUDES += \
     $(JNI_H_INCLUDE) \
         packages/apps/Bluetooth/jni \
         vendor/qcom/opensource/bluetooth_ext/vhal/include \
-        vendor/qcom/opensource/bluetooth/hal/include
+        vendor/qcom/opensource/bluetooth/hal/include \
+        system/bt/types/
 
 
 LOCAL_REQUIRED_MODULES := bluetooth.default
