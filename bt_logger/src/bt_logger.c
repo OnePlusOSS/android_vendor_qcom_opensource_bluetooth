@@ -238,6 +238,7 @@ void listen_data(void)
                 }else  {
                     ALOGE("%s, Error Reading Data", __func__);
                     close(s_fd);
+                    close(server_socket);
                     sock_client[i] = -1;
                     dump_log_to_logcat();
                     looper = 0;
