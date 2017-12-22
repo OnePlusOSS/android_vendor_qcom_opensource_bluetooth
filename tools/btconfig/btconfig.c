@@ -722,22 +722,18 @@ int read_incoming_events(int fd, unsigned char* buf, int to){
 
 static int writeHciCommand(int uart_fd, uint16_t ogf, uint16_t ocf, uint8_t plen, UCHAR *buf){
     int count;
+    UCHAR resultBuf[MAX_EVENT_SIZE];
 
     printf("HCI Command: ogf 0x%02x, ocf 0x%04x, plen %d\n", ogf, ocf, plen);
-    if (hci_send_cmd(uart_fd, ogf, ocf, plen, buf) < 0) {
-        perror("Send failed");
-        exit(EXIT_FAILURE);
-    }
-    sleep(0.4);
-    count = read_hci_event(uart_fd, buf, MAX_EVENT_SIZE);
-    if (count < 0) {
-        printf("Read failed");
-        return count;
-    }
 
+ count = hci_send_cmd(uart_fd, ogf, ocf, plen, buf);
+ memset(&resultBuf,0,MAX_EVENT_SIZE);
+ if (!count)
+  count = read_incoming_events(uart_fd, resultBuf, 0);
+  printf("\n");
 #ifdef QCA_DEBUG
     printf("RECV <- ");
-    qca_debug_dump(buf, count);
+    qca_debug_dump(resultBuf, count);
 #endif
     return count;
 }

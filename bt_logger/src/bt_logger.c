@@ -48,12 +48,12 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <signal.h>
 #include <private/android_filesystem_config.h>
 #include <android/log.h>
-#include <cutils/log.h>
+
 
 #include "bt_logger.h"
 
 #define SOCKET_NAME "btloggersock"
-#define BTLOGGER_PATH "/data/media/0"
+#define BTLOGGER_PATH "/data/misc/bluetooth/logs"
 #define VND_LOG_FILENAME "bt_vnd_log"
 #define MAX_LOG_FILES        (3)
 #define MAX_READ_LEN         (2048)
@@ -205,6 +205,7 @@ void listen_data(void)
 
         if (FD_ISSET(server_socket, &sock_fds)) {
             int new_client;
+            addrlen = sizeof(cliaddr);
             BTLOG_NO_INTR(new_client = accept(server_socket, (struct sockaddr*)&cliaddr, &addrlen));
             if (new_client == -1) {
                 if (errno == EINVAL || errno == EBADF) {
@@ -350,6 +351,9 @@ int vnd_log_file_name(char *log_file_name)
     p_dir = opendir(BTLOGGER_PATH);
     if (p_dir == NULL) {
         ALOGE("Unable to open the Dir %s", BTLOGGER_PATH);
+#ifdef LOGGER_USERDEBUG
+        goto file_creation;
+#endif
         return -1;
     }
 
@@ -379,6 +383,7 @@ int vnd_log_file_name(char *log_file_name)
         unlink(del_file);
     }
 
+file_creation:
     t = time(NULL);
     tmp = localtime(&t);
     if (tmp == NULL) {
@@ -417,10 +422,11 @@ void *log_dump_thread(void *param)
                 O_WRONLY | O_CREAT | O_TRUNC, \
                 S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH));
 
-    if (fd < -1) {
-        ALOGE("Unable to open log file");
+    if (fd <= -1) {
+        ALOGE("Unable to open log file fd:: %d ---> file name is :: %s --> Error :: %s", fd, file_name, strerror(errno));
+        return NULL;
     }
-    ALOGE("Writing logs to file");
+    ALOGE("Writing logs to file %d ---> file name is %s", fd, file_name);
 
     while (log_list->head) {
         pop_head_node(log_list, &l_node);

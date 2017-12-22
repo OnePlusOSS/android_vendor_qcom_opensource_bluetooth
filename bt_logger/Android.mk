@@ -7,10 +7,15 @@ LOCAL_SRC_FILES:=     \
     src/bt_logger.c   \
     src/bt_log_buffer.c
 
+ifeq ($(TARGET_BUILD_VARIANT),userdebug)
+LOCAL_CFLAGS += -DLOGGER_USERDEBUG
+endif
+
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/incl
 
 LOCAL_MODULE:= bt_logger
 
 LOCAL_SHARED_LIBRARIES += libcutils
+LOCAL_SHARED_LIBRARIES += liblog
 
 include $(BUILD_EXECUTABLE)
