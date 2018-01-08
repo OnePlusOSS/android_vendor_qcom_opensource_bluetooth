@@ -459,8 +459,13 @@ void dump_log_to_logcat()
 {
     bt_log_node_t *l_node = NULL;
 
-    if (!log_list || log_list->head == NULL) {
+    if (!log_list) {
         ALOGE("No Log to Dump to file");
+        return;
+    } else if ( !log_list->head) {
+        free(log_list);
+        ALOGE("No Log to Dump to file");
+        return;
     }
 
     while (log_list->head) {

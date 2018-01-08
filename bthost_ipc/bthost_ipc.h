@@ -213,6 +213,7 @@ typedef void (*bt_ipc_get_multicast_status_cb)(void);
 typedef void (*bt_ipc_get_connected_devices_cb)(void);
 typedef void (*bt_ipc_get_connection_status_cb)(void);
 typedef void (*bt_ipc_get_sink_latency_cb)(void);
+
 typedef struct {
  bt_ipc_start_stream_req_cb start_req_cb;
  bt_ipc_suspend_stream_req_cb suspend_req_cb;
@@ -236,6 +237,7 @@ void bt_stack_on_get_num_connected_devices(uint8_t num);
 void bt_stack_on_get_connection_status(tA2DP_CTRL_ACK status);
 void bt_stack_on_check_a2dp_ready(tA2DP_CTRL_ACK status);
 void bt_stack_on_get_sink_latency(uint16_t latency);
+
 int audio_stream_open(void);
 int audio_stream_close(void);
 int audio_start_stream(void);
@@ -247,6 +249,7 @@ void clear_a2dpsuspend_flag(void);
 void* audio_get_next_codec_config(uint8_t idx, audio_format_t *codec_type);
 int audio_check_a2dp_ready(void);
 uint16_t audio_get_a2dp_sink_latency();
+bool audio_is_scrambling_enabled(void);
 int wait_for_stack_response(uint8_t duration);
 #endif
 
